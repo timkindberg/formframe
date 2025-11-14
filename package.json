@@ -1,0 +1,32 @@
+{
+  "name": "@jsonschema-form/root",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A modular, tiny, well-architected JSON Schema form library",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present && rm -rf node_modules"
+  },
+  "keywords": [
+    "json-schema",
+    "forms",
+    "react",
+    "validation",
+    "modular"
+  ],
+  "author": "Tim Kindberg",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
+

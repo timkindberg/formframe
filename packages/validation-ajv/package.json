@@ -1,0 +1,38 @@
+{
+  "name": "@jsonschema-form/validation-ajv",
+  "version": "0.0.0",
+  "description": "AJV validation adapter for JSON Schema forms",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "echo 'Build script not yet configured'",
+    "test": "echo 'Test script not yet configured'",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "json-schema",
+    "validation",
+    "ajv"
+  ],
+  "author": "Tim Kindberg",
+  "license": "MIT",
+  "peerDependencies": {
+    "@jsonschema-form/core": "*",
+    "ajv": "^8.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
+
