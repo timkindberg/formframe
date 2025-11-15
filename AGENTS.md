@@ -130,4 +130,5 @@ history/
 - ❌ Do NOT duplicate tracking systems
 - ❌ Do NOT clutter repo root with planning documents
 
-For more details about the project architecture, see `architecture_records/`.
+For more details about the project architecture, see `architecture_records/` and `ARCHITECTURE.md`.
+For more details about the project and coding philosophy, see `README.md`.

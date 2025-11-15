@@ -1,4 +1,4 @@
-import type { JSONSchema, FieldNode, GroupNode } from './types';
+import type { JSONSchema, FieldNode, GroupNode, WalkHandlers } from './types';
 
 // JSONSchema can be a boolean in draft-07, but we only work with object schemas
 type JSONSchemaObject = Exclude<JSONSchema, boolean>;
@@ -31,6 +31,14 @@ function createFieldNode(
     required,
     widget: 'input', // Default for now
     attrs: buildAttrs(schema, required),
+    
+    isField(): this is FieldNode {
+      return true;
+    },
+    
+    isGroup(): this is GroupNode {
+      return false;
+    },
   };
 }
 
@@ -57,7 +65,7 @@ function createGroupNode(
     }
   }
 
-  return {
+  const groupNode: GroupNode = {
     nodeType: 'group',
     path,
     schema,
@@ -101,10 +109,24 @@ function createGroupNode(
       return fields;
     },
     
+    walk<R>(handlers?: WalkHandlers<R>): R[] {
+      return walkNode(groupNode, handlers);
+    },
+    
+    isField(): this is FieldNode {
+      return false;
+    },
+    
+    isGroup(): this is GroupNode {
+      return true;
+    },
+    
     toJSON() {
       return serializeNode(this);
     },
   };
+  
+  return groupNode;
 }
 
 // Helper to serialize nodes without circular references or functions
@@ -173,5 +195,45 @@ function buildAttrs(schema: JSONSchemaObject, required: boolean): Record<string,
   }
   
   return attrs;
+}
+
+// Walk implementation with handler inheritance
+let currentHandlers: WalkHandlers<any> | undefined;
+
+function walkNode<R>(node: GroupNode, handlers?: WalkHandlers<R>): R[] {
+  // First call sets handlers, nested calls inherit
+  const effectiveHandlers = handlers || currentHandlers;
+  if (!effectiveHandlers) {
+    throw new Error('walk() requires handlers on first call');
+  }
+  
+  // Set current handlers for inheritance
+  const previousHandlers = currentHandlers;
+  currentHandlers = effectiveHandlers;
+  
+  try {
+    const results: R[] = [];
+    
+    for (const child of node.children) {
+      if (child.nodeType === 'field' && effectiveHandlers.field) {
+        const result = effectiveHandlers.field(child);
+        results.push(result);
+      } else if (child.nodeType === 'group') {
+        if (effectiveHandlers.group) {
+          // Group handler provided - use it
+          const result = effectiveHandlers.group(child);
+          results.push(result);
+        } else {
+          // No group handler - transparently walk children
+          results.push(...child.walk());
+        }
+      }
+    }
+    
+    return results;
+  } finally {
+    // Restore previous handlers
+    currentHandlers = previousHandlers;
+  }
 }
 

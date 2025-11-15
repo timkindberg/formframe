@@ -1,152 +1,55 @@
-import { parseSchema } from '@jsonschema-form/core'
-import type { JSONSchema } from '@jsonschema-form/core'
+import { useState } from 'react'
+import App01 from './App_01_Core+Boilerplate'
+import App02 from './App_02_Core+Walk'
 
-const schema: JSONSchema = {
-type: 'object',
-properties: {
-  name: { type: 'string', title: 'Full Name', description: 'Enter your full name.' },
-  email: { type: 'string', format: 'email', title: 'Email' },
-  age: { type: 'number', minimum: 0, title: 'Age' },
-},
-required: ['name', 'email']
-}
-const form = parseSchema(schema)
-
-// Explore the API!
-console.log('=== Form Structure ===')
-console.log('Root:', form)
-console.log('\n=== Children ===')
-console.log('Children:', form.children)
-console.log('\n=== All Fields (flat) ===')
-console.log('All fields:', form.getAllFields())
-console.log('\n=== Get Single Field ===')
-console.log('Name field:', form.getField('name'))
-console.log('Email field:', form.getField('email'))
-console.log('Age field:', form.getField('age'))
-console.log('\n=== Field Attrs ===')
-const nameField = form.getField('name')
-console.log('Name field attrs:', nameField?.attrs)
-const emailField = form.getField('email')
-console.log('Email field attrs:', emailField?.attrs)
-console.log('\n=== JSON Export ===')
-console.log('JSON:', form.toJSON())
+const examples = [
+  { id: '01', name: 'Core + Boilerplate', component: App01 },
+  { id: '02', name: 'Core + Walk API', component: App02 },
+]
 
 function App() {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    const data = Object.fromEntries(formData.entries())
-    console.log('Form submitted:', data)
-  }
+  const [currentExample, setCurrentExample] = useState('01')
+  
+  const CurrentComponent = examples.find(ex => ex.id === currentExample)?.component || App01
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '600px' }}>
-      <h1>JSON Schema Form - Basic Example</h1>
-      <p style={{ color: '#666', marginBottom: '2rem' }}>
-        Manually walking the parsed tree structure
-      </p>
+    <div style={{ fontFamily: 'sans-serif' }}>
+      {/* Top Navigation */}
+      <nav style={{
+        backgroundColor: '#333',
+        color: 'white',
+        padding: '1rem',
+        display: 'flex',
+        gap: '1rem',
+        alignItems: 'center',
+        flexWrap: 'wrap'
+      }}>
+        <h1 style={{ margin: 0, fontSize: '1.25rem', marginRight: '2rem' }}>
+          JSON Schema Form Examples
+        </h1>
+        {examples.map((example) => (
+          <button
+            key={example.id}
+            onClick={() => setCurrentExample(example.id)}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: currentExample === example.id ? '#007bff' : 'transparent',
+              color: 'white',
+              border: currentExample === example.id ? 'none' : '1px solid white',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            {example.id}. {example.name}
+          </button>
+        ))}
+      </nav>
 
-      <form onSubmit={handleSubmit}>
-        {/* Walk the tree and render fields */}
-        {form.children.map((node) => {
-          if (node.nodeType === 'field') {
-            return (
-              <div key={node.path} style={{ marginBottom: '1.5rem' }}>
-                <label
-                  htmlFor={node.path}
-                  style={{
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    fontWeight: node.required ? 'bold' : 'normal'
-                  }}
-                >
-                  {node.label || node.path}
-                  {node.required && <span style={{ color: 'red' }}> *</span>}
-                </label>
-
-                {node.description && (
-                  <small style={{ color: '#666', display: 'block', marginBottom: '0.5rem' }}>
-                    {node.description}
-                  </small>
-                )}
-
-                <input
-                  id={node.path}
-                  name={node.path}
-                  {...node.attrs}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    fontSize: '1rem',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px'
-                  }}
-                />
-              </div>
-            )
-          } else if (node.nodeType === 'group') {
-            // Render a fieldset for nested objects
-            return (
-              <fieldset key={node.path} style={{ marginBottom: '1.5rem', padding: '1rem', border: '2px solid #eee' }}>
-                <legend style={{ fontWeight: 'bold' }}>
-                  {node.label || node.path}
-                </legend>
-                {node.children.map((childNode) => {
-                  if (childNode.nodeType === 'field') {
-                    return (
-                      <div key={childNode.path} style={{ marginBottom: '1rem' }}>
-                        <label
-                          htmlFor={childNode.path}
-                          style={{ display: 'block', marginBottom: '0.5rem' }}
-                        >
-                          {childNode.label || childNode.path}
-                          {childNode.required && <span style={{ color: 'red' }}> *</span>}
-                        </label>
-                        <input
-                          id={childNode.path}
-                          name={childNode.path}
-                          {...childNode.attrs}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            fontSize: '1rem',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px'
-                          }}
-                        />
-                      </div>
-                    )
-                  }
-                  return null
-                })}
-              </fieldset>
-            )
-          }
-          return null
-        })}
-
-        <button
-          type="submit"
-          style={{
-            padding: '0.75rem 2rem',
-            fontSize: '1rem',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Submit
-        </button>
-      </form>
-
-      <details style={{ marginTop: '2rem' }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>View Parsed Structure (JSON)</summary>
-        <pre style={{ background: '#f5f5f5', padding: '1rem', borderRadius: '4px', fontSize: '12px', overflow: 'auto', marginTop: '1rem' }}>
-          {JSON.stringify(form.toJSON(), null, 2)}
-        </pre>
-      </details>
+      {/* Content */}
+      <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+        <CurrentComponent />
+      </div>
     </div>
   )
 }

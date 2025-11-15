@@ -18,6 +18,15 @@ export interface FieldNode extends BaseNode {
   widget: string  // 'input', 'textarea', 'select', etc
   required: boolean
   attrs: Record<string, any>  // HTML attrs: { type: 'email', min: 0, ... }
+  
+  // Type guards
+  isField(): this is FieldNode
+  isGroup(): this is GroupNode
+}
+
+export interface WalkHandlers<R> {
+  field?: (node: FieldNode) => R
+  group?: (node: GroupNode) => R
 }
 
 export interface GroupNode extends BaseNode {
@@ -29,6 +38,13 @@ export interface GroupNode extends BaseNode {
   // Query methods - search descendants only
   getField(path: string): FieldNode | undefined
   getAllFields(): FieldNode[]
+  
+  // Walking/traversal
+  walk<R>(handlers?: WalkHandlers<R>): R[]
+  
+  // Type guards
+  isField(): this is FieldNode
+  isGroup(): this is GroupNode
   
   // Serialization
   toJSON(): object
