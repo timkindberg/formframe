@@ -149,9 +149,15 @@ This is where inputs, labels, buttons, and layout components are defined.
 
 This project is in early exploration phase. We're building the foundation thoughtfully, one decision at a time.
 
+### Architecture Records
+
+Detailed design decisions and API explorations are documented in:
+- [001: Core Layer, Tree Structure, and State Decisions](./architecture_records/001_core_layer_tree_structure_and_state_decisions.md)
+
 ### For AI Assistants
 This document represents the complete vision and constraints for the project. When working on this codebase:
 - Always refer back to these principles
+- Read the architecture records in `./architecture_records/` to understand design decisions
 - Never compromise on the layered architecture
 - Pair with the developer on API design
 - Start small, build incrementally

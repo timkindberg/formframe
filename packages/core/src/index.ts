@@ -1,3 +1,4 @@
+
 /**
  * @jsonschema-form/core
  * 
@@ -5,6 +6,17 @@
  * Zero dependencies. No framework coupling.
  */
 
-// Placeholder - to be implemented
 export const VERSION = '0.0.0';
 
+// Export types
+export type {
+  JSONSchema,
+  NodeType,
+  BaseNode,
+  FieldNode,
+  GroupNode,
+  RootNode,
+} from './types';
+
+// Export main parser
+export { parseSchema } from './parser';

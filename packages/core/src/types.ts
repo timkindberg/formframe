@@ -28,6 +28,7 @@ export interface GroupNode extends BaseNode {
   
   // Methods
   getChild(name: string): FieldNode | GroupNode | undefined
+  getChildren(): Array<FieldNode | GroupNode>
 }
 
 export interface RootNode {

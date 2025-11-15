@@ -4,7 +4,8 @@
   "private": true,
   "description": "A modular, tiny, well-architected JSON Schema form library",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
