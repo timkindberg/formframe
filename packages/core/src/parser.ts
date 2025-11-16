@@ -384,42 +384,35 @@ function buildInputAttrs(
 }
 
 // Walk implementation with handler inheritance
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let currentHandlers: WalkHandlers<any> | undefined
-
-function walkNode<R>(node: GroupNode, handlers?: WalkHandlers<R>): R[] {
-  // First call sets handlers, nested calls inherit
-  const effectiveHandlers = handlers || currentHandlers
+function walkNode<R>(
+  node: GroupNode,
+  handlers?: WalkHandlers<R>,
+  inheritedHandlers?: WalkHandlers<R>
+): R[] {
+  // Use inherited handlers if no new ones provided
+  const effectiveHandlers = inheritedHandlers || handlers
   if (!effectiveHandlers) {
     throw new Error('walk() requires handlers on first call')
   }
 
-  // Set current handlers for inheritance
-  const previousHandlers = currentHandlers
-  currentHandlers = effectiveHandlers
+  const results: R[] = []
 
-  try {
-    const results: R[] = []
-
-    for (const child of node.children) {
-      if (child.nodeType === 'field' && effectiveHandlers.field) {
-        const result = effectiveHandlers.field(child)
+  for (const child of node.children) {
+    if (child.nodeType === 'field' && effectiveHandlers.field) {
+      const result = effectiveHandlers.field(child)
+      results.push(result)
+    } else if (child.nodeType === 'group') {
+      if (effectiveHandlers.group) {
+        // Group handler provided - use it
+        const result = effectiveHandlers.group(child)
         results.push(result)
-      } else if (child.nodeType === 'group') {
-        if (effectiveHandlers.group) {
-          // Group handler provided - use it
-          const result = effectiveHandlers.group(child)
-          results.push(result)
-        } else {
-          // No group handler - transparently walk children
-          results.push(...(child.walk() as R[]))
-        }
+      } else {
+        // No group handler - transparently walk children
+        // Pass handlers down for inheritance
+        results.push(...walkNode(child, effectiveHandlers, effectiveHandlers))
       }
     }
-
-    return results
-  } finally {
-    // Restore previous handlers
-    currentHandlers = previousHandlers
   }
+
+  return results
 }
