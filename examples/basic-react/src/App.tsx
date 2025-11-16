@@ -2,11 +2,13 @@ import { useState } from 'react'
 import App01 from './App_01_Core+Boilerplate'
 import App02 from './App_02_Core+Walk'
 import App03 from './App_03_Core+DeepWalk'
+import App04 from './App_04_Core+Parts'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
   { id: '02', name: 'Core + Walk API', component: App02 },
   { id: '03', name: 'Core + Deep Walk', component: App03 },
+  { id: '04', name: 'Core + Parts API', component: App04 },
 ]
 
 function App() {

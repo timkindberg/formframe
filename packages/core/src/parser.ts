@@ -1,4 +1,4 @@
-import type { JSONSchema, FieldNode, GroupNode, WalkHandlers } from './types';
+import type { JSONSchema, FieldNode, GroupNode, WalkHandlers, FieldParts, GroupParts } from './types';
 
 // JSONSchema can be a boolean in draft-07, but we only work with object schemas
 type JSONSchemaObject = Exclude<JSONSchema, boolean>;
@@ -6,6 +6,18 @@ type JSONSchemaObject = Exclude<JSONSchema, boolean>;
 // Type guard for object schemas
 function isObjectSchema(schema: JSONSchema): schema is JSONSchemaObject {
   return typeof schema === 'object' && schema !== null;
+}
+
+// Helper to compute base node properties
+function computeBaseProps(path: string, schema: JSONSchemaObject) {
+  const isRoot = path === '';
+  const segments = path ? path.split('.') : [];
+  const depth = isRoot ? 0 : segments.length;
+  const key = segments[segments.length - 1] || '';
+  const parentPath = segments.slice(0, -1).join('.');
+  const displayLabel = schema.title || path || 'root';
+  
+  return { isRoot, depth, key, parentPath, displayLabel };
 }
 
 export function parseSchema(schema: JSONSchema): GroupNode {
@@ -22,6 +34,33 @@ function createFieldNode(
   schema: JSONSchemaObject,
   required: boolean
 ): FieldNode {
+  const baseProps = computeBaseProps(path, schema);
+  const attrs = buildAttrs(schema, required);
+  
+  const parts: FieldParts = {
+    container: {
+      role: 'field-container',
+      key: path,
+    },
+    label: {
+      text: baseProps.displayLabel,
+      htmlFor: path,
+      showRequired: required,
+    },
+    input: {
+      id: path,
+      name: path,
+      attrs,
+    },
+  };
+  
+  // Add description part if present
+  if (schema.description) {
+    parts.description = {
+      text: schema.description,
+    };
+  }
+  
   return {
     nodeType: 'field',
     path,
@@ -30,7 +69,13 @@ function createFieldNode(
     description: schema.description,
     required,
     widget: 'input', // Default for now
-    attrs: buildAttrs(schema, required),
+    attrs,
+    
+    // Computed properties
+    ...baseProps,
+    
+    // Parts API
+    parts,
     
     isField(): this is FieldNode {
       return true;
@@ -65,6 +110,32 @@ function createGroupNode(
     }
   }
 
+  const baseProps = computeBaseProps(path, schema);
+  
+  const parts: GroupParts = {
+    container: {
+      role: 'group-container',
+      key: path,
+    },
+    children: {
+      nodes: children,
+    },
+  };
+  
+  // Add label part if present
+  if (schema.title) {
+    parts.label = {
+      text: schema.title,
+    };
+  }
+  
+  // Add description part if present
+  if (schema.description) {
+    parts.description = {
+      text: schema.description,
+    };
+  }
+  
   const groupNode: GroupNode = {
     nodeType: 'group',
     path,
@@ -74,6 +145,12 @@ function createGroupNode(
     required,
     widget: 'fieldset',
     children,
+    
+    // Computed properties
+    ...baseProps,
+    
+    // Parts API
+    parts,
     
     getField(targetPath: string): FieldNode | undefined {
       // Search descendants relative to this group

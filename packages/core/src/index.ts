@@ -16,6 +16,8 @@ export type {
   FieldNode,
   GroupNode,
   WalkHandlers,
+  FieldParts,
+  GroupParts,
 } from './types';
 
 // Export main parser

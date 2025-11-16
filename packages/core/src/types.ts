@@ -11,6 +11,53 @@ export interface BaseNode {
   schema: JSONSchema  // the raw schema chunk
   label?: string
   description?: string
+  
+  // Computed properties (set at parse time)
+  isRoot: boolean           // true if path === ''
+  depth: number             // nesting level (path.split('.').length)
+  displayLabel: string      // label || path (always has value)
+  key: string               // last segment of path ('address.street' -> 'street')
+  parentPath: string        // parent path ('address.street' -> 'address')
+}
+
+// Parts API - framework-agnostic render structure descriptors
+export interface FieldParts {
+  container: {
+    role: 'field-container'
+    key: string
+  }
+  label: {
+    text: string
+    htmlFor: string
+    showRequired: boolean
+  }
+  description?: {
+    text: string
+  }
+  input: {
+    id: string
+    name: string
+    attrs: Record<string, any>
+  }
+  error?: {
+    text: string
+  }
+}
+
+export interface GroupParts {
+  container: {
+    role: 'group-container'
+    key: string
+  }
+  label?: {
+    text: string
+  }
+  description?: {
+    text: string
+  }
+  children: {
+    nodes: Array<FieldNode | GroupNode>
+  }
 }
 
 export interface FieldNode extends BaseNode {
@@ -18,6 +65,9 @@ export interface FieldNode extends BaseNode {
   widget: string  // 'input', 'textarea', 'select', etc
   required: boolean
   attrs: Record<string, any>  // HTML attrs: { type: 'email', min: 0, ... }
+  
+  // Parts API - framework-agnostic render data
+  parts: FieldParts
   
   // Type guards
   isField(): this is FieldNode
@@ -34,6 +84,9 @@ export interface GroupNode extends BaseNode {
   widget: 'fieldset'  // or keep flexible?
   required: boolean
   children: Array<FieldNode | GroupNode>
+  
+  // Parts API - framework-agnostic render data
+  parts: GroupParts
   
   // Query methods - search descendants only
   getField(path: string): FieldNode | undefined
