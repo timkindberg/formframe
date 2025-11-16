@@ -13,7 +13,6 @@ export interface BaseNode {
   // Computed properties (set at parse time)
   isRoot: boolean // true if path === ''
   depth: number // nesting level (path.split('.').length)
-  parentPath: string // parent path ('address.street' -> 'address')
 }
 
 // Parts API - framework-agnostic render structure descriptors

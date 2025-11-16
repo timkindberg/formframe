@@ -584,33 +584,6 @@ describe('parseSchema', () => {
       expect(nameField?.parts.container.key).toBe('name')
       expect(streetField?.parts.container.key).toBe('address.street')
     })
-
-    it('computes parentPath correctly', () => {
-      const schema: JSONSchema = {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          address: {
-            type: 'object',
-            properties: {
-              street: { type: 'string' },
-            },
-          },
-        },
-      }
-
-      const form = parseSchema(schema)
-      const nameField = form.getField('name')
-      const addressGroup = form.children.find(
-        (c) => c.path === 'address'
-      ) as GroupNode
-      const streetField = form.getField('address.street')
-
-      expect(form.parentPath).toBe('')
-      expect(nameField?.parentPath).toBe('')
-      expect(addressGroup?.parentPath).toBe('')
-      expect(streetField?.parentPath).toBe('address')
-    })
   })
 
   describe('parts API', () => {

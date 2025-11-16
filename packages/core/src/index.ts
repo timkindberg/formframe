@@ -20,4 +20,4 @@ export type {
 } from './types'
 
 // Export main parser
-export { parseSchema } from './parser'
+export { parseSchema } from './parser/index'
