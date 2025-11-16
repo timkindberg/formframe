@@ -7,6 +7,7 @@ const schema: JSONSchema = {
     name: { type: 'string', title: 'Full Name', description: 'Enter your full name.' },
     email: { type: 'string', format: 'email', title: 'Email' },
     age: { type: 'number', minimum: 0, title: 'Age' },
+    subscribe: { type: 'boolean', title: 'Subscribe to newsletter', description: 'Receive updates via email' },
     address: {
       type: 'object',
       title: 'Address',
@@ -15,6 +16,7 @@ const schema: JSONSchema = {
         city: { type: 'string', title: 'City' },
         state: { type: 'string', title: 'State', maxLength: 2 },
         zip: { type: 'string', title: 'ZIP Code', pattern: '^\\d{5}$' },
+        sameAsBilling: { type: 'boolean', title: 'Same as billing address' },
         location: {
           type: 'object',
           title: 'Coordinates',
@@ -25,9 +27,10 @@ const schema: JSONSchema = {
         }
       },
       required: ['street', 'city']
-    }
+    },
+    terms: { type: 'boolean', title: 'Accept terms and conditions' },
   },
-  required: ['name', 'email']
+  required: ['name', 'email', 'terms']
 }
 
 const form = parseSchema(schema)

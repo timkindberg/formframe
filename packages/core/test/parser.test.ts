@@ -133,6 +133,20 @@ describe('parseSchema', () => {
       expect(field?.attrs.type).toBe('number')
     })
 
+    it('generates checkbox input type for booleans', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          subscribe: { type: 'boolean' }
+        }
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('subscribe')
+
+      expect(field?.attrs.type).toBe('checkbox')
+    })
+
     it('includes required attribute for required fields', () => {
       const schema: JSONSchema = {
         type: 'object',
@@ -756,6 +770,129 @@ describe('parseSchema', () => {
         })
       })
 
+    })
+  })
+
+  describe('boolean fields', () => {
+    it('parses boolean fields with title and description', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          terms: { 
+            type: 'boolean', 
+            title: 'Accept Terms',
+            description: 'I agree to the terms and conditions'
+          }
+        }
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('terms')
+
+      expect(field?.nodeType).toBe('field')
+      expect(field?.label).toBe('Accept Terms')
+      expect(field?.description).toBe('I agree to the terms and conditions')
+      expect(field?.attrs.type).toBe('checkbox')
+    })
+
+    it('handles required boolean fields', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          terms: { type: 'boolean', title: 'Accept Terms' }
+        },
+        required: ['terms']
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('terms')
+
+      expect(field?.required).toBe(true)
+      expect(field?.attrs.required).toBe(true)
+      expect(field?.parts.label.showRequired).toBe(true)
+    })
+
+    it('works with mixed field types including booleans', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', title: 'Name' },
+          age: { type: 'number', title: 'Age' },
+          subscribe: { type: 'boolean', title: 'Subscribe to newsletter' },
+          terms: { type: 'boolean', title: 'Accept terms' }
+        }
+      }
+
+      const form = parseSchema(schema)
+      const allFields = form.getAllFields()
+
+      expect(allFields).toHaveLength(4)
+      expect(form.getField('name')?.attrs.type).toBe('text')
+      expect(form.getField('age')?.attrs.type).toBe('number')
+      expect(form.getField('subscribe')?.attrs.type).toBe('checkbox')
+      expect(form.getField('terms')?.attrs.type).toBe('checkbox')
+    })
+
+    it('includes boolean fields in parts API correctly', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          notifications: { 
+            type: 'boolean', 
+            title: 'Enable Notifications',
+            description: 'Receive email notifications'
+          }
+        },
+        required: ['notifications']
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('notifications')
+
+      expect(field?.parts.input).toEqual({
+        id: 'notifications',
+        name: 'notifications',
+        attrs: {
+          type: 'checkbox',
+          required: true
+        }
+      })
+
+      expect(field?.parts.label).toEqual({
+        text: 'Enable Notifications',
+        htmlFor: 'notifications',
+        showRequired: true
+      })
+
+      expect(field?.parts.description).toEqual({
+        text: 'Receive email notifications'
+      })
+    })
+
+    it('handles boolean fields in nested objects', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          preferences: {
+            type: 'object',
+            title: 'Preferences',
+            properties: {
+              emailNotifications: { type: 'boolean', title: 'Email Notifications' },
+              smsNotifications: { type: 'boolean', title: 'SMS Notifications' }
+            },
+            required: ['emailNotifications']
+          }
+        }
+      }
+
+      const form = parseSchema(schema)
+      const emailField = form.getField('preferences.emailNotifications')
+      const smsField = form.getField('preferences.smsNotifications')
+
+      expect(emailField?.attrs.type).toBe('checkbox')
+      expect(emailField?.required).toBe(true)
+      expect(smsField?.attrs.type).toBe('checkbox')
+      expect(smsField?.required).toBe(false)
     })
   })
 })

@@ -240,6 +240,8 @@ function buildAttrs(schema: JSONSchemaObject, required: boolean): Record<string,
     }
   } else if (schema.type === 'number' || schema.type === 'integer') {
     attrs.type = 'number';
+  } else if (schema.type === 'boolean') {
+    attrs.type = 'checkbox';
   }
   
   // Required
