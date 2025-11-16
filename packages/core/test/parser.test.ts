@@ -466,5 +466,320 @@ describe('parseSchema', () => {
       expect(jsonString).not.toContain('schema')
     })
   })
+
+  describe('computed properties', () => {
+    it('sets isRoot correctly', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string' }
+            }
+          }
+        }
+      }
+
+      const form = parseSchema(schema)
+      const nameField = form.getField('name')
+      const addressGroup = form.children.find(c => c.path === 'address')
+
+      expect(form.isRoot).toBe(true)
+      expect(nameField?.isRoot).toBe(false)
+      expect(addressGroup?.isRoot).toBe(false)
+    })
+
+    it('calculates depth correctly', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string' }
+            }
+          }
+        }
+      }
+
+      const form = parseSchema(schema)
+      const nameField = form.getField('name')
+      const streetField = form.getField('address.street')
+
+      expect(form.depth).toBe(0)
+      expect(nameField?.depth).toBe(1)
+      expect(streetField?.depth).toBe(2)
+    })
+
+    it('provides displayLabel fallback', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', title: 'Full Name' },
+          email: { type: 'string' }
+        }
+      }
+
+      const form = parseSchema(schema)
+      const nameField = form.getField('name')
+      const emailField = form.getField('email')
+
+      expect(form.displayLabel).toBe('root')
+      expect(nameField?.displayLabel).toBe('Full Name')
+      expect(emailField?.displayLabel).toBe('email')
+    })
+
+    it('extracts key from path', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string' }
+            }
+          }
+        }
+      }
+
+      const form = parseSchema(schema)
+      const nameField = form.getField('name')
+      const streetField = form.getField('address.street')
+
+      expect(form.key).toBe('')
+      expect(nameField?.key).toBe('name')
+      expect(streetField?.key).toBe('street')
+    })
+
+    it('computes parentPath correctly', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string' }
+            }
+          }
+        }
+      }
+
+      const form = parseSchema(schema)
+      const nameField = form.getField('name')
+      const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+      const streetField = form.getField('address.street')
+
+      expect(form.parentPath).toBe('')
+      expect(nameField?.parentPath).toBe('')
+      expect(addressGroup?.parentPath).toBe('')
+      expect(streetField?.parentPath).toBe('address')
+    })
+  })
+
+  describe('parts API', () => {
+    describe('field parts', () => {
+      it('includes container part', () => {
+        const schema: JSONSchema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' }
+          }
+        }
+
+        const form = parseSchema(schema)
+        const field = form.getField('name')
+
+        expect(field?.parts.container).toEqual({
+          role: 'field-container',
+          key: 'name'
+        })
+      })
+
+      it('includes label part with correct data', () => {
+        const schema: JSONSchema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string', title: 'Full Name' }
+          },
+          required: ['name']
+        }
+
+        const form = parseSchema(schema)
+        const field = form.getField('name')
+
+        expect(field?.parts.label).toEqual({
+          text: 'Full Name',
+          htmlFor: 'name',
+          showRequired: true
+        })
+      })
+
+      it('includes description part when present', () => {
+        const schema: JSONSchema = {
+          type: 'object',
+          properties: {
+            email: { type: 'string', description: 'Your email address' }
+          }
+        }
+
+        const form = parseSchema(schema)
+        const field = form.getField('email')
+
+        expect(field?.parts.description).toEqual({
+          text: 'Your email address'
+        })
+      })
+
+      it('omits description part when not present', () => {
+        const schema: JSONSchema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' }
+          }
+        }
+
+        const form = parseSchema(schema)
+        const field = form.getField('name')
+
+        expect(field?.parts.description).toBeUndefined()
+      })
+
+      it('includes input part with id, name, and attrs', () => {
+        const schema: JSONSchema = {
+          type: 'object',
+          properties: {
+            age: { type: 'number', minimum: 0, maximum: 120 }
+          }
+        }
+
+        const form = parseSchema(schema)
+        const field = form.getField('age')
+
+        expect(field?.parts.input).toEqual({
+          id: 'age',
+          name: 'age',
+          attrs: {
+            type: 'number',
+            min: 0,
+            max: 120
+          }
+        })
+      })
+    })
+
+    describe('group parts', () => {
+      it('includes container part', () => {
+        const schema: JSONSchema = {
+          type: 'object',
+          properties: {
+            address: {
+              type: 'object',
+              properties: {
+                street: { type: 'string' }
+              }
+            }
+          }
+        }
+
+        const form = parseSchema(schema)
+        const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+
+        expect(addressGroup.parts.container).toEqual({
+          role: 'group-container',
+          key: 'address'
+        })
+      })
+
+      it('includes label part when title present', () => {
+        const schema: JSONSchema = {
+          type: 'object',
+          properties: {
+            address: {
+              type: 'object',
+              title: 'Address Information',
+              properties: {
+                street: { type: 'string' }
+              }
+            }
+          }
+        }
+
+        const form = parseSchema(schema)
+        const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+
+        expect(addressGroup.parts.label).toEqual({
+          text: 'Address Information'
+        })
+      })
+
+      it('omits label part when title not present', () => {
+        const schema: JSONSchema = {
+          type: 'object',
+          properties: {
+            address: {
+              type: 'object',
+              properties: {
+                street: { type: 'string' }
+              }
+            }
+          }
+        }
+
+        const form = parseSchema(schema)
+        const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+
+        expect(addressGroup.parts.label).toBeUndefined()
+      })
+
+      it('includes description part when present', () => {
+        const schema: JSONSchema = {
+          type: 'object',
+          properties: {
+            address: {
+              type: 'object',
+              description: 'Your mailing address',
+              properties: {
+                street: { type: 'string' }
+              }
+            }
+          }
+        }
+
+        const form = parseSchema(schema)
+        const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+
+        expect(addressGroup.parts.description).toEqual({
+          text: 'Your mailing address'
+        })
+      })
+
+      it('includes children with nodes array', () => {
+        const schema: JSONSchema = {
+          type: 'object',
+          properties: {
+            address: {
+              type: 'object',
+              properties: {
+                street: { type: 'string' },
+                city: { type: 'string' }
+              }
+            }
+          }
+        }
+
+        const form = parseSchema(schema)
+        const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+
+        expect(addressGroup.parts.children.nodes).toHaveLength(2)
+        expect(addressGroup.parts.children.nodes[0]).toBe(addressGroup.children[0])
+        expect(addressGroup.parts.children.nodes[1]).toBe(addressGroup.children[1])
+      })
+    })
+  })
 })
 
