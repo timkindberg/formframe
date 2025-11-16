@@ -4,23 +4,48 @@ import type { JSONSchema } from '@jsonschema-form/core'
 const schema: JSONSchema = {
   type: 'object',
   properties: {
-    name: { type: 'string', title: 'Full Name', description: 'Enter your full name.' },
+    name: {
+      type: 'string',
+      title: 'Full Name',
+      description: 'Enter your full name.',
+    },
     email: { type: 'string', format: 'email', title: 'Email' },
     age: { type: 'number', minimum: 0, title: 'Age' },
-    subscribe: { type: 'boolean', title: 'Subscribe to newsletter', description: 'Receive updates via email' },
+    theme: {
+      oneOf: [
+        { const: 'light', title: 'Light Mode' },
+        { const: 'dark', title: 'Dark Mode' },
+        { const: 'auto', title: 'Auto (System)' },
+      ],
+      title: 'Color Theme',
+      description: 'Choose your preferred color theme',
+    },
+    subscribe: {
+      type: 'boolean',
+      title: 'Subscribe to newsletter',
+      description: 'Receive updates via email',
+    },
     address: {
       type: 'object',
       title: 'Address',
       properties: {
         street: { type: 'string', title: 'Street' },
         city: { type: 'string', title: 'City' },
+        type: {
+          oneOf: [
+            { const: 'home', title: 'Home' },
+            { const: 'work', title: 'Work' },
+            { const: 'other', title: 'Other' },
+          ],
+          title: 'Address Type',
+        },
         isPrimary: { type: 'boolean', title: 'Primary address' },
       },
-      required: ['street', 'city']
+      required: ['street', 'city'],
     },
     terms: { type: 'boolean', title: 'Accept terms and conditions' },
   },
-  required: ['name', 'email', 'terms']
+  required: ['name', 'email', 'theme', 'terms'],
 }
 
 const form = parseSchema(schema)
@@ -42,46 +67,68 @@ function App() {
         {form.walk({
           field: (node) => {
             // Access parts - just data, not components
-            const { container, label, description, input } = node.parts
-            
+            const { container, label, description, input, select } = node.parts
+
             return (
               <div key={container.key} style={{ marginBottom: '1rem' }}>
-                <label htmlFor={label.for}>
+                <label htmlFor={label.attrs.for}>
                   {label.text}
                   {label.showRequired && <span> *</span>}
                 </label>
-                
+
                 {description && (
                   <small style={{ display: 'block', color: '#666' }}>
                     {description.text}
                   </small>
                 )}
-                
-                <input
-                  id={input.id}
-                  name={input.name}
-                  {...input.attrs}
-                  style={{ display: 'block', marginTop: '0.25rem' }}
-                />
+
+                {select ? (
+                  <select
+                    {...select.attrs}
+                    style={{ display: 'block', marginTop: '0.25rem' }}
+                  >
+                    <option value="">-- Select --</option>
+                    {select.options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : input ? (
+                  <input
+                    {...input.attrs}
+                    style={{ display: 'block', marginTop: '0.25rem' }}
+                  />
+                ) : null}
               </div>
             )
           },
-          
+
           group: (node) => {
             if (node.isRoot) {
               return <div key="root">{node.walk()}</div>
             }
-            
+
             const { container, label, description } = node.parts
-            
+
             return (
-              <fieldset 
+              <fieldset
                 key={container.key}
-                style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #999' }}
+                style={{
+                  marginBottom: '1rem',
+                  padding: '1rem',
+                  border: '1px solid #999',
+                }}
               >
                 {label && <legend>{label.text}</legend>}
                 {description && (
-                  <small style={{ display: 'block', marginBottom: '0.5rem', color: '#666' }}>
+                  <small
+                    style={{
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      color: '#666',
+                    }}
+                  >
                     {description.text}
                   </small>
                 )}
@@ -96,8 +143,10 @@ function App() {
 
       <details style={{ marginTop: '2rem' }}>
         <summary>Example: Computed Properties</summary>
-        <pre style={{ background: '#f5f5f5', padding: '1rem', fontSize: '12px' }}>
-{`const nameField = form.getField('name')
+        <pre
+          style={{ background: '#f5f5f5', padding: '1rem', fontSize: '12px' }}
+        >
+          {`const nameField = form.getField('name')
 
 // Computed properties (set at parse time)
 nameField.isRoot        // false
@@ -115,7 +164,14 @@ nameField.parts.input   // { id: "name", name: "name", attrs: { type: "text", ..
 
       <details>
         <summary>View Full Structure (JSON)</summary>
-        <pre style={{ background: '#f5f5f5', padding: '1rem', fontSize: '12px', overflow: 'auto' }}>
+        <pre
+          style={{
+            background: '#f5f5f5',
+            padding: '1rem',
+            fontSize: '12px',
+            overflow: 'auto',
+          }}
+        >
           {JSON.stringify(form.toJSON(), null, 2)}
         </pre>
       </details>
@@ -124,4 +180,3 @@ nameField.parts.input   // { id: "name", name: "name", attrs: { type: "text", ..
 }
 
 export default App
-

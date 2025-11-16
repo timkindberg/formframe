@@ -7,17 +7,13 @@ export type NodeType = 'group' | 'field'
 
 export interface BaseNode {
   nodeType: NodeType
-  path: string  // dot notation: 'user.address.street'
-  schema: JSONSchema  // the raw schema chunk
-  label?: string
-  description?: string
-  
+  path: string // dot notation: 'user.address.street'
+  schema: JSONSchema // the raw schema chunk
+
   // Computed properties (set at parse time)
-  isRoot: boolean           // true if path === ''
-  depth: number             // nesting level (path.split('.').length)
-  displayLabel: string      // label || path (always has value)
-  key: string               // last segment of path ('address.street' -> 'street')
-  parentPath: string        // parent path ('address.street' -> 'address')
+  isRoot: boolean // true if path === ''
+  depth: number // nesting level (path.split('.').length)
+  parentPath: string // parent path ('address.street' -> 'address')
 }
 
 // Parts API - framework-agnostic render structure descriptors
@@ -27,16 +23,39 @@ export interface FieldParts {
   }
   label: {
     text: string
-    for: string
+    attrs: {
+      for: string
+    }
     showRequired: boolean
   }
   description?: {
     text: string
   }
-  input: {
-    id: string
-    name: string
-    attrs: Record<string, any>
+  input?: {
+    attrs: {
+      id: string
+      name: string
+      type?: string
+      required?: boolean
+      min?: number
+      max?: number
+      minLength?: number
+      maxLength?: number
+      pattern?: string
+      placeholder?: string
+      disabled?: boolean
+      readOnly?: boolean
+    }
+  }
+  select?: {
+    attrs: {
+      id: string
+      name: string
+      required?: boolean
+      disabled?: boolean
+      multiple?: boolean
+    }
+    options: Array<{ value: string | number; label: string }>
   }
   error?: {
     text: string
@@ -57,13 +76,21 @@ export interface GroupParts {
 
 export interface FieldNode extends BaseNode {
   nodeType: 'field'
-  widget: string  // 'input', 'textarea', 'select', etc
-  required: boolean
-  attrs: Record<string, any>  // HTML attrs: { type: 'email', min: 0, ... }
-  
+  widget: string // 'input', 'textarea', 'select', etc
+
+  // Validation rules (all in one place)
+  validation: {
+    required: boolean
+    minLength?: number
+    maxLength?: number
+    minimum?: number
+    maximum?: number
+    pattern?: string
+  }
+
   // Parts API - framework-agnostic render data
   parts: FieldParts
-  
+
   // Type guards
   isField(): this is FieldNode
   isGroup(): this is GroupNode
@@ -76,25 +103,28 @@ export interface WalkHandlers<R> {
 
 export interface GroupNode extends BaseNode {
   nodeType: 'group'
-  widget: 'fieldset'  // or keep flexible?
-  required: boolean
+  widget: 'fieldset' // or keep flexible?
   children: Array<FieldNode | GroupNode>
-  
+
+  // Validation rules
+  validation: {
+    required: boolean
+  }
+
   // Parts API - framework-agnostic render data
   parts: GroupParts
-  
+
   // Query methods - search descendants only
   getField(path: string): FieldNode | undefined
   getAllFields(): FieldNode[]
-  
+
   // Walking/traversal
   walk<R>(handlers?: WalkHandlers<R>): R[]
-  
+
   // Type guards
   isField(): this is FieldNode
   isGroup(): this is GroupNode
-  
+
   // Serialization
   toJSON(): object
 }
-

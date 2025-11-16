@@ -15,21 +15,24 @@ const examples = [
 
 function App() {
   const [currentExample, setCurrentExample] = useState('01')
-  
-  const CurrentComponent = examples.find(ex => ex.id === currentExample)?.component || App01
+
+  const CurrentComponent =
+    examples.find((ex) => ex.id === currentExample)?.component || App01
 
   return (
     <div style={{ fontFamily: 'sans-serif' }}>
       {/* Top Navigation */}
-      <nav style={{
-        backgroundColor: '#333',
-        color: 'white',
-        padding: '1rem',
-        display: 'flex',
-        gap: '1rem',
-        alignItems: 'center',
-        flexWrap: 'wrap'
-      }}>
+      <nav
+        style={{
+          backgroundColor: '#333',
+          color: 'white',
+          padding: '1rem',
+          display: 'flex',
+          gap: '1rem',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
         <h1 style={{ margin: 0, fontSize: '1.25rem', marginRight: '2rem' }}>
           JSON Schema Form Examples
         </h1>
@@ -39,12 +42,14 @@ function App() {
             onClick={() => setCurrentExample(example.id)}
             style={{
               padding: '0.5rem 1rem',
-              backgroundColor: currentExample === example.id ? '#007bff' : 'transparent',
+              backgroundColor:
+                currentExample === example.id ? '#007bff' : 'transparent',
               color: 'white',
-              border: currentExample === example.id ? 'none' : '1px solid white',
+              border:
+                currentExample === example.id ? 'none' : '1px solid white',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '0.9rem'
+              fontSize: '0.9rem',
             }}
           >
             {example.id}. {example.name}
@@ -61,4 +66,3 @@ function App() {
 }
 
 export default App
-

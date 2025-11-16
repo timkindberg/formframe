@@ -1,12 +1,11 @@
-
 /**
  * @jsonschema-form/core
- * 
+ *
  * Headless foundation for JSON Schema form generation.
  * Zero dependencies. No framework coupling.
  */
 
-export const VERSION = '0.0.0';
+export const VERSION = '0.0.0'
 
 // Export types
 export type {
@@ -18,7 +17,7 @@ export type {
   WalkHandlers,
   FieldParts,
   GroupParts,
-} from './types';
+} from './types'
 
 // Export main parser
-export { parseSchema } from './parser';
+export { parseSchema } from './parser'

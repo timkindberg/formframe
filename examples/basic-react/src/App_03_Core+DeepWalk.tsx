@@ -4,33 +4,63 @@ import type { JSONSchema } from '@jsonschema-form/core'
 const schema: JSONSchema = {
   type: 'object',
   properties: {
-    name: { type: 'string', title: 'Full Name', description: 'Enter your full name.' },
+    name: {
+      type: 'string',
+      title: 'Full Name',
+      description: 'Enter your full name.',
+    },
     email: { type: 'string', format: 'email', title: 'Email' },
     age: { type: 'number', minimum: 0, title: 'Age' },
-    subscribe: { type: 'boolean', title: 'Subscribe to newsletter', description: 'Receive updates via email' },
+    role: {
+      oneOf: [
+        { const: 'user', title: 'Regular User' },
+        { const: 'admin', title: 'Administrator' },
+        { const: 'moderator', title: 'Moderator' },
+      ],
+      title: 'User Role',
+    },
+    subscribe: {
+      type: 'boolean',
+      title: 'Subscribe to newsletter',
+      description: 'Receive updates via email',
+    },
     address: {
       type: 'object',
       title: 'Address',
       properties: {
         street: { type: 'string', title: 'Street' },
         city: { type: 'string', title: 'City' },
-        state: { type: 'string', title: 'State', maxLength: 2 },
+        state: {
+          type: 'string',
+          enum: ['CA', 'NY', 'TX', 'FL'],
+          title: 'State',
+        },
         zip: { type: 'string', title: 'ZIP Code', pattern: '^\\d{5}$' },
         sameAsBilling: { type: 'boolean', title: 'Same as billing address' },
         location: {
           type: 'object',
           title: 'Coordinates',
           properties: {
-            latitude: { type: 'number', title: 'Latitude', minimum: -90, maximum: 90 },
-            longitude: { type: 'number', title: 'Longitude', minimum: -180, maximum: 180 },
-          }
-        }
+            latitude: {
+              type: 'number',
+              title: 'Latitude',
+              minimum: -90,
+              maximum: 90,
+            },
+            longitude: {
+              type: 'number',
+              title: 'Longitude',
+              minimum: -180,
+              maximum: 180,
+            },
+          },
+        },
       },
-      required: ['street', 'city']
+      required: ['street', 'city'],
     },
     terms: { type: 'boolean', title: 'Accept terms and conditions' },
   },
-  required: ['name', 'email', 'terms']
+  required: ['name', 'email', 'terms'],
 }
 
 const form = parseSchema(schema)
@@ -46,50 +76,60 @@ function App() {
   return (
     <div>
       <h1>JSON Schema Form - Deep Walk</h1>
-      <p>Nested objects with recursive walk() - handlers inherit automatically</p>
+      <p>
+        Nested objects with recursive walk() - handlers inherit automatically
+      </p>
 
       <form onSubmit={handleSubmit}>
         {form.walk({
           field: (node) => (
             <div key={node.path}>
               <label htmlFor={node.path}>
-                {node.label || node.path}
-                {node.required && <span> *</span>}
+                {node.parts.label.text}
+                {node.validation.required && <span> *</span>}
               </label>
 
-              {node.description && (
-                <small>{node.description}</small>
+              {node.parts.description && (
+                <small>{node.parts.description.text}</small>
               )}
 
-              <input
-                id={node.path}
-                name={node.path}
-                {...node.attrs}
-              />
+              {node.widget === 'select' && node.parts.select ? (
+                <select {...node.parts.select.attrs}>
+                  <option value="">-- Select --</option>
+                  {node.parts.select.options.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              ) : node.parts.input ? (
+                <input {...node.parts.input.attrs} />
+              ) : null}
             </div>
           ),
-          
+
           group: (node) => {
             // Skip rendering the root group (empty path)
             if (node.path === '') {
               return <div key="root">{node.walk()}</div>
             }
-            
+
             // Render nested groups as fieldsets
             // Add visual depth indicator
             const depth = node.path.split('.').length
             return (
-              <fieldset 
+              <fieldset
                 key={node.path}
-                style={{ 
+                style={{
                   marginLeft: `${(depth - 1) * 1}rem`,
                   marginBottom: '1rem',
                   padding: '1rem',
-                  border: `2px solid ${depth === 1 ? '#333' : '#999'}`
+                  border: `2px solid ${depth === 1 ? '#333' : '#999'}`,
                 }}
               >
                 <legend style={{ fontWeight: depth === 1 ? 'bold' : 'normal' }}>
-                  {node.label || node.path} {depth > 1 && <small>(nested level {depth})</small>}
+                  {node.parts.label?.text || node.path}{' '}
+                  {depth > 1 && <small>(nested level {depth})</small>}
                 </legend>
                 {/* Handlers automatically inherit to nested walk() calls */}
                 {node.walk()}
@@ -110,4 +150,3 @@ function App() {
 }
 
 export default App
-

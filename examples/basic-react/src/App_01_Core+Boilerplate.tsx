@@ -2,15 +2,32 @@ import { parseSchema } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
 
 const schema: JSONSchema = {
-type: 'object',
-properties: {
-  name: { type: 'string', title: 'Full Name', description: 'Enter your full name.' },
-  email: { type: 'string', format: 'email', title: 'Email' },
-  age: { type: 'number', minimum: 0, title: 'Age' },
-  subscribe: { type: 'boolean', title: 'Subscribe to newsletter', description: 'Receive updates via email' },
-  terms: { type: 'boolean', title: 'Accept terms and conditions' },
-},
-required: ['name', 'email', 'terms']
+  type: 'object',
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Full Name',
+      description: 'Enter your full name.',
+    },
+    email: { type: 'string', format: 'email', title: 'Email' },
+    age: { type: 'number', minimum: 0, title: 'Age' },
+    country: {
+      oneOf: [
+        { const: 'US', title: 'United States' },
+        { const: 'CA', title: 'Canada' },
+        { const: 'UK', title: 'United Kingdom' },
+        { const: 'AU', title: 'Australia' },
+      ],
+      title: 'Country',
+    },
+    subscribe: {
+      type: 'boolean',
+      title: 'Subscribe to newsletter',
+      description: 'Receive updates via email',
+    },
+    terms: { type: 'boolean', title: 'Accept terms and conditions' },
+  },
+  required: ['name', 'email', 'country', 'terms'],
 }
 const form = parseSchema(schema)
 
@@ -27,9 +44,9 @@ console.log('Email field:', form.getField('email'))
 console.log('Age field:', form.getField('age'))
 console.log('\n=== Field Attrs ===')
 const nameField = form.getField('name')
-console.log('Name field attrs:', nameField?.attrs)
+console.log('Name field attrs:', nameField?.parts.input?.attrs)
 const emailField = form.getField('email')
-console.log('Email field attrs:', emailField?.attrs)
+console.log('Email field attrs:', emailField?.parts.input?.attrs)
 console.log('\n=== JSON Export ===')
 console.log('JSON:', form.toJSON())
 
@@ -53,41 +70,54 @@ function App() {
             return (
               <div key={node.path}>
                 <label htmlFor={node.path}>
-                  {node.label || node.path}
-                  {node.required && <span> *</span>}
+                  {node.parts.label.text}
+                  {node.validation.required && <span> *</span>}
                 </label>
 
-                {node.description && (
-                  <small>{node.description}</small>
+                {node.parts.description && (
+                  <small>{node.parts.description.text}</small>
                 )}
 
-                <input
-                  id={node.path}
-                  name={node.path}
-                  {...node.attrs}
-                />
+                {node.widget === 'select' && node.parts.select ? (
+                  <select {...node.parts.select.attrs}>
+                    <option value="">-- Select --</option>
+                    {node.parts.select.options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : node.parts.input ? (
+                  <input {...node.parts.input.attrs} />
+                ) : null}
               </div>
             )
           } else if (node.nodeType === 'group') {
             // Render a fieldset for nested objects
             return (
               <fieldset key={node.path}>
-                <legend>
-                  {node.label || node.path}
-                </legend>
+                <legend>{node.parts.label?.text || node.path}</legend>
                 {node.children.map((childNode) => {
                   if (childNode.nodeType === 'field') {
                     return (
                       <div key={childNode.path}>
                         <label htmlFor={childNode.path}>
-                          {childNode.label || childNode.path}
-                          {childNode.required && <span> *</span>}
+                          {childNode.parts.label.text}
+                          {childNode.validation.required && <span> *</span>}
                         </label>
-                        <input
-                          id={childNode.path}
-                          name={childNode.path}
-                          {...childNode.attrs}
-                        />
+                        {childNode.widget === 'select' &&
+                        childNode.parts.select ? (
+                          <select {...childNode.parts.select.attrs}>
+                            <option value="">-- Select --</option>
+                            {childNode.parts.select.options.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : childNode.parts.input ? (
+                          <input {...childNode.parts.input.attrs} />
+                        ) : null}
                       </div>
                     )
                   }
@@ -111,4 +141,3 @@ function App() {
 }
 
 export default App
-

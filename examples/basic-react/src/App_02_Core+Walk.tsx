@@ -2,15 +2,32 @@ import { parseSchema } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
 
 const schema: JSONSchema = {
-type: 'object',
-properties: {
-  name: { type: 'string', title: 'Full Name', description: 'Enter your full name.' },
-  email: { type: 'string', format: 'email', title: 'Email' },
-  age: { type: 'number', minimum: 0, title: 'Age' },
-  subscribe: { type: 'boolean', title: 'Subscribe to newsletter', description: 'Receive updates via email' },
-  terms: { type: 'boolean', title: 'Accept terms and conditions' },
-},
-required: ['name', 'email', 'terms']
+  type: 'object',
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Full Name',
+      description: 'Enter your full name.',
+    },
+    email: { type: 'string', format: 'email', title: 'Email' },
+    age: { type: 'number', minimum: 0, title: 'Age' },
+    country: {
+      oneOf: [
+        { const: 'US', title: 'United States' },
+        { const: 'CA', title: 'Canada' },
+        { const: 'UK', title: 'United Kingdom' },
+        { const: 'AU', title: 'Australia' },
+      ],
+      title: 'Country',
+    },
+    subscribe: {
+      type: 'boolean',
+      title: 'Subscribe to newsletter',
+      description: 'Receive updates via email',
+    },
+    terms: { type: 'boolean', title: 'Accept terms and conditions' },
+  },
+  required: ['name', 'email', 'country', 'terms'],
 }
 const form = parseSchema(schema)
 
@@ -32,25 +49,32 @@ function App() {
           field: (node) => (
             <div key={node.path}>
               <label htmlFor={node.path}>
-                {node.label || node.path}
-                {node.required && <span> *</span>}
+                {node.parts.label.text}
+                {node.validation.required && <span> *</span>}
               </label>
 
-              {node.description && (
-                <small>{node.description}</small>
+              {node.parts.description && (
+                <small>{node.parts.description.text}</small>
               )}
 
-              <input
-                id={node.path}
-                name={node.path}
-                {...node.attrs}
-              />
+              {node.widget === 'select' && node.parts.select ? (
+                <select {...node.parts.select.attrs}>
+                  <option value="">-- Select --</option>
+                  {node.parts.select.options.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              ) : node.parts.input ? (
+                <input {...node.parts.input.attrs} />
+              ) : null}
             </div>
           ),
-          
+
           group: (node) => (
             <fieldset key={node.path}>
-              <legend>{node.label || node.path}</legend>
+              <legend>{node.parts.label?.text || node.path}</legend>
               {node.walk()}
             </fieldset>
           ),
@@ -68,4 +92,3 @@ function App() {
 }
 
 export default App
-

@@ -8,8 +8,8 @@ describe('parseSchema', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          name: { type: 'string', title: 'Name' }
-        }
+          name: { type: 'string', title: 'Name' },
+        },
       }
 
       const form = parseSchema(schema)
@@ -26,8 +26,8 @@ describe('parseSchema', () => {
         properties: {
           name: { type: 'string' },
           email: { type: 'string' },
-          age: { type: 'number' }
-        }
+          age: { type: 'number' },
+        },
       }
 
       const form = parseSchema(schema)
@@ -37,8 +37,12 @@ describe('parseSchema', () => {
     })
 
     it('throws error for boolean schemas', () => {
-      expect(() => parseSchema(true)).toThrow('Boolean schemas are not yet supported')
-      expect(() => parseSchema(false)).toThrow('Boolean schemas are not yet supported')
+      expect(() => parseSchema(true)).toThrow(
+        'Boolean schemas are not yet supported'
+      )
+      expect(() => parseSchema(false)).toThrow(
+        'Boolean schemas are not yet supported'
+      )
     })
   })
 
@@ -47,28 +51,28 @@ describe('parseSchema', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          name: { type: 'string', title: 'Full Name' }
-        }
+          name: { type: 'string', title: 'Full Name' },
+        },
       }
 
       const form = parseSchema(schema)
       const field = form.getField('name')
 
-      expect(field?.label).toBe('Full Name')
+      expect(field?.parts.label.text).toBe('Full Name')
     })
 
     it('extracts description from schema', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          email: { type: 'string', description: 'Your email address' }
-        }
+          email: { type: 'string', description: 'Your email address' },
+        },
       }
 
       const form = parseSchema(schema)
       const field = form.getField('email')
 
-      expect(field?.description).toBe('Your email address')
+      expect(field?.parts.description?.text).toBe('Your email address')
     })
 
     it('marks required fields correctly', () => {
@@ -76,17 +80,17 @@ describe('parseSchema', () => {
         type: 'object',
         properties: {
           name: { type: 'string' },
-          email: { type: 'string' }
+          email: { type: 'string' },
         },
-        required: ['name']
+        required: ['name'],
       }
 
       const form = parseSchema(schema)
       const nameField = form.getField('name')
       const emailField = form.getField('email')
 
-      expect(nameField?.required).toBe(true)
-      expect(emailField?.required).toBe(false)
+      expect(nameField?.validation.required).toBe(true)
+      expect(emailField?.validation.required).toBe(false)
     })
   })
 
@@ -95,115 +99,115 @@ describe('parseSchema', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          name: { type: 'string' }
-        }
+          name: { type: 'string' },
+        },
       }
 
       const form = parseSchema(schema)
       const field = form.getField('name')
 
-      expect(field?.attrs.type).toBe('text')
+      expect(field?.parts.input.attrs.type).toBe('text')
     })
 
     it('generates email input type for email format', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          email: { type: 'string', format: 'email' }
-        }
+          email: { type: 'string', format: 'email' },
+        },
       }
 
       const form = parseSchema(schema)
       const field = form.getField('email')
 
-      expect(field?.attrs.type).toBe('email')
+      expect(field?.parts.input.attrs.type).toBe('email')
     })
 
     it('generates number input type for numbers', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          age: { type: 'number' }
-        }
+          age: { type: 'number' },
+        },
       }
 
       const form = parseSchema(schema)
       const field = form.getField('age')
 
-      expect(field?.attrs.type).toBe('number')
+      expect(field?.parts.input.attrs.type).toBe('number')
     })
 
     it('generates checkbox input type for booleans', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          subscribe: { type: 'boolean' }
-        }
+          subscribe: { type: 'boolean' },
+        },
       }
 
       const form = parseSchema(schema)
       const field = form.getField('subscribe')
 
-      expect(field?.attrs.type).toBe('checkbox')
+      expect(field?.parts.input.attrs.type).toBe('checkbox')
     })
 
     it('includes required attribute for required fields', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          name: { type: 'string' }
+          name: { type: 'string' },
         },
-        required: ['name']
+        required: ['name'],
       }
 
       const form = parseSchema(schema)
       const field = form.getField('name')
 
-      expect(field?.attrs.required).toBe(true)
+      expect(field?.parts.input.attrs.required).toBe(true)
     })
 
     it('includes min/max attributes for number constraints', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          age: { type: 'number', minimum: 0, maximum: 120 }
-        }
+          age: { type: 'number', minimum: 0, maximum: 120 },
+        },
       }
 
       const form = parseSchema(schema)
       const field = form.getField('age')
 
-      expect(field?.attrs.min).toBe(0)
-      expect(field?.attrs.max).toBe(120)
+      expect(field?.parts.input.attrs.min).toBe(0)
+      expect(field?.parts.input.attrs.max).toBe(120)
     })
 
     it('includes minLength/maxLength for string constraints', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          username: { type: 'string', minLength: 3, maxLength: 20 }
-        }
+          username: { type: 'string', minLength: 3, maxLength: 20 },
+        },
       }
 
       const form = parseSchema(schema)
       const field = form.getField('username')
 
-      expect(field?.attrs.minLength).toBe(3)
-      expect(field?.attrs.maxLength).toBe(20)
+      expect(field?.parts.input.attrs.minLength).toBe(3)
+      expect(field?.parts.input.attrs.maxLength).toBe(20)
     })
 
     it('includes pattern attribute', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          zipcode: { type: 'string', pattern: '^[0-9]{5}$' }
-        }
+          zipcode: { type: 'string', pattern: '^[0-9]{5}$' },
+        },
       }
 
       const form = parseSchema(schema)
       const field = form.getField('zipcode')
 
-      expect(field?.attrs.pattern).toBe('^[0-9]{5}$')
+      expect(field?.parts.input.attrs.pattern).toBe('^[0-9]{5}$')
     })
   })
 
@@ -217,19 +221,19 @@ describe('parseSchema', () => {
             title: 'Address',
             properties: {
               street: { type: 'string' },
-              city: { type: 'string' }
-            }
-          }
-        }
+              city: { type: 'string' },
+            },
+          },
+        },
       }
 
       const form = parseSchema(schema)
 
       expect(form.children).toHaveLength(1)
       expect(form.children[0].nodeType).toBe('group')
-      
+
       const group = form.children[0] as GroupNode
-      expect(group.label).toBe('Address')
+      expect(group.parts.label?.text).toBe('Address')
       expect(group.children).toHaveLength(2)
     })
 
@@ -241,10 +245,10 @@ describe('parseSchema', () => {
             type: 'object',
             properties: {
               street: { type: 'string' },
-              city: { type: 'string' }
-            }
-          }
-        }
+              city: { type: 'string' },
+            },
+          },
+        },
       }
 
       const form = parseSchema(schema)
@@ -263,19 +267,19 @@ describe('parseSchema', () => {
             type: 'object',
             properties: {
               street: { type: 'string' },
-              city: { type: 'string' }
+              city: { type: 'string' },
             },
-            required: ['street']
-          }
-        }
+            required: ['street'],
+          },
+        },
       }
 
       const form = parseSchema(schema)
       const street = form.getField('address.street')
       const city = form.getField('address.city')
 
-      expect(street?.required).toBe(true)
-      expect(city?.required).toBe(false)
+      expect(street?.validation.required).toBe(true)
+      expect(city?.validation.required).toBe(false)
     })
 
     it('allows direct access to children on group nodes', () => {
@@ -286,15 +290,15 @@ describe('parseSchema', () => {
             type: 'object',
             properties: {
               street: { type: 'string' },
-              city: { type: 'string' }
-            }
-          }
-        }
+              city: { type: 'string' },
+            },
+          },
+        },
       }
 
       const form = parseSchema(schema)
       const group = form.children[0] as GroupNode
-      
+
       expect(group.children).toHaveLength(2)
       expect(group.children[0].path).toBe('address.street')
     })
@@ -307,19 +311,19 @@ describe('parseSchema', () => {
             type: 'object',
             properties: {
               street: { type: 'string' },
-              city: { type: 'string' }
-            }
-          }
-        }
+              city: { type: 'string' },
+            },
+          },
+        },
       }
 
       const form = parseSchema(schema)
       const addressGroup = form.children[0] as GroupNode
-      
+
       // Query relative to the group
       const street = addressGroup.getField('street')
       expect(street?.path).toBe('address.street')
-      
+
       const city = addressGroup.getField('city')
       expect(city?.path).toBe('address.city')
     })
@@ -331,24 +335,24 @@ describe('parseSchema', () => {
         type: 'object',
         properties: {
           name: { type: 'string', title: 'Name' },
-          email: { type: 'string', title: 'Email' }
-        }
+          email: { type: 'string', title: 'Email' },
+        },
       }
 
       const form = parseSchema(schema)
       const nameField = form.getField('name')
       const emailField = form.getField('email')
 
-      expect(nameField?.label).toBe('Name')
-      expect(emailField?.label).toBe('Email')
+      expect(nameField?.parts.label.text).toBe('Name')
+      expect(emailField?.parts.label.text).toBe('Email')
     })
 
     it('getField returns undefined for non-existent path', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          name: { type: 'string' }
-        }
+          name: { type: 'string' },
+        },
       }
 
       const form = parseSchema(schema)
@@ -366,17 +370,21 @@ describe('parseSchema', () => {
             type: 'object',
             properties: {
               street: { type: 'string' },
-              city: { type: 'string' }
-            }
-          }
-        }
+              city: { type: 'string' },
+            },
+          },
+        },
       }
 
       const form = parseSchema(schema)
       const allFields = form.getAllFields()
 
       expect(allFields).toHaveLength(3)
-      expect(allFields.map(f => f.path)).toEqual(['name', 'address.street', 'address.city'])
+      expect(allFields.map((f) => f.path)).toEqual([
+        'name',
+        'address.street',
+        'address.city',
+      ])
     })
 
     it('getAllFields only returns FieldNodes, not GroupNodes', () => {
@@ -387,16 +395,16 @@ describe('parseSchema', () => {
           address: {
             type: 'object',
             properties: {
-              street: { type: 'string' }
-            }
-          }
-        }
+              street: { type: 'string' },
+            },
+          },
+        },
       }
 
       const form = parseSchema(schema)
       const allFields = form.getAllFields()
 
-      expect(allFields.every(f => f.nodeType === 'field')).toBe(true)
+      expect(allFields.every((f) => f.nodeType === 'field')).toBe(true)
     })
 
     it('getAllFields from nested group only returns descendants, not siblings or parents', () => {
@@ -414,34 +422,38 @@ describe('parseSchema', () => {
                 type: 'object',
                 properties: {
                   code: { type: 'string' },
-                  name: { type: 'string' }
-                }
-              }
-            }
+                  name: { type: 'string' },
+                },
+              },
+            },
           },
-          phone: { type: 'string' }
-        }
+          phone: { type: 'string' },
+        },
       }
 
       const form = parseSchema(schema)
-      const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+      const addressGroup = form.children.find(
+        (c) => c.path === 'address'
+      ) as GroupNode
 
       // Get all fields from the address group
       const addressFields = addressGroup.getAllFields()
 
       // Should only include descendants of address (street, city, country.code, country.name)
       expect(addressFields).toHaveLength(4)
-      expect(addressFields.map(f => f.path).sort()).toEqual([
-        'address.city',
-        'address.country.code',
-        'address.country.name',
-        'address.street'
-      ].sort())
+      expect(addressFields.map((f) => f.path).sort()).toEqual(
+        [
+          'address.city',
+          'address.country.code',
+          'address.country.name',
+          'address.street',
+        ].sort()
+      )
 
       // Should NOT include siblings (name, email, phone)
-      expect(addressFields.find(f => f.path === 'name')).toBeUndefined()
-      expect(addressFields.find(f => f.path === 'email')).toBeUndefined()
-      expect(addressFields.find(f => f.path === 'phone')).toBeUndefined()
+      expect(addressFields.find((f) => f.path === 'name')).toBeUndefined()
+      expect(addressFields.find((f) => f.path === 'email')).toBeUndefined()
+      expect(addressFields.find((f) => f.path === 'phone')).toBeUndefined()
     })
   })
 
@@ -450,8 +462,8 @@ describe('parseSchema', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          name: { type: 'string', title: 'Name' }
-        }
+          name: { type: 'string', title: 'Name' },
+        },
       }
 
       const form = parseSchema(schema)
@@ -467,8 +479,8 @@ describe('parseSchema', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          name: { type: 'string', title: 'Name' }
-        }
+          name: { type: 'string', title: 'Name' },
+        },
       }
 
       const form = parseSchema(schema)
@@ -490,15 +502,15 @@ describe('parseSchema', () => {
           address: {
             type: 'object',
             properties: {
-              street: { type: 'string' }
-            }
-          }
-        }
+              street: { type: 'string' },
+            },
+          },
+        },
       }
 
       const form = parseSchema(schema)
       const nameField = form.getField('name')
-      const addressGroup = form.children.find(c => c.path === 'address')
+      const addressGroup = form.children.find((c) => c.path === 'address')
 
       expect(form.isRoot).toBe(true)
       expect(nameField?.isRoot).toBe(false)
@@ -513,10 +525,10 @@ describe('parseSchema', () => {
           address: {
             type: 'object',
             properties: {
-              street: { type: 'string' }
-            }
-          }
-        }
+              street: { type: 'string' },
+            },
+          },
+        },
       }
 
       const form = parseSchema(schema)
@@ -528,25 +540,28 @@ describe('parseSchema', () => {
       expect(streetField?.depth).toBe(2)
     })
 
-    it('provides displayLabel fallback', () => {
+    it('provides label fallback (displayLabel logic baked into parts.label.text)', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
           name: { type: 'string', title: 'Full Name' },
-          email: { type: 'string' }
-        }
+          email: { type: 'string' },
+        },
       }
 
       const form = parseSchema(schema)
       const nameField = form.getField('name')
       const emailField = form.getField('email')
 
-      expect(form.displayLabel).toBe('root')
-      expect(nameField?.displayLabel).toBe('Full Name')
-      expect(emailField?.displayLabel).toBe('email')
+      // Root group only has label part if schema.title is present
+      expect(form.parts.label).toBeUndefined()
+      // Field with title uses title
+      expect(nameField?.parts.label.text).toBe('Full Name')
+      // Field without title falls back to path
+      expect(emailField?.parts.label.text).toBe('email')
     })
 
-    it('extracts key from path', () => {
+    it('container key matches path', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
@@ -554,19 +569,20 @@ describe('parseSchema', () => {
           address: {
             type: 'object',
             properties: {
-              street: { type: 'string' }
-            }
-          }
-        }
+              street: { type: 'string' },
+            },
+          },
+        },
       }
 
       const form = parseSchema(schema)
       const nameField = form.getField('name')
       const streetField = form.getField('address.street')
 
-      expect(form.key).toBe('')
-      expect(nameField?.key).toBe('name')
-      expect(streetField?.key).toBe('street')
+      // container.key should match the node's path
+      expect(form.parts.container.key).toBe('')
+      expect(nameField?.parts.container.key).toBe('name')
+      expect(streetField?.parts.container.key).toBe('address.street')
     })
 
     it('computes parentPath correctly', () => {
@@ -577,15 +593,17 @@ describe('parseSchema', () => {
           address: {
             type: 'object',
             properties: {
-              street: { type: 'string' }
-            }
-          }
-        }
+              street: { type: 'string' },
+            },
+          },
+        },
       }
 
       const form = parseSchema(schema)
       const nameField = form.getField('name')
-      const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+      const addressGroup = form.children.find(
+        (c) => c.path === 'address'
+      ) as GroupNode
       const streetField = form.getField('address.street')
 
       expect(form.parentPath).toBe('')
@@ -601,15 +619,15 @@ describe('parseSchema', () => {
         const schema: JSONSchema = {
           type: 'object',
           properties: {
-            name: { type: 'string' }
-          }
+            name: { type: 'string' },
+          },
         }
 
         const form = parseSchema(schema)
         const field = form.getField('name')
 
         expect(field?.parts.container).toEqual({
-          key: 'name'
+          key: 'name',
         })
       })
 
@@ -617,9 +635,9 @@ describe('parseSchema', () => {
         const schema: JSONSchema = {
           type: 'object',
           properties: {
-            name: { type: 'string', title: 'Full Name' }
+            name: { type: 'string', title: 'Full Name' },
           },
-          required: ['name']
+          required: ['name'],
         }
 
         const form = parseSchema(schema)
@@ -627,8 +645,10 @@ describe('parseSchema', () => {
 
         expect(field?.parts.label).toEqual({
           text: 'Full Name',
-          for: 'name',
-          showRequired: true
+          attrs: {
+            for: 'name',
+          },
+          showRequired: true,
         })
       })
 
@@ -636,15 +656,15 @@ describe('parseSchema', () => {
         const schema: JSONSchema = {
           type: 'object',
           properties: {
-            email: { type: 'string', description: 'Your email address' }
-          }
+            email: { type: 'string', description: 'Your email address' },
+          },
         }
 
         const form = parseSchema(schema)
         const field = form.getField('email')
 
         expect(field?.parts.description).toEqual({
-          text: 'Your email address'
+          text: 'Your email address',
         })
       })
 
@@ -652,8 +672,8 @@ describe('parseSchema', () => {
         const schema: JSONSchema = {
           type: 'object',
           properties: {
-            name: { type: 'string' }
-          }
+            name: { type: 'string' },
+          },
         }
 
         const form = parseSchema(schema)
@@ -666,21 +686,21 @@ describe('parseSchema', () => {
         const schema: JSONSchema = {
           type: 'object',
           properties: {
-            age: { type: 'number', minimum: 0, maximum: 120 }
-          }
+            age: { type: 'number', minimum: 0, maximum: 120 },
+          },
         }
 
         const form = parseSchema(schema)
         const field = form.getField('age')
 
         expect(field?.parts.input).toEqual({
-          id: 'age',
-          name: 'age',
           attrs: {
+            id: 'age',
+            name: 'age',
             type: 'number',
             min: 0,
-            max: 120
-          }
+            max: 120,
+          },
         })
       })
     })
@@ -693,17 +713,19 @@ describe('parseSchema', () => {
             address: {
               type: 'object',
               properties: {
-                street: { type: 'string' }
-              }
-            }
-          }
+                street: { type: 'string' },
+              },
+            },
+          },
         }
 
         const form = parseSchema(schema)
-        const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+        const addressGroup = form.children.find(
+          (c) => c.path === 'address'
+        ) as GroupNode
 
         expect(addressGroup.parts.container).toEqual({
-          key: 'address'
+          key: 'address',
         })
       })
 
@@ -715,17 +737,19 @@ describe('parseSchema', () => {
               type: 'object',
               title: 'Address Information',
               properties: {
-                street: { type: 'string' }
-              }
-            }
-          }
+                street: { type: 'string' },
+              },
+            },
+          },
         }
 
         const form = parseSchema(schema)
-        const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+        const addressGroup = form.children.find(
+          (c) => c.path === 'address'
+        ) as GroupNode
 
         expect(addressGroup.parts.label).toEqual({
-          text: 'Address Information'
+          text: 'Address Information',
         })
       })
 
@@ -736,14 +760,16 @@ describe('parseSchema', () => {
             address: {
               type: 'object',
               properties: {
-                street: { type: 'string' }
-              }
-            }
-          }
+                street: { type: 'string' },
+              },
+            },
+          },
         }
 
         const form = parseSchema(schema)
-        const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+        const addressGroup = form.children.find(
+          (c) => c.path === 'address'
+        ) as GroupNode
 
         expect(addressGroup.parts.label).toBeUndefined()
       })
@@ -756,20 +782,298 @@ describe('parseSchema', () => {
               type: 'object',
               description: 'Your mailing address',
               properties: {
-                street: { type: 'string' }
-              }
-            }
-          }
+                street: { type: 'string' },
+              },
+            },
+          },
         }
 
         const form = parseSchema(schema)
-        const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
+        const addressGroup = form.children.find(
+          (c) => c.path === 'address'
+        ) as GroupNode
 
         expect(addressGroup.parts.description).toEqual({
-          text: 'Your mailing address'
+          text: 'Your mailing address',
         })
       })
+    })
+  })
 
+  describe('enum/select fields', () => {
+    it('parses enum fields with string values', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          color: {
+            type: 'string',
+            enum: ['red', 'green', 'blue'],
+            title: 'Favorite Color',
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('color')
+
+      expect(field?.nodeType).toBe('field')
+      expect(field?.widget).toBe('select')
+      expect(field?.parts.label.text).toBe('Favorite Color')
+    })
+
+    it('generates select part with options from enum', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          size: {
+            type: 'string',
+            enum: ['small', 'medium', 'large'],
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('size')
+
+      expect(field?.parts.select).toBeDefined()
+      expect(field?.parts.select?.options).toEqual([
+        { value: 'small', label: 'small' },
+        { value: 'medium', label: 'medium' },
+        { value: 'large', label: 'large' },
+      ])
+    })
+
+    it('supports oneOf with const + title for custom option labels', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          size: {
+            oneOf: [
+              { const: 'sm', title: 'Small' },
+              { const: 'md', title: 'Medium' },
+              { const: 'lg', title: 'Large' },
+            ],
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('size')
+
+      expect(field?.parts.select?.options).toEqual([
+        { value: 'sm', label: 'Small' },
+        { value: 'md', label: 'Medium' },
+        { value: 'lg', label: 'Large' },
+      ])
+    })
+
+    it('oneOf without title falls back to const value as label', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          status: {
+            oneOf: [
+              { const: 'draft' },
+              { const: 'published', title: 'Published' },
+              { const: 'archived' },
+            ],
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('status')
+
+      expect(field?.widget).toBe('select')
+      expect(field?.parts.select?.options).toEqual([
+        { value: 'draft', label: 'draft' },
+        { value: 'published', label: 'Published' },
+        { value: 'archived', label: 'archived' },
+      ])
+    })
+
+    it('handles enum fields with number values', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          rating: {
+            type: 'number',
+            enum: [1, 2, 3, 4, 5],
+            title: 'Rating',
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('rating')
+
+      expect(field?.widget).toBe('select')
+      expect(field?.parts.select?.options).toEqual([
+        { value: 1, label: '1' },
+        { value: 2, label: '2' },
+        { value: 3, label: '3' },
+        { value: 4, label: '4' },
+        { value: 5, label: '5' },
+      ])
+    })
+
+    it('handles required enum fields', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          country: {
+            type: 'string',
+            enum: ['US', 'UK', 'CA'],
+          },
+        },
+        required: ['country'],
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('country')
+
+      expect(field?.validation.required).toBe(true)
+      expect(field?.parts.select?.attrs.required).toBe(true)
+      expect(field?.parts.label.showRequired).toBe(true)
+    })
+
+    it('works with mixed field types including enums', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', title: 'Name' },
+          size: { type: 'string', enum: ['S', 'M', 'L'], title: 'Size' },
+          quantity: { type: 'number', title: 'Quantity' },
+          inStock: { type: 'boolean', title: 'In Stock' },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const allFields = form.getAllFields()
+
+      expect(allFields).toHaveLength(4)
+      expect(form.getField('name')?.widget).toBe('input')
+      expect(form.getField('size')?.widget).toBe('select')
+      expect(form.getField('quantity')?.widget).toBe('input')
+      expect(form.getField('inStock')?.widget).toBe('input')
+    })
+
+    it('handles oneOf fields in nested objects', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          shipping: {
+            type: 'object',
+            title: 'Shipping',
+            properties: {
+              method: {
+                oneOf: [
+                  { const: 'standard', title: 'Standard (5-7 days)' },
+                  { const: 'express', title: 'Express (2-3 days)' },
+                  { const: 'overnight', title: 'Overnight' },
+                ],
+                title: 'Shipping Method',
+              },
+              priority: { type: 'boolean', title: 'Priority' },
+            },
+            required: ['method'],
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const methodField = form.getField('shipping.method')
+      const priorityField = form.getField('shipping.priority')
+
+      expect(methodField?.widget).toBe('select')
+      expect(methodField?.validation.required).toBe(true)
+      expect(methodField?.parts.select?.options).toHaveLength(3)
+      expect(methodField?.parts.select?.options[0].label).toBe(
+        'Standard (5-7 days)'
+      )
+      expect(priorityField?.widget).toBe('input')
+    })
+
+    it('includes select part with id and name in parts API', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['active', 'inactive'],
+            title: 'Status',
+          },
+        },
+        required: ['status'],
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('status')
+
+      expect(field?.parts.select).toEqual({
+        attrs: {
+          id: 'status',
+          name: 'status',
+          required: true,
+        },
+        options: [
+          { value: 'active', label: 'active' },
+          { value: 'inactive', label: 'inactive' },
+        ],
+      })
+    })
+
+    it('does not set widget to select if enum is empty', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          field: {
+            type: 'string',
+            enum: [],
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('field')
+
+      expect(field?.widget).toBe('input')
+      expect(field?.parts.select).toBeUndefined()
+    })
+
+    it('select widgets do not have input part', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          color: {
+            type: 'string',
+            enum: ['red', 'green', 'blue'],
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('color')
+
+      expect(field?.widget).toBe('select')
+      expect(field?.parts.select).toBeDefined()
+      expect(field?.parts.input).toBeUndefined()
+    })
+
+    it('input widgets do not have select part', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const field = form.getField('name')
+
+      expect(field?.widget).toBe('input')
+      expect(field?.parts.input).toBeDefined()
+      expect(field?.parts.select).toBeUndefined()
     })
   })
 
@@ -778,37 +1082,39 @@ describe('parseSchema', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          terms: { 
-            type: 'boolean', 
+          terms: {
+            type: 'boolean',
             title: 'Accept Terms',
-            description: 'I agree to the terms and conditions'
-          }
-        }
+            description: 'I agree to the terms and conditions',
+          },
+        },
       }
 
       const form = parseSchema(schema)
       const field = form.getField('terms')
 
       expect(field?.nodeType).toBe('field')
-      expect(field?.label).toBe('Accept Terms')
-      expect(field?.description).toBe('I agree to the terms and conditions')
-      expect(field?.attrs.type).toBe('checkbox')
+      expect(field?.parts.label.text).toBe('Accept Terms')
+      expect(field?.parts.description?.text).toBe(
+        'I agree to the terms and conditions'
+      )
+      expect(field?.parts.input.attrs.type).toBe('checkbox')
     })
 
     it('handles required boolean fields', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          terms: { type: 'boolean', title: 'Accept Terms' }
+          terms: { type: 'boolean', title: 'Accept Terms' },
         },
-        required: ['terms']
+        required: ['terms'],
       }
 
       const form = parseSchema(schema)
       const field = form.getField('terms')
 
-      expect(field?.required).toBe(true)
-      expect(field?.attrs.required).toBe(true)
+      expect(field?.validation.required).toBe(true)
+      expect(field?.parts.input.attrs.required).toBe(true)
       expect(field?.parts.label.showRequired).toBe(true)
     })
 
@@ -819,53 +1125,57 @@ describe('parseSchema', () => {
           name: { type: 'string', title: 'Name' },
           age: { type: 'number', title: 'Age' },
           subscribe: { type: 'boolean', title: 'Subscribe to newsletter' },
-          terms: { type: 'boolean', title: 'Accept terms' }
-        }
+          terms: { type: 'boolean', title: 'Accept terms' },
+        },
       }
 
       const form = parseSchema(schema)
       const allFields = form.getAllFields()
 
       expect(allFields).toHaveLength(4)
-      expect(form.getField('name')?.attrs.type).toBe('text')
-      expect(form.getField('age')?.attrs.type).toBe('number')
-      expect(form.getField('subscribe')?.attrs.type).toBe('checkbox')
-      expect(form.getField('terms')?.attrs.type).toBe('checkbox')
+      expect(form.getField('name')?.parts.input.attrs.type).toBe('text')
+      expect(form.getField('age')?.parts.input.attrs.type).toBe('number')
+      expect(form.getField('subscribe')?.parts.input.attrs.type).toBe(
+        'checkbox'
+      )
+      expect(form.getField('terms')?.parts.input.attrs.type).toBe('checkbox')
     })
 
     it('includes boolean fields in parts API correctly', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
-          notifications: { 
-            type: 'boolean', 
+          notifications: {
+            type: 'boolean',
             title: 'Enable Notifications',
-            description: 'Receive email notifications'
-          }
+            description: 'Receive email notifications',
+          },
         },
-        required: ['notifications']
+        required: ['notifications'],
       }
 
       const form = parseSchema(schema)
       const field = form.getField('notifications')
 
       expect(field?.parts.input).toEqual({
-        id: 'notifications',
-        name: 'notifications',
         attrs: {
+          id: 'notifications',
+          name: 'notifications',
           type: 'checkbox',
-          required: true
-        }
+          required: true,
+        },
       })
 
       expect(field?.parts.label).toEqual({
         text: 'Enable Notifications',
-        for: 'notifications',
-        showRequired: true
+        attrs: {
+          for: 'notifications',
+        },
+        showRequired: true,
       })
 
       expect(field?.parts.description).toEqual({
-        text: 'Receive email notifications'
+        text: 'Receive email notifications',
       })
     })
 
@@ -877,23 +1187,25 @@ describe('parseSchema', () => {
             type: 'object',
             title: 'Preferences',
             properties: {
-              emailNotifications: { type: 'boolean', title: 'Email Notifications' },
-              smsNotifications: { type: 'boolean', title: 'SMS Notifications' }
+              emailNotifications: {
+                type: 'boolean',
+                title: 'Email Notifications',
+              },
+              smsNotifications: { type: 'boolean', title: 'SMS Notifications' },
             },
-            required: ['emailNotifications']
-          }
-        }
+            required: ['emailNotifications'],
+          },
+        },
       }
 
       const form = parseSchema(schema)
       const emailField = form.getField('preferences.emailNotifications')
       const smsField = form.getField('preferences.smsNotifications')
 
-      expect(emailField?.attrs.type).toBe('checkbox')
-      expect(emailField?.required).toBe(true)
-      expect(smsField?.attrs.type).toBe('checkbox')
-      expect(smsField?.required).toBe(false)
+      expect(emailField?.parts.input.attrs.type).toBe('checkbox')
+      expect(emailField?.validation.required).toBe(true)
+      expect(smsField?.parts.input.attrs.type).toBe('checkbox')
+      expect(smsField?.validation.required).toBe(false)
     })
   })
 })
-
