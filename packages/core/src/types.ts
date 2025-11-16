@@ -23,7 +23,6 @@ export interface BaseNode {
 // Parts API - framework-agnostic render structure descriptors
 export interface FieldParts {
   container: {
-    role: 'field-container'
     key: string
   }
   label: {
@@ -46,7 +45,6 @@ export interface FieldParts {
 
 export interface GroupParts {
   container: {
-    role: 'group-container'
     key: string
   }
   label?: {
@@ -54,9 +52,6 @@ export interface GroupParts {
   }
   description?: {
     text: string
-  }
-  children: {
-    nodes: Array<FieldNode | GroupNode>
   }
 }
 

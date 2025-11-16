@@ -595,7 +595,6 @@ describe('parseSchema', () => {
         const field = form.getField('name')
 
         expect(field?.parts.container).toEqual({
-          role: 'field-container',
           key: 'name'
         })
       })
@@ -690,7 +689,6 @@ describe('parseSchema', () => {
         const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
 
         expect(addressGroup.parts.container).toEqual({
-          role: 'group-container',
           key: 'address'
         })
       })
@@ -758,27 +756,6 @@ describe('parseSchema', () => {
         })
       })
 
-      it('includes children with nodes array', () => {
-        const schema: JSONSchema = {
-          type: 'object',
-          properties: {
-            address: {
-              type: 'object',
-              properties: {
-                street: { type: 'string' },
-                city: { type: 'string' }
-              }
-            }
-          }
-        }
-
-        const form = parseSchema(schema)
-        const addressGroup = form.children.find(c => c.path === 'address') as GroupNode
-
-        expect(addressGroup.parts.children.nodes).toHaveLength(2)
-        expect(addressGroup.parts.children.nodes[0]).toBe(addressGroup.children[0])
-        expect(addressGroup.parts.children.nodes[1]).toBe(addressGroup.children[1])
-      })
     })
   })
 })

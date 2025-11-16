@@ -42,7 +42,7 @@ function App() {
             const { container, label, description, input } = node.parts
             
             return (
-              <div key={container.key} role={container.role} style={{ marginBottom: '1rem' }}>
+              <div key={container.key} style={{ marginBottom: '1rem' }}>
                 <label htmlFor={label.htmlFor}>
                   {label.text}
                   {label.showRequired && <span> *</span>}
@@ -74,7 +74,6 @@ function App() {
             return (
               <fieldset 
                 key={container.key}
-                role={container.role}
                 style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #999' }}
               >
                 {label && <legend>{label.text}</legend>}

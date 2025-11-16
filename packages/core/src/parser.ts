@@ -39,7 +39,6 @@ function createFieldNode(
   
   const parts: FieldParts = {
     container: {
-      role: 'field-container',
       key: path,
     },
     label: {
@@ -114,11 +113,7 @@ function createGroupNode(
   
   const parts: GroupParts = {
     container: {
-      role: 'group-container',
       key: path,
-    },
-    children: {
-      nodes: children,
     },
   };
   
