@@ -627,7 +627,7 @@ describe('parseSchema', () => {
 
         expect(field?.parts.label).toEqual({
           text: 'Full Name',
-          htmlFor: 'name',
+          for: 'name',
           showRequired: true
         })
       })
@@ -860,7 +860,7 @@ describe('parseSchema', () => {
 
       expect(field?.parts.label).toEqual({
         text: 'Enable Notifications',
-        htmlFor: 'notifications',
+        for: 'notifications',
         showRequired: true
       })
 

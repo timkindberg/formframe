@@ -114,7 +114,7 @@ function App() {
                     />
                     <div style={{ flex: 1 }}>
                       <label 
-                        htmlFor={label.htmlFor}
+                        htmlFor={label.for}
                         style={{ cursor: 'pointer', fontWeight: '500' }}
                       >
                         {label.text}
@@ -130,7 +130,7 @@ function App() {
                 ) : (
                   // Regular input layout: label comes before input
                   <>
-                    <label htmlFor={label.htmlFor} style={{ display: 'block', fontWeight: '500' }}>
+                    <label htmlFor={label.for} style={{ display: 'block', fontWeight: '500' }}>
                       {label.text}
                       {label.showRequired && <span style={{ color: '#dc3545' }}> *</span>}
                     </label>

@@ -27,7 +27,7 @@ export interface FieldParts {
   }
   label: {
     text: string
-    htmlFor: string
+    for: string
     showRequired: boolean
   }
   description?: {

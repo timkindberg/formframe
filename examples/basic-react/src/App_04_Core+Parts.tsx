@@ -46,7 +46,7 @@ function App() {
             
             return (
               <div key={container.key} style={{ marginBottom: '1rem' }}>
-                <label htmlFor={label.htmlFor}>
+                <label htmlFor={label.for}>
                   {label.text}
                   {label.showRequired && <span> *</span>}
                 </label>
@@ -107,7 +107,7 @@ nameField.key           // "name"
 nameField.parentPath    // ""
 
 // Parts (framework-agnostic render data)
-nameField.parts.label   // { text: "Full Name", htmlFor: "name", showRequired: true }
+nameField.parts.label   // { text: "Full Name", for: "name", showRequired: true }
 nameField.parts.input   // { id: "name", name: "name", attrs: { type: "text", ... } }
 `}
         </pre>

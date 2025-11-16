@@ -43,7 +43,7 @@ function createFieldNode(
     },
     label: {
       text: baseProps.displayLabel,
-      htmlFor: path,
+      for: path,
       showRequired: required,
     },
     input: {
