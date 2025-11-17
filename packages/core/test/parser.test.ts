@@ -1197,7 +1197,7 @@ describe('parseSchema', () => {
       let fieldCount = 0
       let groupCount = 0
 
-      form.walk({
+      const result = form.walk({
         root: (node) => {
           rootCalled = true
           expect(node.isRoot).toBe(true)
@@ -1217,7 +1217,7 @@ describe('parseSchema', () => {
       expect(rootCalled).toBe(true)
       expect(fieldCount).toBe(0) // Fields shouldn't be called when root handler is used
       expect(groupCount).toBe(0) // Groups shouldn't be called when root handler is used
-      expect(form.walk()).toEqual(['root-result'])
+      expect(result).toEqual(['root-result'])
     })
 
     it('still walks children normally without root handler', () => {

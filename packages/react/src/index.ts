@@ -6,6 +6,14 @@
 
 export const VERSION = '0.0.0'
 
+// React hook
+export { useSchemaForm } from './useSchemaForm'
+export type {
+  UseSchemaFormOptions,
+  UseSchemaFormReturn,
+  FormProps,
+} from './useSchemaForm'
+
 // Default component renderers
 export { DefaultRoot } from './DefaultRoot'
 export { DefaultField } from './DefaultField'

@@ -4,6 +4,7 @@ import App02 from './App_02_Core+Walk'
 import App03 from './App_03_Core+DeepWalk'
 import App04 from './App_04_Core+Parts'
 import App05 from './App_05_React+DefaultComponents'
+import App06 from './App_06_React+UseSchemaForm'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -11,6 +12,7 @@ const examples = [
   { id: '03', name: 'Core + Deep Walk', component: App03 },
   { id: '04', name: 'Core + Parts API', component: App04 },
   { id: '05', name: 'React + Default Components', component: App05 },
+  { id: '06', name: 'React + useSchemaForm Hook', component: App06 },
 ]
 
 function App() {
