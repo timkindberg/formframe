@@ -104,9 +104,9 @@ function App() {
             )
           },
 
-          group: (node) => {
+          group: (node, handlers) => {
             if (node.isRoot) {
-              return <div key="root">{node.walk()}</div>
+              return <div key="root">{node.walk(handlers)}</div>
             }
 
             const { container, label, description } = node.parts
@@ -132,7 +132,7 @@ function App() {
                     {description.text}
                   </small>
                 )}
-                {node.walk()}
+                {node.walk(handlers)}
               </fieldset>
             )
           },
@@ -140,41 +140,6 @@ function App() {
 
         <button type="submit">Submit</button>
       </form>
-
-      <details style={{ marginTop: '2rem' }}>
-        <summary>Example: Computed Properties</summary>
-        <pre
-          style={{ background: '#f5f5f5', padding: '1rem', fontSize: '12px' }}
-        >
-          {`const nameField = form.getField('name')
-
-// Computed properties (set at parse time)
-nameField.isRoot        // false
-nameField.depth         // 1
-nameField.displayLabel  // "Full Name"
-nameField.key           // "name"
-nameField.parentPath    // ""
-
-// Parts (framework-agnostic render data)
-nameField.parts.label   // { text: "Full Name", for: "name", showRequired: true }
-nameField.parts.input   // { id: "name", name: "name", attrs: { type: "text", ... } }
-`}
-        </pre>
-      </details>
-
-      <details>
-        <summary>View Full Structure (JSON)</summary>
-        <pre
-          style={{
-            background: '#f5f5f5',
-            padding: '1rem',
-            fontSize: '12px',
-            overflow: 'auto',
-          }}
-        >
-          {JSON.stringify(form.toJSON(), null, 2)}
-        </pre>
-      </details>
     </div>
   )
 }

@@ -71,13 +71,16 @@ function App() {
         from @jsonschema-form/react
       </p>
 
-      {form.walk({
-        root: (node) => (
-          <DefaultRootTemplate node={node} onSubmit={handleSubmit} />
-        ),
-        field: (node) => <DefaultFieldTemplate node={node} />,
-        group: (node) => <DefaultGroupTemplate node={node} />,
-      })}
+      <DefaultRootTemplate onSubmit={handleSubmit}>
+        {form.walk({
+          field: (node) => <DefaultFieldTemplate node={node} />,
+          group: (node, handlers) => (
+            <DefaultGroupTemplate node={node}>
+              {node.walk(handlers)}
+            </DefaultGroupTemplate>
+          ),
+        })}
+      </DefaultRootTemplate>
     </div>
   )
 }
