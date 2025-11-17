@@ -1,8 +1,10 @@
 # ADR 004: Root Handler in Walk API and React Default Components
 
 **Date:** 2025-11-17  
-**Status:** Accepted  
+**Status:** Superseded by ADR 005 (root handler removed, handler inheritance improved)  
 **Deciders:** Core team
+
+> **Note:** The root handler portion of this ADR was superseded by ADR 005. The root handler caused recursion complexity and was removed. The React default components portion remains valid.
 
 ## Context
 
