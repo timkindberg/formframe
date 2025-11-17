@@ -96,9 +96,8 @@ export interface FieldNode extends BaseNode {
 }
 
 export interface WalkHandlers<R> {
-  root?: (node: GroupNode) => R
-  field?: (node: FieldNode) => R
-  group?: (node: GroupNode) => R
+  field?: (node: FieldNode, handlers: WalkHandlers<R>) => R
+  group?: (node: GroupNode, handlers: WalkHandlers<R>) => R
 }
 
 export interface GroupNode extends BaseNode {

@@ -3,13 +3,14 @@ import type { GroupNode } from '@jsonschema-form/core'
 
 export interface DefaultGroupProps {
   node: GroupNode
+  children: React.ReactNode
 }
 
 /**
  * Default group renderer using the .parts API from core
  * Renders nested object schemas as fieldsets
  */
-export function DefaultGroup({ node }: DefaultGroupProps) {
+export function DefaultGroupTemplate({ node, children }: DefaultGroupProps) {
   const { container, label, description } = node.parts
 
   return (
@@ -33,8 +34,7 @@ export function DefaultGroup({ node }: DefaultGroupProps) {
           {description.text}
         </small>
       )}
-      {node.walk()}
+      {children}
     </fieldset>
   )
 }
-

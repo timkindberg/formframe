@@ -1,6 +1,10 @@
 import { parseSchema } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
-import { DefaultRoot, DefaultField, DefaultGroup } from '@jsonschema-form/react'
+import {
+  DefaultRootTemplate,
+  DefaultFieldTemplate,
+  DefaultGroupTemplate,
+} from '@jsonschema-form/react'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -62,12 +66,17 @@ function App() {
   return (
     <div>
       <h1>JSON Schema Form - React Default Components</h1>
-      <p>Using DefaultRoot, DefaultField and DefaultGroup from @jsonschema-form/react</p>
+      <p>
+        Using DefaultRootTemplate, DefaultFieldTemplate and DefaultGroupTemplate
+        from @jsonschema-form/react
+      </p>
 
       {form.walk({
-        root: (node) => <DefaultRoot node={node} onSubmit={handleSubmit} />,
-        field: (node) => <DefaultField node={node} />,
-        group: (node) => <DefaultGroup node={node} />,
+        root: (node) => (
+          <DefaultRootTemplate node={node} onSubmit={handleSubmit} />
+        ),
+        field: (node) => <DefaultFieldTemplate node={node} />,
+        group: (node) => <DefaultGroupTemplate node={node} />,
       })}
     </div>
   )

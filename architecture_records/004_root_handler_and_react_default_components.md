@@ -13,7 +13,7 @@ While building example applications using the walk API, we identified an awkward
 1. **Inconsistent root handling**: The root node (`path: ''`) is semantically different from nested groups
    - Root needs a `<form>` wrapper, submit button, form-level handlers
    - Groups need `<fieldset>` wrappers with legends
-   - The `DefaultGroup` component had special `if (node.isRoot)` logic
+   - The `DefaultGroupTemplate` component had special `if (node.isRoot)` logic
 
 2. **Manual form wrapper boilerplate**:
    ```tsx
@@ -57,20 +57,20 @@ export interface WalkHandlers<R> {
 
 **Created three foundational components in `@jsonschema-form/react`:**
 
-**`DefaultRoot`:**
+**`DefaultRootTemplate`:**
 - Renders `<form>` wrapper
 - Accepts `onSubmit` handler
 - Includes submit button
 - Calls `node.walk()` to render children
 
-**`DefaultField`:**
+**`DefaultFieldTemplate`:**
 - Extracted from manual rendering logic in examples
 - Uses `node.parts` API for framework-agnostic data
 - Handles text inputs, number inputs, checkboxes, selects
 - Shows label, required indicator, description
 - 50 lines vs 30+ lines of inline rendering
 
-**`DefaultGroup`:**
+**`DefaultGroupTemplate`:**
 - Renders `<fieldset>` with `<legend>` for nested objects
 - Removed special root case (now handled by root handler)
 - Clean, single-purpose component
@@ -114,9 +114,9 @@ export interface WalkHandlers<R> {
 **After (App_05 - 4 lines):**
 ```tsx
 form.walk({
-  root: (node) => <DefaultRoot node={node} onSubmit={handleSubmit} />,
-  field: (node) => <DefaultField node={node} />,
-  group: (node) => <DefaultGroup node={node} />,
+  root: (node) => <DefaultRootTemplate node={node} onSubmit={handleSubmit} />,
+  field: (node) => <DefaultFieldTemplate node={node} />,
+  group: (node) => <DefaultGroupTemplate node={node} />,
 })
 ```
 
@@ -182,9 +182,9 @@ Added comprehensive tests for root handler behavior:
 - `packages/core/test/parser.test.ts`: Added 3 tests for root handler
 
 ### React Package Changes
-- Created `packages/react/src/DefaultRoot.tsx`
-- Created `packages/react/src/DefaultField.tsx`
-- Created `packages/react/src/DefaultGroup.tsx`
+- Created `packages/react/src/DefaultRootTemplate.tsx`
+- Created `packages/react/src/DefaultFieldTemplate.tsx`
+- Created `packages/react/src/DefaultGroupTemplate.tsx`
 - Updated `packages/react/src/index.ts` with exports
 - Created `packages/react/tsconfig.json`
 
@@ -210,7 +210,7 @@ Added comprehensive tests for root handler behavior:
    - Component slot overrides
 
 3. **Form state integration**: Connect to React Hook Form, TanStack Form
-   - DefaultRoot can accept `register` functions
+   - DefaultRootTemplate can accept `register` functions
    - Hook into form state for values/errors
    - Validation display
 

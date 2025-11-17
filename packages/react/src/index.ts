@@ -15,9 +15,9 @@ export type {
 } from './useSchemaForm'
 
 // Default component renderers
-export { DefaultRoot } from './DefaultRoot'
-export { DefaultField } from './DefaultField'
-export { DefaultGroup } from './DefaultGroup'
-export type { DefaultRootProps } from './DefaultRoot'
-export type { DefaultFieldProps } from './DefaultField'
-export type { DefaultGroupProps } from './DefaultGroup'
+export { DefaultRootTemplate } from './DefaultRootTemplate'
+export { DefaultFieldTemplate } from './DefaultFieldTemplate'
+export { DefaultGroupTemplate } from './DefaultGroupTemplate'
+export type { DefaultRootProps } from './DefaultRootTemplate'
+export type { DefaultFieldProps } from './DefaultFieldTemplate'
+export type { DefaultGroupProps } from './DefaultGroupTemplate'

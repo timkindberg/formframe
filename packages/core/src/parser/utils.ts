@@ -58,22 +58,16 @@ export function walkNode<R>(
     throw new Error('walk() requires handlers on first call')
   }
 
-  // If this is the root node and a root handler is provided, use it
-  if (node.isRoot && effectiveHandlers.root && !inheritedHandlers) {
-    const result = effectiveHandlers.root(node)
-    return [result]
-  }
-
   const results: R[] = []
 
   for (const child of node.children) {
     if (child.nodeType === 'field' && effectiveHandlers.field) {
-      const result = effectiveHandlers.field(child)
+      const result = effectiveHandlers.field(child, effectiveHandlers)
       results.push(result)
     } else if (child.nodeType === 'group') {
       if (effectiveHandlers.group) {
-        // Group handler provided - use it
-        const result = effectiveHandlers.group(child)
+        // Group handler provided - use it with handlers for inheritance
+        const result = effectiveHandlers.group(child, effectiveHandlers)
         results.push(result)
       } else {
         // No group handler - transparently walk children

@@ -9,7 +9,7 @@ export interface DefaultFieldProps {
  * Default field renderer using the .parts API from core
  * Handles all field types (string, number, boolean, enum)
  */
-export function DefaultField({ node }: DefaultFieldProps) {
+export function DefaultFieldTemplate({ node }: DefaultFieldProps) {
   const { container, label, description, input, select } = node.parts
 
   return (
@@ -46,4 +46,3 @@ export function DefaultField({ node }: DefaultFieldProps) {
     </div>
   )
 }
-
