@@ -276,7 +276,7 @@ if (select) {
 
 ## Testing
 
-- All 54 core tests updated and passing
+- All 56 core tests updated and passing
 - Tests now validate the consolidated structure
 - Type checking enforces correct usage
 
@@ -301,9 +301,6 @@ if (select) {
 - ✅ Number fields (number, integer)
 - ✅ Boolean fields (checkbox)
 - ✅ Enum fields (select with options)
-- 🔲 Array fields (repeating items) - planned
-- 🔲 Date fields - planned
-- 🔲 Textarea widget - planned
 
 ### Key Insights
 

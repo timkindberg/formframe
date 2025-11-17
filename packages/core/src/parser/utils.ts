@@ -5,14 +5,7 @@ export type JSONSchemaObject = Exclude<import('../types').JSONSchema, boolean>
 
 // Build validation object from schema
 export function buildValidation(schema: JSONSchemaObject, required: boolean) {
-  const validation: {
-    required: boolean
-    minLength?: number
-    maxLength?: number
-    minimum?: number
-    maximum?: number
-    pattern?: string
-  } = {
+  const validation: FieldNode['validation'] = {
     required,
   }
 

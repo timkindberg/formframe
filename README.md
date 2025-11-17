@@ -11,7 +11,7 @@ Build a modular, tiny, well-architected alternative from scratch that:
 - Minimizes bundle size through extreme modularity
 - Enables any combination of frameworks, validation, forms, and UI libraries
 - Provides a clean, intuitive API at every layer
-- Impecable TypeScript types throughout
+- Impeccable TypeScript types throughout
 
 ### The Philosophy
 This project prioritizes **intentional exploration over speed**. We build through:
@@ -172,7 +172,7 @@ We welcome contributors who share the vision of a modular, well-architected form
 
 ---
 
-**Status:** Initial planning and architecture phase
+**Status:** Early development - Core layer implemented
 
 **Primary Author:** Tim Kindberg
 

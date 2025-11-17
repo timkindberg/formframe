@@ -155,37 +155,8 @@ Expand gradually:
 - Complex validation
 - Schema resolution ($ref, allOf, etc.)
 
-## Open Questions
-
-These are things we're still figuring out:
-
-1. **Widget configuration:** How do users customize widget mapping? Global registry? Per-form config?
-
-2. **UISchema:** RJSF has `uiSchema` for UI hints. Do we want this? Where does it fit?
-
-3. **Array handling:** How do we represent array fields? Special node type? Repeatable groups?
-
-4. **Enum/Select:** Do these get a special widget type or are they just `input` with attrs?
-
-5. **Form library integration:** What's the exact handoff between Core structure and React Hook Form (or others)?
-
-## Next Steps
-
-Current focus: **Core Layer MVP**
-- [ ] Implement `parseSchema()` function
-- [ ] Handle basic field types (string, number)
-- [ ] Handle nested objects (GroupNode)
-- [ ] Implement tree traversal methods
-- [ ] Add tests
-
-Future exploration:
-- React layer API design
-- React Hook Form integration
-- UI library layer patterns
-- Validation library integration
-
 ---
 
-**Last Updated:** 2025-11-15  
+**Last Updated:** 2025-11-16  
 **Contributors:** Tim Kindberg
 
