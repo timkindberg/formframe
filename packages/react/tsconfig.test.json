@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "rootDir": ".",
+    "outDir": "./dist",
+    "types": ["vitest/globals", "vitest/browser", "@vitest/browser/matchers"]
+  },
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.tsx",
+    "vitest.d.ts",
+    "vitest.setup.ts"
+  ]
+}
+

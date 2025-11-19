@@ -16,7 +16,7 @@ export function DefaultFieldTemplate({ node }: DefaultFieldProps) {
     <div key={container.key} style={{ marginBottom: '1rem' }}>
       <label htmlFor={label.attrs.for}>
         {label.text}
-        {label.showRequired && <span> *</span>}
+        {label.showRequired && <span aria-hidden> *</span>}
       </label>
 
       {description && (
