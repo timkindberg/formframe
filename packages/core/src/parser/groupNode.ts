@@ -135,7 +135,7 @@ export function createGroupNode(
         )
       }
 
-      return (e: Event) => {
+      return (e: { preventDefault(): void; currentTarget: EventTarget | null }) => {
         e.preventDefault()
 
         const target = e.currentTarget as HTMLFormElement
