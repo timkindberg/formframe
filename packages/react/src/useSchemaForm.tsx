@@ -42,9 +42,9 @@ export function useSchemaForm(
   // Create Form component that uses default handlers
   const Form: React.FC<FormProps> = ({ onSubmit }) => {
     const handlers: WalkHandlers<JSX.Element> = {
-      field: (node) => <DefaultFieldTemplate node={node} />,
+      field: (node) => <DefaultFieldTemplate key={node.path} node={node} />,
       group: (node, handlers) => (
-        <DefaultGroupTemplate node={node}>
+        <DefaultGroupTemplate key={node.path} node={node}>
           {node.walk(handlers)}
         </DefaultGroupTemplate>
       ),

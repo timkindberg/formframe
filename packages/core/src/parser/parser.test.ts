@@ -1181,4 +1181,43 @@ describe('parseSchema', () => {
       expect(smsField?.validation.required).toBe(false)
     })
   })
+
+  describe('submit handler', () => {
+    it('creates a submit handler on root nodes', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const handler = form.submit(() => {})
+
+      expect(typeof handler).toBe('function')
+    })
+
+    it('throws error when called on non-root nodes', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string' },
+            },
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const addressNode = form.children.find(
+        (child) => child.path === 'address'
+      )
+
+      expect(() => {
+        addressNode?.isGroup() && addressNode.submit(() => {})
+      }).toThrow('submit() can only be called on root GroupNode')
+    })
+  })
 })

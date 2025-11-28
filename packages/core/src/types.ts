@@ -126,4 +126,9 @@ export interface GroupNode extends BaseNode {
 
   // Serialization
   toJSON(): object
+
+  // Form submission (root nodes only)
+  submit(
+    onSubmit: (data: Record<string, unknown>) => void
+  ): (e: Event) => void
 }

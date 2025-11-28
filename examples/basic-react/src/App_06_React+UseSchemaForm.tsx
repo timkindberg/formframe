@@ -49,13 +49,12 @@ const schema: JSONSchema = {
 }
 
 function App() {
-  const { Form } = useSchemaForm(schema)
+  const { form, Form } = useSchemaForm(schema)
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    const data = Object.fromEntries(formData.entries())
-    console.log('Form submitted:', data)
+  const handleSubmit = (data: Record<string, unknown>) => {
+    console.log('Form submitted with clean data:', data)
+    console.log('- Checkboxes converted to booleans')
+    console.log('- Nested paths unflattened automatically')
   }
 
   return (
@@ -64,8 +63,12 @@ function App() {
       <p>
         Simple API: <code>useSchemaForm(schema)</code> returns a Form component
       </p>
+      <p>
+        Use <code>form.submit(onSubmit)</code> to automatically transform and
+        unflatten form data
+      </p>
 
-      <Form onSubmit={handleSubmit} />
+      <Form onSubmit={form.submit(handleSubmit)} />
     </div>
   )
 }

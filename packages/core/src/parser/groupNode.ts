@@ -7,6 +7,7 @@ import type {
 } from '../types'
 import { serializeNode, walkNode, type JSONSchemaObject } from './utils'
 import { createFieldNode } from './fieldNode'
+import { transformCheckboxes, unflatten } from './groupNode.submitUtils'
 
 // Type guard for object schemas
 export function isObjectSchema(schema: JSONSchema): schema is JSONSchemaObject {
@@ -124,6 +125,33 @@ export function createGroupNode(
 
     toJSON() {
       return serializeNode(this)
+    },
+
+    submit(onSubmit: (data: Record<string, unknown>) => void) {
+      // Only allow submit on root nodes
+      if (!this.isRoot) {
+        throw new Error(
+          'submit() can only be called on root GroupNode. Use form.submit() where form is the root node.'
+        )
+      }
+
+      return (e: Event) => {
+        e.preventDefault()
+
+        const target = e.currentTarget as HTMLFormElement
+        if (!target) return
+
+        const formData = new FormData(target)
+        const flat = Object.fromEntries(formData.entries())
+
+        // Transform: checkbox "on" -> true
+        const transformed = transformCheckboxes(flat)
+
+        // Unflatten: "address.street" -> { address: { street: ... } }
+        const nested = unflatten(transformed)
+
+        onSubmit(nested)
+      }
     },
   }
 
