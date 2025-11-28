@@ -130,5 +130,5 @@ export interface GroupNode extends BaseNode {
   // Form submission (root nodes only)
   submit(
     onSubmit: (data: Record<string, unknown>) => void
-  ): (e: Event) => void
+  ): (e: { preventDefault(): void; currentTarget: EventTarget | null }) => void
 }
