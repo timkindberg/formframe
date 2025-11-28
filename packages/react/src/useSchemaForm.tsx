@@ -52,11 +52,9 @@ export function useSchemaForm(
 
     const children = form.walk(handlers)
 
-    // Wrap the walked children in the root template  
+    // Wrap the walked children in the root template
     return (
-      <DefaultRootTemplate onSubmit={onSubmit}>
-        {children}
-      </DefaultRootTemplate>
+      <DefaultRootTemplate onSubmit={onSubmit}>{children}</DefaultRootTemplate>
     )
   }
 

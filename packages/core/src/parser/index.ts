@@ -9,4 +9,3 @@ export function parseSchema(schema: JSONSchema): GroupNode {
   // Root is just a GroupNode with empty path
   return createGroupNode('', schema, false)
 }
-

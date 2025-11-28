@@ -18,8 +18,8 @@ describe('DefaultGroupTemplate', () => {
     }
 
     const parsed = parseSchema(schema) as GroupNode
-    
-    const screen = render(
+
+    const screen = await render(
       <DefaultGroupTemplate node={parsed}>
         <div>Test Content</div>
       </DefaultGroupTemplate>
@@ -42,8 +42,8 @@ describe('DefaultGroupTemplate', () => {
     }
 
     const parsed = parseSchema(schema) as GroupNode
-    
-    const screen = render(
+
+    const screen = await render(
       <DefaultGroupTemplate node={parsed}>
         <div>Fields</div>
       </DefaultGroupTemplate>
@@ -67,8 +67,8 @@ describe('DefaultGroupTemplate', () => {
     }
 
     const parsed = parseSchema(schema) as GroupNode
-    
-    const screen = render(
+
+    const screen = await render(
       <DefaultGroupTemplate node={parsed}>
         <div>Field 1</div>
         <div>Field 2</div>
@@ -93,8 +93,8 @@ describe('DefaultGroupTemplate', () => {
     }
 
     const parsed = parseSchema(schema) as GroupNode
-    
-    const screen = render(
+
+    const screen = await render(
       <DefaultGroupTemplate node={parsed}>
         <div>Fields</div>
       </DefaultGroupTemplate>
@@ -118,8 +118,8 @@ describe('DefaultGroupTemplate', () => {
     }
 
     const parsed = parseSchema(schema) as GroupNode
-    
-    const screen = render(
+
+    const screen = await render(
       <DefaultGroupTemplate node={parsed}>
         <div>Fields</div>
       </DefaultGroupTemplate>
@@ -148,8 +148,8 @@ describe('DefaultGroupTemplate', () => {
     }
 
     const parsed = parseSchema(schema) as GroupNode
-    
-    const screen = render(
+
+    const screen = await render(
       <DefaultGroupTemplate node={parsed}>
         <div>Nested Content</div>
       </DefaultGroupTemplate>
@@ -167,11 +167,9 @@ describe('DefaultGroupTemplate', () => {
     }
 
     const parsed = parseSchema(schema) as GroupNode
-    
-    const screen = render(
-      <DefaultGroupTemplate node={parsed}>
-        {null}
-      </DefaultGroupTemplate>
+
+    const screen = await render(
+      <DefaultGroupTemplate node={parsed}>{null}</DefaultGroupTemplate>
     )
 
     const fieldset = screen.container.querySelector('fieldset')
@@ -179,4 +177,3 @@ describe('DefaultGroupTemplate', () => {
     await expect.element(screen.getByText('Empty Group')).toBeInTheDocument()
   })
 })
-

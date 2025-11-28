@@ -1,17 +1,15 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
     "rootDir": ".",
-    "outDir": "./dist",
-    "types": ["vitest/globals", "vitest/browser", "@vitest/browser/matchers"]
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": ["vitest/globals", "@vitest/browser"]
   },
   "include": [
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.tsx",
-    "vitest.d.ts",
     "vitest.setup.ts"
   ]
 }
-

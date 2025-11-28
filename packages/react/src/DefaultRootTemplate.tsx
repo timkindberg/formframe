@@ -9,12 +9,14 @@ export interface DefaultRootProps {
  * Default root renderer for the form wrapper
  * Renders a <form> element with children and submit button
  */
-export function DefaultRootTemplate({
-  onSubmit,
-  children,
-}: DefaultRootProps) {
+export function DefaultRootTemplate({ onSubmit, children }: DefaultRootProps) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    onSubmit?.(e)
+  }
+
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={handleSubmit}>
       {children}
       <button type="submit">Submit</button>
     </form>

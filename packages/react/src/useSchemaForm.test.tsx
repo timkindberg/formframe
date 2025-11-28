@@ -1,4 +1,3 @@
-import '@vitest/browser/matchers'
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { useSchemaForm } from './useSchemaForm'
@@ -21,17 +20,17 @@ describe('useSchemaForm', () => {
       return <Form />
     }
 
-    const screen = render(<TestComponent />)
+    const screen = await render(<TestComponent />)
 
     // Check for label
-    await expect.element(await screen.getByText('Name')).toBeInTheDocument()
-    
+    await expect.element(screen.getByText('Name')).toBeInTheDocument()
+
     // Check for input
-    const input = await screen.getByRole('textbox', { name: 'Name' })
+    const input = screen.getByRole('textbox', { name: 'Name' })
     await expect.element(input).toBeInTheDocument()
-    
+
     // Check for submit button
-    const submitButton = await screen.getByRole('button', { name: 'Submit' })
+    const submitButton = screen.getByRole('button', { name: 'Submit' })
     await expect.element(submitButton).toBeInTheDocument()
   })
 
@@ -52,10 +51,10 @@ describe('useSchemaForm', () => {
       return <Form />
     }
 
-    const screen = render(<TestComponent />)
+    const screen = await render(<TestComponent />)
 
     // Check for asterisk in required field
-    await expect.element(await screen.getByText('*')).toBeInTheDocument()
+    await expect.element(screen.getByText('*')).toBeInTheDocument()
   })
 
   it('should render field descriptions', async () => {
@@ -75,10 +74,10 @@ describe('useSchemaForm', () => {
       return <Form />
     }
 
-    const screen = render(<TestComponent />)
+    const screen = await render(<TestComponent />)
 
     await expect
-      .element(await screen.getByText('Choose a unique username'))
+      .element(screen.getByText('Choose a unique username'))
       .toBeInTheDocument()
   })
 
@@ -98,9 +97,9 @@ describe('useSchemaForm', () => {
       return <Form />
     }
 
-    const screen = render(<TestComponent />)
+    const screen = await render(<TestComponent />)
 
-    const input = await screen.getByRole('spinbutton', { name: 'Age' })
+    const input = screen.getByRole('spinbutton', { name: 'Age' })
     await expect.element(input).toBeInTheDocument()
     await expect.element(input).toHaveAttribute('type', 'number')
   })
@@ -121,9 +120,9 @@ describe('useSchemaForm', () => {
       return <Form />
     }
 
-    const screen = render(<TestComponent />)
+    const screen = await render(<TestComponent />)
 
-    const checkbox = await screen.getByRole('checkbox', {
+    const checkbox = screen.getByRole('checkbox', {
       name: 'Subscribe to newsletter',
     })
     await expect.element(checkbox).toBeInTheDocument()
@@ -147,15 +146,15 @@ describe('useSchemaForm', () => {
       return <Form />
     }
 
-    const screen = render(<TestComponent />)
+    const screen = await render(<TestComponent />)
 
-    const select = await screen.getByRole('combobox', { name: 'Favorite Color' })
+    const select = screen.getByRole('combobox', { name: 'Favorite Color' })
     await expect.element(select).toBeInTheDocument()
-    
+
     // Check for options
-    await expect.element(await screen.getByText('red')).toBeInTheDocument()
-    await expect.element(await screen.getByText('green')).toBeInTheDocument()
-    await expect.element(await screen.getByText('blue')).toBeInTheDocument()
+    await expect.element(screen.getByText('red')).toBeInTheDocument()
+    await expect.element(screen.getByText('green')).toBeInTheDocument()
+    await expect.element(screen.getByText('blue')).toBeInTheDocument()
   })
 
   it('should render nested object properties', async () => {
@@ -184,17 +183,17 @@ describe('useSchemaForm', () => {
       return <Form />
     }
 
-    const screen = render(<TestComponent />)
+    const screen = await render(<TestComponent />)
 
     // Check for group title
-    await expect.element(await screen.getByText('Address')).toBeInTheDocument()
+    await expect.element(screen.getByText('Address')).toBeInTheDocument()
 
     // Check for nested fields
     await expect
-      .element(await screen.getByRole('textbox', { name: 'Street' }))
+      .element(screen.getByRole('textbox', { name: 'Street' }))
       .toBeInTheDocument()
     await expect
-      .element(await screen.getByRole('textbox', { name: 'City' }))
+      .element(screen.getByRole('textbox', { name: 'City' }))
       .toBeInTheDocument()
   })
 
@@ -220,14 +219,14 @@ describe('useSchemaForm', () => {
       return <Form onSubmit={handleSubmit} />
     }
 
-    const screen = render(<TestComponent />)
-    const submitButton = await screen.getByRole('button', { name: 'Submit' })
-    
+    const screen = await render(<TestComponent />)
+    const submitButton = screen.getByRole('button', { name: 'Submit' })
+
     await expect.element(submitButton).toBeInTheDocument()
-    
+
     // Click the submit button
     await submitButton.click()
-    
+
     expect(submitted).toBe(true)
   })
 
@@ -242,26 +241,30 @@ describe('useSchemaForm', () => {
       },
     }
 
-    let formNode: any = null
+    const formNodeRef = {
+      current: null as ReturnType<typeof useSchemaForm>['form'] | null,
+    }
 
     function TestComponent() {
       const { form, Form } = useSchemaForm(schema)
 
-      // Capture form node
-      // eslint-disable-next-line react-hooks/globals
-      formNode = form
+      // Capture form node via ref pattern (safe for testing)
+      // eslint-disable-next-line react-hooks/immutability
+      formNodeRef.current = form
 
       return <Form />
     }
 
-    const screen = render(<TestComponent />)
+    const screen = await render(<TestComponent />)
     await expect
-      .element(await screen.getByRole('button', { name: 'Submit' }))
+      .element(screen.getByRole('button', { name: 'Submit' }))
       .toBeInTheDocument()
 
     // Check that form node has correct structure after render
-    expect(formNode).toBeDefined()
-    expect(formNode.nodeType).toBe('group')
-    expect(formNode.schema.type).toBe('object')
+    expect(formNodeRef.current).toBeDefined()
+    expect(formNodeRef.current!.nodeType).toBe('group')
+    expect((formNodeRef.current!.schema as { type: string }).type).toBe(
+      'object'
+    )
   })
 })

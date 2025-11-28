@@ -1,4 +1,3 @@
-import React from 'react'
 import type { FieldNode } from '@jsonschema-form/core'
 
 export interface DefaultFieldProps {

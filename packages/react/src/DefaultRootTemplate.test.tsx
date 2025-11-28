@@ -4,7 +4,7 @@ import { DefaultRootTemplate } from './DefaultRootTemplate'
 
 describe('DefaultRootTemplate', () => {
   it('should render a form element', async () => {
-    const screen = render(
+    const screen = await render(
       <DefaultRootTemplate>
         <div>Test Content</div>
       </DefaultRootTemplate>
@@ -15,7 +15,7 @@ describe('DefaultRootTemplate', () => {
   })
 
   it('should render children inside the form', async () => {
-    const screen = render(
+    const screen = await render(
       <DefaultRootTemplate>
         <div>Test Content</div>
         <input type="text" aria-label="test-input" />
@@ -23,11 +23,13 @@ describe('DefaultRootTemplate', () => {
     )
 
     await expect.element(screen.getByText('Test Content')).toBeInTheDocument()
-    await expect.element(screen.getByRole('textbox', { name: 'test-input' })).toBeInTheDocument()
+    await expect
+      .element(screen.getByRole('textbox', { name: 'test-input' }))
+      .toBeInTheDocument()
   })
 
   it('should render a submit button', async () => {
-    const screen = render(
+    const screen = await render(
       <DefaultRootTemplate>
         <div>Form Content</div>
       </DefaultRootTemplate>
@@ -45,7 +47,7 @@ describe('DefaultRootTemplate', () => {
       submitted = true
     }
 
-    const screen = render(
+    const screen = await render(
       <DefaultRootTemplate onSubmit={handleSubmit}>
         <div>Form Content</div>
       </DefaultRootTemplate>
@@ -61,7 +63,7 @@ describe('DefaultRootTemplate', () => {
   })
 
   it('should work without onSubmit handler', async () => {
-    const screen = render(
+    const screen = await render(
       <DefaultRootTemplate>
         <div>Form Content</div>
       </DefaultRootTemplate>
@@ -75,13 +77,13 @@ describe('DefaultRootTemplate', () => {
 
     // Should not throw when clicking submit without handler
     await submitButton.click()
-    
+
     // If we got here without error, the test passes
     expect(true).toBe(true)
   })
 
   it('should render multiple children', async () => {
-    const screen = render(
+    const screen = await render(
       <DefaultRootTemplate>
         <div>Field 1</div>
         <div>Field 2</div>
@@ -94,4 +96,3 @@ describe('DefaultRootTemplate', () => {
     await expect.element(screen.getByText('Field 3')).toBeInTheDocument()
   })
 })
-

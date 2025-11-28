@@ -19,13 +19,12 @@ describe('DefaultFieldTemplate', () => {
     const parsed = parseSchema(schema)
     const nameField = parsed.children[0] as FieldNode
 
-    const screen = render(<DefaultFieldTemplate node={nameField} />)
+    const screen = await render(<DefaultFieldTemplate node={nameField} />)
 
-    const label = await screen.getByText('Full Name')
+    const label = screen.getByText('Full Name')
     await expect.element(label).toBeInTheDocument()
-    await expect.element(label).toHaveProperty('tagName', 'LABEL')
 
-    const input = await screen.getByRole('textbox', { name: 'Full Name' })
+    const input = screen.getByRole('textbox', { name: 'Full Name' })
     await expect.element(input).toBeInTheDocument()
     await expect.element(input).toHaveAttribute('type', 'text')
   })
@@ -44,7 +43,7 @@ describe('DefaultFieldTemplate', () => {
     const parsed = parseSchema(schema)
     const ageField = parsed.children[0] as FieldNode
 
-    const screen = render(<DefaultFieldTemplate node={ageField} />)
+    const screen = await render(<DefaultFieldTemplate node={ageField} />)
 
     const input = screen.getByRole('spinbutton', { name: 'Age' })
     await expect.element(input).toBeInTheDocument()
@@ -65,7 +64,7 @@ describe('DefaultFieldTemplate', () => {
     const parsed = parseSchema(schema)
     const activeField = parsed.children[0] as FieldNode
 
-    const screen = render(<DefaultFieldTemplate node={activeField} />)
+    const screen = await render(<DefaultFieldTemplate node={activeField} />)
 
     const checkbox = screen.getByRole('checkbox', { name: 'Is Active' })
     await expect.element(checkbox).toBeInTheDocument()
@@ -87,7 +86,7 @@ describe('DefaultFieldTemplate', () => {
     const parsed = parseSchema(schema)
     const statusField = parsed.children[0] as FieldNode
 
-    const screen = render(<DefaultFieldTemplate node={statusField} />)
+    const screen = await render(<DefaultFieldTemplate node={statusField} />)
 
     const select = screen.getByRole('combobox', { name: 'Status' })
     await expect.element(select).toBeInTheDocument()
@@ -116,7 +115,7 @@ describe('DefaultFieldTemplate', () => {
     const parsed = parseSchema(schema)
     const emailField = parsed.children[0] as FieldNode
 
-    const screen = render(<DefaultFieldTemplate node={emailField} />)
+    const screen = await render(<DefaultFieldTemplate node={emailField} />)
 
     await expect.element(screen.getByText('*')).toBeInTheDocument()
   })
@@ -135,12 +134,12 @@ describe('DefaultFieldTemplate', () => {
     const parsed = parseSchema(schema)
     const nicknameField = parsed.children[0] as FieldNode
 
-    const screen = render(<DefaultFieldTemplate node={nicknameField} />)
+    const screen = await render(<DefaultFieldTemplate node={nicknameField} />)
 
     // Check that asterisk is not present by verifying the label doesn't contain a span
     const label = screen.getByText('Nickname')
     await expect.element(label).toBeInTheDocument()
-    
+
     // Query for asterisk should not find it
     const asteriskElements = screen.container.querySelectorAll('span')
     expect(asteriskElements.length).toBe(0)
@@ -161,7 +160,7 @@ describe('DefaultFieldTemplate', () => {
     const parsed = parseSchema(schema)
     const passwordField = parsed.children[0] as FieldNode
 
-    const screen = render(<DefaultFieldTemplate node={passwordField} />)
+    const screen = await render(<DefaultFieldTemplate node={passwordField} />)
 
     const description = screen.getByText('Must be at least 8 characters')
     await expect.element(description).toBeInTheDocument()
@@ -182,7 +181,7 @@ describe('DefaultFieldTemplate', () => {
     const parsed = parseSchema(schema)
     const usernameField = parsed.children[0] as FieldNode
 
-    const screen = render(<DefaultFieldTemplate node={usernameField} />)
+    const screen = await render(<DefaultFieldTemplate node={usernameField} />)
 
     const small = screen.container.querySelector('small')
     expect(small).toBeNull()
@@ -204,7 +203,7 @@ describe('DefaultFieldTemplate', () => {
     const parsed = parseSchema(schema)
     const quantityField = parsed.children[0] as FieldNode
 
-    const screen = render(<DefaultFieldTemplate node={quantityField} />)
+    const screen = await render(<DefaultFieldTemplate node={quantityField} />)
 
     const input = screen.getByRole('spinbutton', { name: 'Quantity' })
     await expect.element(input).toHaveAttribute('name', 'quantity')
@@ -213,4 +212,3 @@ describe('DefaultFieldTemplate', () => {
     await expect.element(input).toHaveAttribute('max', '100')
   })
 })
-

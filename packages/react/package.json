@@ -36,13 +36,16 @@
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "@vitest/browser": "^2.1.8",
-    "@vitest/ui": "^2.1.8",
+    "@vitest/browser": "^4.0.14",
+    "@vitest/ui": "^4.0.14",
     "playwright": "^1.49.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "^5.3.3",
-    "vitest": "^2.1.8",
-    "vitest-browser-react": "^0.0.1"
+    "vitest": "^4.0.14",
+    "vitest-browser-react": "^2.0.2"
+  },
+  "dependencies": {
+    "@vitest/browser-playwright": "^4.0.14"
   }
 }
