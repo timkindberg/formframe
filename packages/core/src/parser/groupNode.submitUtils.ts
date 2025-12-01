@@ -15,8 +15,10 @@ export function transformCheckboxes(
 }
 
 /**
- * Unflattens dot-notation paths into nested objects
- * Example: { "address.street": "123 Main" } -> { address: { street: "123 Main" } }
+ * Unflattens dot-notation paths into nested objects and arrays
+ * Examples:
+ * - { "address.street": "123 Main" } -> { address: { street: "123 Main" } }
+ * - { "hobbies.0": "reading", "hobbies.2": "coding" } -> { hobbies: [, "reading", , "coding"] } (sparse)
  */
 export function unflatten(
   flat: Record<string, unknown>
@@ -25,17 +27,34 @@ export function unflatten(
 
   for (const [path, value] of Object.entries(flat)) {
     const keys = path.split('.')
-    let current: Record<string, unknown> = result
+    let current: Record<string, unknown> | unknown[] = result
 
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i]
-      if (!(key in current)) {
-        current[key] = {}
+      const nextKey = keys[i + 1]
+      const isNextArray = /^\d+$/.test(nextKey)
+
+      if (Array.isArray(current)) {
+        const index = parseInt(key, 10)
+        if (!(index in current)) {
+          current[index] = isNextArray ? [] : {}
+        }
+        current = current[index] as Record<string, unknown> | unknown[]
+      } else {
+        if (!(key in current)) {
+          current[key] = isNextArray ? [] : {}
+        }
+        current = current[key] as Record<string, unknown> | unknown[]
       }
-      current = current[key] as Record<string, unknown>
     }
 
-    current[keys[keys.length - 1]] = value
+    const lastKey = keys[keys.length - 1]
+    if (Array.isArray(current)) {
+      const index = parseInt(lastKey, 10)
+      current[index] = value
+    } else {
+      current[lastKey] = value
+    }
   }
 
   return result

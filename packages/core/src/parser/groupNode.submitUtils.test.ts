@@ -142,4 +142,82 @@ describe('unflatten', () => {
 
     expect(result).toEqual(input)
   })
+
+  it('unflattens numeric indices into arrays', () => {
+    const input = {
+      'hobbies.0': 'reading',
+      'hobbies.1': 'coding',
+      'hobbies.2': 'gaming',
+    }
+
+    const result = unflatten(input)
+
+    expect(result).toEqual({
+      hobbies: ['reading', 'coding', 'gaming'],
+    })
+  })
+
+  it('handles sparse arrays', () => {
+    const input = {
+      'hobbies.0': 'reading',
+      'hobbies.2': 'gaming',
+    }
+
+    const result = unflatten(input)
+
+    expect(result).toEqual({
+      // eslint-disable-next-line no-sparse-arrays
+      hobbies: ['reading', , 'gaming'],
+    })
+  })
+
+  it('unflattens nested arrays of objects', () => {
+    const input = {
+      'addresses.0.street': '123 Main St',
+      'addresses.0.city': 'Springfield',
+      'addresses.1.street': '456 Oak Ave',
+      'addresses.1.city': 'Portland',
+    }
+
+    const result = unflatten(input)
+
+    expect(result).toEqual({
+      addresses: [
+        { street: '123 Main St', city: 'Springfield' },
+        { street: '456 Oak Ave', city: 'Portland' },
+      ],
+    })
+  })
+
+  it('handles mixed objects and arrays', () => {
+    const input = {
+      name: 'John',
+      'addresses.0.street': '123 Main St',
+      'addresses.1.street': '456 Oak Ave',
+      'hobbies.0': 'reading',
+      'hobbies.1': 'coding',
+    }
+
+    const result = unflatten(input)
+
+    expect(result).toEqual({
+      name: 'John',
+      addresses: [{ street: '123 Main St' }, { street: '456 Oak Ave' }],
+      hobbies: ['reading', 'coding'],
+    })
+  })
+
+  it('handles multiselect (arrays of values)', () => {
+    const input = {
+      name: 'John',
+      skills: ['JavaScript', 'TypeScript', 'React'],
+    }
+
+    const result = unflatten(input)
+
+    expect(result).toEqual({
+      name: 'John',
+      skills: ['JavaScript', 'TypeScript', 'React'],
+    })
+  })
 })

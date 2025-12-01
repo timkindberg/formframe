@@ -12,11 +12,16 @@ export type {
   JSONSchema,
   NodeType,
   BaseNode,
+  ContainerNode,
   FieldNode,
   GroupNode,
+  ArrayNode,
+  ArrayItemNode,
   WalkHandlers,
   FieldParts,
   GroupParts,
+  ArrayParts,
+  ArrayItemParts,
 } from './types'
 
 // Export main parser
