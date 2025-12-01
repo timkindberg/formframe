@@ -1,15 +1,11 @@
 import type { FieldNode } from '@jsonschema-form/core'
 import { ReactNode } from 'react'
 
-export interface DefaultFieldProps {
-  node: FieldNode
-}
-
 /**
  * Default field renderer using the .parts API from core
  * Handles all field types (string, number, boolean, enum)
  */
-export function DefaultFieldTemplate({ node }: DefaultFieldProps) {
+export function DefaultFieldTemplate({ node }: { node: FieldNode }) {
   const { container, label, description, input, select } = node.parts
 
   let inputElement: ReactNode

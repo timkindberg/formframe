@@ -1,15 +1,14 @@
-import type {
-  FieldNode,
-  GroupNode,
-  ArrayNode,
-  GroupParts,
-  WalkHandlers,
-  JSONSchema,
-} from '../types'
-import { serializeNode, walkNode, type JSONSchemaObject } from './utils'
-import { createFieldNode } from './fieldNode'
-import { createArrayNode } from './arrayNode'
+import type { JSONSchema } from 'json-schema-typed/draft-07'
+import { ArrayItemNode, ArrayNode, createArrayNode } from './arrayNode'
+import { createFieldNode, type FieldNode } from './fieldNode'
 import { transformCheckboxes, unflatten } from './groupNode.submitUtils'
+import {
+  type JSONSchemaObject,
+  type BaseNode,
+  type ContainerNode,
+  serializeNode,
+  walkNode,
+} from './utils'
 
 // Type guard for object schemas
 export function isObjectSchema(schema: JSONSchema): schema is JSONSchemaObject {
@@ -20,8 +19,8 @@ export function createGroupNode(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-): GroupNode {
-  const children: Array<FieldNode | GroupNode | ArrayNode> = []
+) {
+  const children: BaseNode[] = []
   const requiredFields = schema.required || []
 
   if (schema.properties) {
@@ -44,27 +43,23 @@ export function createGroupNode(
     }
   }
 
-  const parts: GroupParts = {
+  const parts = {
     container: {
       key: path,
     },
+    ...(schema.title && {
+      label: {
+        text: schema.title,
+      },
+    }),
+    ...(schema.description && {
+      description: {
+        text: schema.description,
+      },
+    }),
   }
 
-  // Add label part if present
-  if (schema.title) {
-    parts.label = {
-      text: schema.title,
-    }
-  }
-
-  // Add description part if present
-  if (schema.description) {
-    parts.description = {
-      text: schema.description,
-    }
-  }
-
-  const groupNode: GroupNode = {
+  return {
     nodeType: 'group',
     path,
     schema,
@@ -88,7 +83,7 @@ export function createGroupNode(
 
       for (const child of children) {
         if (child.nodeType === 'field' && child.path === fullPath) {
-          return child
+          return child as FieldNode
         } else if (child.nodeType === 'group') {
           // Check if target is within this child group
           if (
@@ -96,8 +91,8 @@ export function createGroupNode(
             fullPath === child.path
           ) {
             const relativePath = fullPath.substring(child.path.length + 1)
-            const found = child.getField(relativePath)
-            if (found) return found
+            const found = (child as ContainerNode).getField(relativePath)
+            if (found) return found as FieldNode
           }
         }
       }
@@ -109,9 +104,11 @@ export function createGroupNode(
 
       for (const child of children) {
         if (child.nodeType === 'field') {
-          fields.push(child)
+          fields.push(child as FieldNode)
         } else if (child.nodeType === 'group') {
-          fields.push(...child.getAllFields())
+          fields.push(
+            ...((child as ContainerNode).getAllFields() as FieldNode[])
+          )
         }
       }
 
@@ -119,24 +116,14 @@ export function createGroupNode(
     },
 
     walk<R>(handlers?: WalkHandlers<R>): R[] {
-      return walkNode(groupNode, handlers)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return walkNode(this, handlers as any)
     },
 
-    isField(): this is FieldNode {
-      return false
-    },
-
-    isGroup(): this is GroupNode {
-      return true
-    },
-
-    isArray(): this is ArrayNode {
-      return false
-    },
-
-    isArrayItem(): this is import('../types').ArrayItemNode {
-      return false
-    },
+    isField: false as const,
+    isGroup: true as const,
+    isArray: false as const,
+    isArrayItem: false as const,
 
     toJSON() {
       return serializeNode(this)
@@ -150,7 +137,10 @@ export function createGroupNode(
         )
       }
 
-      return (e: { preventDefault(): void; currentTarget: EventTarget | null }) => {
+      return (e: {
+        preventDefault(): void
+        currentTarget: EventTarget | null
+      }) => {
         e.preventDefault()
 
         const target = e.currentTarget as HTMLFormElement
@@ -164,7 +154,7 @@ export function createGroupNode(
           if (key in flat) {
             // Multiple values for same key - collect as array (e.g., multiselect)
             if (Array.isArray(flat[key])) {
-              (flat[key] as unknown[]).push(value)
+              ;(flat[key] as unknown[]).push(value)
             } else {
               flat[key] = [flat[key], value]
             }
@@ -182,7 +172,17 @@ export function createGroupNode(
         onSubmit(nested)
       }
     },
-  }
+  } satisfies ContainerNode
+}
 
-  return groupNode
+// Derived types from factory function
+export type GroupNode = ReturnType<typeof createGroupNode>
+export type GroupParts = GroupNode['parts']
+
+// WalkHandlers uses derived node types
+export interface WalkHandlers<R> {
+  field?: (node: FieldNode, handlers: WalkHandlers<R>) => R
+  group?: (node: GroupNode, handlers: WalkHandlers<R>) => R
+  array?: (node: ArrayNode, handlers: WalkHandlers<R>) => R
+  arrayItem?: (node: ArrayItemNode, handlers: WalkHandlers<R>) => R
 }

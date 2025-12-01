@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { parseSchema } from '@jsonschema-form/core'
-import type { JSONSchema, GroupNode } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/core'
 import { DefaultRootTemplate } from './DefaultRootTemplate'
 import { DefaultFieldTemplate } from './DefaultFieldTemplate'
 import { DefaultGroupTemplate } from './DefaultGroupTemplate'
@@ -8,20 +8,6 @@ import {
   DefaultArrayTemplate,
   DefaultArrayItemTemplate,
 } from './DefaultArrayTemplate'
-
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface UseSchemaFormOptions {
-  // Future: custom components, validation, etc.
-}
-
-export interface FormProps {
-  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void
-}
-
-export interface UseSchemaFormReturn {
-  form: GroupNode
-  Form: React.FC<FormProps>
-}
 
 /**
  * React hook that creates a form from a JSON Schema
@@ -36,16 +22,17 @@ export interface UseSchemaFormReturn {
  * }
  * ```
  */
-export function useSchemaForm(
-  schema: JSONSchema,
-  _options?: UseSchemaFormOptions
-): UseSchemaFormReturn {
+export function useSchemaForm(schema: JSONSchema) {
   // Parse schema once and memoize
   const form = useMemo(() => parseSchema(schema), [schema])
 
   // Memoize Form component to maintain stable identity across renders
   const Form = useMemo(() => {
-    const FormComponent: React.FC<FormProps> = ({ onSubmit }) => {
+    const FormComponent = ({
+      onSubmit,
+    }: {
+      onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void
+    }) => {
       // Memoize the walk result - handlers defined inside so they don't need to be deps
       const children = useMemo(() => {
         return form.walk({

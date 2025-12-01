@@ -2,22 +2,13 @@ import React, { useState, createContext, useContext } from 'react'
 import type { ArrayNode, ArrayItemNode, WalkHandlers } from '@jsonschema-form/core'
 
 // ============================================================================
-// Types & Context
+// Context
 // ============================================================================
 
-export interface ArrayContext {
+export const ArrayItemContext = createContext<{
   removeItem: () => void
   canRemove: boolean
-}
-
-export const ArrayItemContext = createContext<ArrayContext | null>(null)
-
-export interface UseArrayFieldReturn {
-  items: ArrayItemNode[]
-  addItem: () => void
-  removeItem: (index: number) => void
-  canRemove: boolean
-}
+} | null>(null)
 
 // ============================================================================
 // Hooks
@@ -26,9 +17,11 @@ export interface UseArrayFieldReturn {
 /**
  * Hook for managing dynamic array fields with add/remove functionality
  */
-export function useArrayField(arrayNode: ArrayNode): UseArrayFieldReturn {
+export function useArrayField(arrayNode: ArrayNode) {
   // Start with initial children (respects minItems)
-  const [items, setItems] = useState<ArrayItemNode[]>(arrayNode.children)
+  const [items, setItems] = useState<ArrayItemNode[]>(
+    arrayNode.children as ArrayItemNode[]
+  )
 
   const addItem = () => {
     const newIndex = items.length
@@ -72,16 +65,17 @@ export function useArrayItem() {
 // Components
 // ============================================================================
 
-export interface DefaultArrayProps {
-  node: ArrayNode
-  handlers: WalkHandlers<JSX.Element>
-}
-
 /**
  * Default array renderer using the .parts API from core
  * Renders dynamic arrays with add/remove functionality
  */
-export function DefaultArrayTemplate({ node, handlers }: DefaultArrayProps) {
+export function DefaultArrayTemplate({
+  node,
+  handlers,
+}: {
+  node: ArrayNode
+  handlers: WalkHandlers<JSX.Element>
+}) {
   const { items, addItem, removeItem, canRemove } = useArrayField(node)
   const { container, label, description, itemsContainer, addButton } = node.parts
 
@@ -133,11 +127,6 @@ export function DefaultArrayTemplate({ node, handlers }: DefaultArrayProps) {
   )
 }
 
-export interface DefaultArrayItemProps {
-  node: ArrayItemNode
-  children: React.ReactNode
-}
-
 /**
  * Default array item renderer using the .parts API from core
  * Renders individual array items with remove button
@@ -145,7 +134,10 @@ export interface DefaultArrayItemProps {
 export function DefaultArrayItemTemplate({
   node,
   children,
-}: DefaultArrayItemProps) {
+}: {
+  node: ArrayItemNode
+  children: React.ReactNode
+}) {
   const { removeItem, canRemove } = useArrayItem()
   const { container, removeButton } = node.parts
 

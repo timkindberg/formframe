@@ -1,11 +1,19 @@
-import type { FieldNode, FieldParts, GroupNode } from '../types'
-import { buildValidation, serializeNode, type JSONSchemaObject } from './utils'
+import {
+  buildValidation,
+  serializeNode,
+  type JSONSchemaObject,
+  type ValidationRules,
+  type BaseNode,
+} from './utils'
+
+// Re-export for type inference
+export type { ValidationRules }
 
 export function createFieldNode(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-): FieldNode {
+) {
   const validation = buildValidation(schema, required)
 
   // Check for enum or oneOf pattern
@@ -91,7 +99,7 @@ export function createFieldNode(
       },
     }
   }
-  const parts: FieldParts = {
+  const parts = {
     container: buildContainerPart(),
     label: buildLabelPart(),
     description: buildDescriptionPart(),
@@ -113,27 +121,20 @@ export function createFieldNode(
     // Parts API
     parts,
 
-    isField(): this is FieldNode {
-      return true
-    },
-
-    isGroup(): this is GroupNode {
-      return false
-    },
-
-    isArray(): this is import('../types').ArrayNode {
-      return false
-    },
-
-    isArrayItem(): this is import('../types').ArrayItemNode {
-      return false
-    },
+    isField: true as const,
+    isGroup: false as const,
+    isArray: false as const,
+    isArrayItem: false as const,
 
     toJSON() {
       return serializeNode(this)
     },
-  }
+  } satisfies BaseNode
 }
+
+export type FieldNode = ReturnType<typeof createFieldNode>
+export type FieldParts = FieldNode['parts']
+
 // Build HTML input attributes from schema and validation
 export function buildInputAttrs(
   schema: JSONSchemaObject,

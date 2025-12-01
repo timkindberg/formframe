@@ -1,21 +1,12 @@
-import type {
-  ArrayNode,
-  ArrayItemNode,
-  ArrayParts,
-  ArrayItemParts,
-  FieldNode,
-  GroupNode,
-  WalkHandlers,
-  JSONSchema,
-} from '../types'
-import { serializeNode, walkNode, type JSONSchemaObject } from './utils'
-import { createFieldNode } from './fieldNode'
-import { createGroupNode } from './groupNode'
-
-// Type guard for object schemas
-export function isObjectSchema(schema: JSONSchema): schema is JSONSchemaObject {
-  return typeof schema === 'object' && schema !== null
-}
+import { createFieldNode, type FieldNode } from './fieldNode'
+import { createGroupNode, type WalkHandlers } from './groupNode'
+import {
+  type JSONSchemaObject,
+  type ContainerNode,
+  type BaseNode,
+  serializeNode,
+  walkNode,
+} from './utils'
 
 /**
  * Creates an ArrayNode for array-type schemas
@@ -25,7 +16,7 @@ export function createArrayNode(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-): ArrayNode | FieldNode {
+) {
   const itemsSchema = schema.items
 
   // items must be a single schema object (not an array or boolean)
@@ -59,12 +50,12 @@ export function createArrayNode(
   const minItems = typeof schema.minItems === 'number' ? schema.minItems : 0
 
   // Create initial children based on minItems
-  const children: ArrayItemNode[] = []
+  const children: BaseNode[] = []
   for (let i = 0; i < minItems; i++) {
     children.push(createArrayItemNode(path, i, itemSchemaObject, required))
   }
 
-  const parts: ArrayParts = {
+  const parts = {
     container: {
       key: path,
     },
@@ -73,31 +64,27 @@ export function createArrayNode(
     },
     addButton: {
       attrs: {
-        type: 'button',
+        type: 'button' as const,
       },
       label: schema.title ? `Add ${schema.title}` : 'Add Item',
     },
+    ...(schema.title && {
+      label: {
+        text: schema.title,
+      },
+    }),
+    ...(schema.description && {
+      description: {
+        text: schema.description,
+      },
+    }),
   }
 
-  // Add label if present
-  if (schema.title) {
-    parts.label = {
-      text: schema.title,
-    }
-  }
-
-  // Add description if present
-  if (schema.description) {
-    parts.description = {
-      text: schema.description,
-    }
-  }
-
-  const arrayNode: ArrayNode = {
-    nodeType: 'array',
+  const arrayNode = {
+    nodeType: 'array' as const,
     path,
     schema,
-    widget: 'array',
+    widget: 'array' as const,
     itemSchema: itemSchemaObject,
     children,
     validation: {
@@ -114,7 +101,7 @@ export function createArrayNode(
     parts,
 
     // Factory method for creating items dynamically
-    getItem(index: number): ArrayItemNode {
+    getItem(index: number) {
       return createArrayItemNode(path, index, itemSchemaObject, required)
     },
 
@@ -122,8 +109,8 @@ export function createArrayNode(
       // Search through children
       for (const child of children) {
         if (child.nodeType === 'arrayItem') {
-          const found = child.getField(targetPath)
-          if (found) return found
+          const found = (child as ContainerNode).getField(targetPath)
+          if (found) return found as FieldNode
         }
       }
       return undefined
@@ -133,39 +120,36 @@ export function createArrayNode(
       const fields: FieldNode[] = []
 
       for (const child of children) {
-        fields.push(...child.getAllFields())
+        fields.push(...((child as ContainerNode).getAllFields() as FieldNode[]))
       }
 
       return fields
     },
 
     walk<R>(handlers?: WalkHandlers<R>): R[] {
-      return walkNode(arrayNode, handlers)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return walkNode(arrayNode, handlers as any)
     },
 
-    isField(): this is FieldNode {
-      return false
-    },
-
-    isGroup(): this is GroupNode {
-      return false
-    },
-
-    isArray(): this is ArrayNode {
-      return true
-    },
-
-    isArrayItem(): this is ArrayItemNode {
-      return false
-    },
+    isField: false as const,
+    isGroup: false as const,
+    isArray: true as const,
+    isArrayItem: false as const,
 
     toJSON() {
       return serializeNode(this)
     },
-  }
+  } satisfies ContainerNode
 
   return arrayNode
 }
+
+// Extract the array-specific return type (excluding the FieldNode case for multiselect)
+export type ArrayNode = Extract<
+  ReturnType<typeof createArrayNode>,
+  { nodeType: 'array' }
+>
+export type ArrayParts = ArrayNode['parts']
 
 /**
  * Creates an ArrayItemNode that wraps a single array item
@@ -175,11 +159,11 @@ export function createArrayItemNode(
   index: number,
   itemSchema: JSONSchemaObject,
   required: boolean
-): ArrayItemNode {
+) {
   const itemPath = `${arrayPath}.${index}`
 
   // Create the child node based on item schema type
-  let child: FieldNode | GroupNode | ArrayNode
+  let child: BaseNode
 
   if (itemSchema.type === 'object' && itemSchema.properties) {
     child = createGroupNode(itemPath, itemSchema, required)
@@ -193,30 +177,30 @@ export function createArrayItemNode(
     child = createFieldNode(itemPath, itemSchema, required)
   }
 
-  const parts: ArrayItemParts = {
+  const parts = {
     container: {
       key: itemPath,
     },
     removeButton: {
       attrs: {
-        type: 'button',
+        type: 'button' as const,
       },
       label: 'Remove',
     },
   }
 
-  const arrayItemNode: ArrayItemNode = {
-    nodeType: 'arrayItem',
+  return {
+    nodeType: 'arrayItem' as const,
     path: itemPath,
     schema: itemSchema,
-    widget: 'arrayItem',
+    widget: 'arrayItem' as const,
     children: [child],
     validation: {
       required,
     },
 
     // Computed properties
-    isRoot: false,
+    isRoot: false as const,
     depth: itemPath.split('.').length,
 
     // Parts API
@@ -225,9 +209,11 @@ export function createArrayItemNode(
     getField(targetPath: string): FieldNode | undefined {
       const child = this.children[0]
       if (child.nodeType === 'field') {
-        return child.path === targetPath ? child : undefined
-      } else if ('getField' in child) {
-        return child.getField(targetPath)
+        return child.path === targetPath ? (child as FieldNode) : undefined
+      } else if (child.nodeType === 'group' || child.nodeType === 'array') {
+        return (child as ContainerNode).getField(targetPath) as
+          | FieldNode
+          | undefined
       }
       return undefined
     },
@@ -235,40 +221,31 @@ export function createArrayItemNode(
     getAllFields(): FieldNode[] {
       const child = this.children[0]
       if (child.nodeType === 'field') {
-        return [child]
-      } else if ('getAllFields' in child) {
-        return child.getAllFields()
+        return [child as FieldNode]
+      } else if (child.nodeType === 'group' || child.nodeType === 'array') {
+        return (child as ContainerNode).getAllFields() as FieldNode[]
       }
       return []
     },
 
     walk<R>(handlers?: WalkHandlers<R>): R[] {
-      return walkNode(arrayItemNode, handlers)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return walkNode(this, handlers as any)
     },
 
-    isField(): this is FieldNode {
-      return false
-    },
-
-    isGroup(): this is GroupNode {
-      return false
-    },
-
-    isArray(): this is ArrayNode {
-      return false
-    },
-
-    isArrayItem(): this is ArrayItemNode {
-      return true
-    },
+    isField: false as const,
+    isGroup: false as const,
+    isArray: false as const,
+    isArrayItem: true as const,
 
     toJSON() {
       return serializeNode(this)
     },
-  }
-
-  return arrayItemNode
+  } satisfies ContainerNode
 }
+
+export type ArrayItemNode = ReturnType<typeof createArrayItemNode>
+export type ArrayItemParts = ArrayItemNode['parts']
 
 /**
  * Check if an array schema should render as multiselect (has enum or oneOf)
@@ -289,7 +266,7 @@ function createMultiselectFieldNode(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-): FieldNode {
+) {
   const itemsSchema = schema.items as JSONSchemaObject
 
   // Build options from enum or oneOf
@@ -311,7 +288,7 @@ function createMultiselectFieldNode(
       }))
   }
 
-  // Construct FieldNode directly
+  // Construct FieldNode directly - return same shape as createFieldNode
   const parts = {
     container: { key: path },
     label: {
@@ -324,18 +301,18 @@ function createMultiselectFieldNode(
       attrs: {
         id: path,
         name: path,
-        multiple: true,
-        ...(required ? { required: true } : {}),
+        multiple: true as const,
+        ...(required ? { required: true as const } : {}),
       },
       options,
     },
   }
 
-  const fieldNode: FieldNode = {
-    nodeType: 'field',
+  return {
+    nodeType: 'field' as const,
     path,
     schema,
-    widget: 'multiselect',
+    widget: 'multiselect' as const,
     validation: {
       required,
       minLength:
@@ -347,26 +324,13 @@ function createMultiselectFieldNode(
     depth: path ? path.split('.').length : 0,
     parts,
 
-    isField(): this is FieldNode {
-      return true
-    },
-
-    isGroup(): this is GroupNode {
-      return false
-    },
-
-    isArray(): this is ArrayNode {
-      return false
-    },
-
-    isArrayItem(): this is ArrayItemNode {
-      return false
-    },
+    isField: true as const,
+    isGroup: false as const,
+    isArray: false as const,
+    isArrayItem: false as const,
 
     toJSON() {
       return serializeNode(this)
     },
-  }
-
-  return fieldNode
+  } satisfies BaseNode
 }

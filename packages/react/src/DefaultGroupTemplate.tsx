@@ -1,16 +1,17 @@
 import React from 'react'
 import type { GroupNode } from '@jsonschema-form/core'
 
-export interface DefaultGroupProps {
-  node: GroupNode
-  children: React.ReactNode
-}
-
 /**
  * Default group renderer using the .parts API from core
  * Renders nested object schemas as fieldsets
  */
-export function DefaultGroupTemplate({ node, children }: DefaultGroupProps) {
+export function DefaultGroupTemplate({
+  node,
+  children,
+}: {
+  node: GroupNode
+  children: React.ReactNode
+}) {
   const { container, label, description } = node.parts
 
   return (
