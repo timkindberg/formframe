@@ -150,14 +150,14 @@ export function createGroupNode(
 
         // Identify all array fields (multiselect and dynamic arrays)
         const arrayFieldPaths = new Set<string>()
-        groupNode.walk({
-          field(fieldNode) {
+        this.walk({
+          field(fieldNode: BaseNode) {
             // Multiselect fields should always return arrays
             if (fieldNode.widget === 'multiselect') {
               arrayFieldPaths.add(fieldNode.path)
             }
           },
-          arrayItem(itemNode) {
+          arrayItem(itemNode: BaseNode) {
             // Dynamic array items - their parent array path should be tracked
             // Extract array path from item path (e.g., "hobbies.0" -> "hobbies")
             const itemPath = itemNode.path
