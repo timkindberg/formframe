@@ -1,5 +1,5 @@
 import type { FieldNode, FieldParts, GroupNode } from '../types'
-import { buildValidation, type JSONSchemaObject } from './utils'
+import { buildValidation, serializeNode, type JSONSchemaObject } from './utils'
 
 export function createFieldNode(
   path: string,
@@ -119,6 +119,18 @@ export function createFieldNode(
 
     isGroup(): this is GroupNode {
       return false
+    },
+
+    isArray(): this is import('../types').ArrayNode {
+      return false
+    },
+
+    isArrayItem(): this is import('../types').ArrayItemNode {
+      return false
+    },
+
+    toJSON() {
+      return serializeNode(this)
     },
   }
 }

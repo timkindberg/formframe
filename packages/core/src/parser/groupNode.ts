@@ -1,12 +1,14 @@
 import type {
   FieldNode,
   GroupNode,
+  ArrayNode,
   GroupParts,
   WalkHandlers,
   JSONSchema,
 } from '../types'
 import { serializeNode, walkNode, type JSONSchemaObject } from './utils'
 import { createFieldNode } from './fieldNode'
+import { createArrayNode } from './arrayNode'
 import { transformCheckboxes, unflatten } from './groupNode.submitUtils'
 
 // Type guard for object schemas
@@ -19,7 +21,7 @@ export function createGroupNode(
   schema: JSONSchemaObject,
   required: boolean
 ): GroupNode {
-  const children: Array<FieldNode | GroupNode> = []
+  const children: Array<FieldNode | GroupNode | ArrayNode> = []
   const requiredFields = schema.required || []
 
   if (schema.properties) {
@@ -29,9 +31,14 @@ export function createGroupNode(
       const childPath = path ? `${path}.${key}` : key // Handle root path
       const isRequired = requiredFields.includes(key)
 
-      if (propSchema.type === 'object' && propSchema.properties) {
+      if (propSchema.type === 'array') {
+        // Array type - creates ArrayNode or multiselect FieldNode
+        children.push(createArrayNode(childPath, propSchema, isRequired))
+      } else if (propSchema.type === 'object' && propSchema.properties) {
+        // Nested object - creates GroupNode
         children.push(createGroupNode(childPath, propSchema, isRequired))
       } else {
+        // Primitive field - creates FieldNode
         children.push(createFieldNode(childPath, propSchema, isRequired))
       }
     }
@@ -123,6 +130,14 @@ export function createGroupNode(
       return true
     },
 
+    isArray(): this is ArrayNode {
+      return false
+    },
+
+    isArrayItem(): this is import('../types').ArrayItemNode {
+      return false
+    },
+
     toJSON() {
       return serializeNode(this)
     },
@@ -142,7 +157,21 @@ export function createGroupNode(
         if (!target) return
 
         const formData = new FormData(target)
-        const flat = Object.fromEntries(formData.entries())
+
+        // Collect all values, handling multiselect (multiple entries with same name)
+        const flat: Record<string, unknown> = {}
+        for (const [key, value] of formData.entries()) {
+          if (key in flat) {
+            // Multiple values for same key - collect as array (e.g., multiselect)
+            if (Array.isArray(flat[key])) {
+              (flat[key] as unknown[]).push(value)
+            } else {
+              flat[key] = [flat[key], value]
+            }
+          } else {
+            flat[key] = value
+          }
+        }
 
         // Transform: checkbox "on" -> true
         const transformed = transformCheckboxes(flat)

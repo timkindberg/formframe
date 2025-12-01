@@ -4,6 +4,10 @@ import type { JSONSchema, GroupNode, WalkHandlers } from '@jsonschema-form/core'
 import { DefaultRootTemplate } from './DefaultRootTemplate'
 import { DefaultFieldTemplate } from './DefaultFieldTemplate'
 import { DefaultGroupTemplate } from './DefaultGroupTemplate'
+import {
+  DefaultArrayTemplate,
+  DefaultArrayItemTemplate,
+} from './DefaultArrayTemplate'
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface UseSchemaFormOptions {
@@ -47,6 +51,14 @@ export function useSchemaForm(
         <DefaultGroupTemplate key={node.path} node={node}>
           {node.walk(handlers)}
         </DefaultGroupTemplate>
+      ),
+      array: (node, handlers) => (
+        <DefaultArrayTemplate key={node.path} node={node} handlers={handlers} />
+      ),
+      arrayItem: (node, handlers) => (
+        <DefaultArrayItemTemplate key={node.path} node={node}>
+          {node.walk(handlers)}
+        </DefaultArrayItemTemplate>
       ),
     }
 

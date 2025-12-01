@@ -1216,8 +1216,258 @@ describe('parseSchema', () => {
       )
 
       expect(() => {
-        addressNode?.isGroup() && addressNode.submit(() => {})
+        if (addressNode?.isGroup()) {
+          addressNode.submit(() => {})
+        }
       }).toThrow('submit() can only be called on root GroupNode')
+    })
+  })
+
+  describe('array fields - multiselect', () => {
+    it('creates multiselect FieldNode for primitive array with enum', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          skills: {
+            type: 'array',
+            title: 'Skills',
+            items: {
+              type: 'string',
+              enum: ['JavaScript', 'TypeScript', 'React'],
+            },
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const skillsField = form.children.find((child) => child.path === 'skills')
+
+      expect(skillsField?.nodeType).toBe('field')
+      expect(skillsField?.isField()).toBe(true)
+      if (skillsField?.isField()) {
+        expect(skillsField.widget).toBe('multiselect')
+        expect(skillsField.parts.select?.attrs.multiple).toBe(true)
+        expect(skillsField.parts.select?.options).toHaveLength(3)
+        expect(skillsField.parts.select?.options[0]).toEqual({
+          value: 'JavaScript',
+          label: 'JavaScript',
+        })
+      }
+    })
+
+    it('creates multiselect FieldNode for primitive array with oneOf', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          colors: {
+            type: 'array',
+            title: 'Favorite Colors',
+            items: {
+              oneOf: [
+                { const: 'red', title: 'Red' },
+                { const: 'blue', title: 'Blue' },
+                { const: 'green', title: 'Green' },
+              ],
+            },
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const colorsField = form.children.find((child) => child.path === 'colors')
+
+      expect(colorsField?.nodeType).toBe('field')
+      expect(colorsField?.isField()).toBe(true)
+      if (colorsField?.isField()) {
+        expect(colorsField.widget).toBe('multiselect')
+        expect(colorsField.parts.select?.options).toHaveLength(3)
+        expect(colorsField.parts.select?.options[0]).toEqual({
+          value: 'red',
+          label: 'Red',
+        })
+      }
+    })
+
+    it('respects minItems and maxItems for multiselect', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          skills: {
+            type: 'array',
+            minItems: 2,
+            maxItems: 5,
+            items: {
+              type: 'string',
+              enum: ['JavaScript', 'TypeScript', 'React'],
+            },
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const skillsField = form.children.find((child) => child.path === 'skills')
+
+      expect(skillsField?.nodeType).toBe('field')
+      if (skillsField?.isField()) {
+        expect(skillsField.validation.minLength).toBe(2)
+        expect(skillsField.validation.maxLength).toBe(5)
+      }
+    })
+  })
+
+  describe('array fields - dynamic arrays', () => {
+    it('creates ArrayNode for object array', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          addresses: {
+            type: 'array',
+            title: 'Addresses',
+            items: {
+              type: 'object',
+              properties: {
+                street: { type: 'string', title: 'Street' },
+                city: { type: 'string', title: 'City' },
+              },
+            },
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const addressesNode = form.children.find(
+        (child) => child.path === 'addresses'
+      )
+
+      expect(addressesNode?.nodeType).toBe('array')
+      expect(addressesNode?.widget).toBe('array')
+      expect(addressesNode?.isArray()).toBe(true)
+
+      if (addressesNode?.isArray()) {
+        expect(addressesNode.parts.addButton.label).toBe('Add Addresses')
+        expect(addressesNode.parts.label?.text).toBe('Addresses')
+      }
+    })
+
+    it('respects minItems for ArrayNode', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          addresses: {
+            type: 'array',
+            minItems: 2,
+            items: {
+              type: 'object',
+              properties: {
+                street: { type: 'string' },
+              },
+            },
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const addressesNode = form.children.find(
+        (child) => child.path === 'addresses'
+      )
+
+      expect(addressesNode?.isArray()).toBe(true)
+      if (addressesNode?.isArray()) {
+        expect(addressesNode.children).toHaveLength(2)
+        expect(addressesNode.validation.minItems).toBe(2)
+      }
+    })
+
+    it('creates ArrayItemNode children with correct paths', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          addresses: {
+            type: 'array',
+            minItems: 2,
+            items: {
+              type: 'object',
+              properties: {
+                street: { type: 'string' },
+              },
+            },
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const addressesNode = form.children.find(
+        (child) => child.path === 'addresses'
+      )
+
+      if (addressesNode?.isArray()) {
+        expect(addressesNode.children[0].nodeType).toBe('arrayItem')
+        expect(addressesNode.children[0].path).toBe('addresses.0')
+        expect(addressesNode.children[1].path).toBe('addresses.1')
+      }
+    })
+
+    it('ArrayNode.getItem creates new ArrayItemNode', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          hobbies: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const hobbiesNode = form.children.find((child) => child.path === 'hobbies')
+
+      if (hobbiesNode?.isArray()) {
+        const newItem = hobbiesNode.getItem(5)
+        expect(newItem.nodeType).toBe('arrayItem')
+        expect(newItem.path).toBe('hobbies.5')
+      }
+    })
+
+    it('handles nested arrays of primitives', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          todos: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                tags: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    enum: ['urgent', 'later', 'done'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      }
+
+      const form = parseSchema(schema)
+      const todosNode = form.children.find((child) => child.path === 'todos')
+
+      expect(todosNode?.isArray()).toBe(true)
+      if (todosNode?.isArray()) {
+        const item = todosNode.getItem(0)
+        expect(item.children[0].isGroup()).toBe(true)
+
+        if (item.children[0].isGroup()) {
+          const tagsField = item.children[0].children.find(
+            (c) => c.path === 'todos.0.tags'
+          )
+          expect(tagsField?.widget).toBe('multiselect')
+        }
+      }
     })
   })
 })

@@ -3,7 +3,7 @@ import type { JSONSchema } from 'json-schema-typed/draft-07'
 
 export type { JSONSchema }
 
-export type NodeType = 'group' | 'field'
+export type NodeType = 'group' | 'field' | 'array' | 'arrayItem'
 
 export interface BaseNode {
   nodeType: NodeType
@@ -13,6 +13,15 @@ export interface BaseNode {
   // Computed properties (set at parse time)
   isRoot: boolean // true if path === ''
   depth: number // nesting level (path.split('.').length)
+
+  // Type guards (all nodes have these)
+  isField(): this is FieldNode
+  isGroup(): this is GroupNode
+  isArray(): this is ArrayNode
+  isArrayItem(): this is ArrayItemNode
+
+  // Serialization (all nodes have this)
+  toJSON(): object
 }
 
 // Parts API - framework-agnostic render structure descriptors
@@ -75,7 +84,7 @@ export interface GroupParts {
 
 export interface FieldNode extends BaseNode {
   nodeType: 'field'
-  widget: string // 'input', 'textarea', 'select', etc
+  widget: string // 'input', 'textarea', 'select', 'multiselect', etc
 
   // Validation rules (all in one place)
   validation: {
@@ -89,21 +98,98 @@ export interface FieldNode extends BaseNode {
 
   // Parts API - framework-agnostic render data
   parts: FieldParts
+}
 
-  // Type guards
-  isField(): this is FieldNode
-  isGroup(): this is GroupNode
+export interface ArrayParts {
+  container: {
+    key: string
+  }
+  label?: {
+    text: string
+  }
+  description?: {
+    text: string
+  }
+  itemsContainer: {
+    key: string
+  }
+  addButton: {
+    attrs: {
+      type: 'button'
+    }
+    label: string
+  }
+}
+
+export interface ArrayItemParts {
+  container: {
+    key: string
+  }
+  removeButton: {
+    attrs: {
+      type: 'button'
+    }
+    label: string
+  }
 }
 
 export interface WalkHandlers<R> {
   field?: (node: FieldNode, handlers: WalkHandlers<R>) => R
   group?: (node: GroupNode, handlers: WalkHandlers<R>) => R
+  array?: (node: ArrayNode, handlers: WalkHandlers<R>) => R
+  arrayItem?: (node: ArrayItemNode, handlers: WalkHandlers<R>) => R
 }
 
-export interface GroupNode extends BaseNode {
+// ContainerNode - for nodes that have children
+export interface ContainerNode extends BaseNode {
+  children: Array<FieldNode | GroupNode | ArrayNode | ArrayItemNode>
+
+  // Query methods - search descendants
+  getField(path: string): FieldNode | undefined
+  getAllFields(): FieldNode[]
+
+  // Walking/traversal
+  walk<R>(handlers?: WalkHandlers<R>): R[]
+}
+
+export interface ArrayNode extends ContainerNode {
+  nodeType: 'array'
+  widget: 'array'
+  itemSchema: JSONSchema
+  children: ArrayItemNode[]
+
+  // Validation rules
+  validation: {
+    required: boolean
+    minItems?: number
+    maxItems?: number
+  }
+
+  // Parts API
+  parts: ArrayParts
+
+  // Factory method - generates an ArrayItemNode for a given index
+  getItem(index: number): ArrayItemNode
+}
+
+export interface ArrayItemNode extends ContainerNode {
+  nodeType: 'arrayItem'
+  widget: 'arrayItem'
+  children: [FieldNode | GroupNode | ArrayNode]
+
+  // Validation
+  validation: {
+    required: boolean
+  }
+
+  // Parts API
+  parts: ArrayItemParts
+}
+
+export interface GroupNode extends ContainerNode {
   nodeType: 'group'
   widget: 'fieldset' // or keep flexible?
-  children: Array<FieldNode | GroupNode>
+  children: Array<FieldNode | GroupNode | ArrayNode>
 
   // Validation rules
   validation: {
@@ -112,20 +198,6 @@ export interface GroupNode extends BaseNode {
 
   // Parts API - framework-agnostic render data
   parts: GroupParts
-
-  // Query methods - search descendants only
-  getField(path: string): FieldNode | undefined
-  getAllFields(): FieldNode[]
-
-  // Walking/traversal
-  walk<R>(handlers?: WalkHandlers<R>): R[]
-
-  // Type guards
-  isField(): this is FieldNode
-  isGroup(): this is GroupNode
-
-  // Serialization
-  toJSON(): object
 
   // Form submission (root nodes only)
   submit(

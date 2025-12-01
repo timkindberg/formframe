@@ -5,6 +5,7 @@ import App03 from './App_03_Core+DeepWalk'
 import App04 from './App_04_Core+Parts'
 import App05 from './App_05_React+DefaultComponents'
 import App06 from './App_06_React+UseSchemaForm'
+import App07 from './App_07_React+Arrays'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -13,6 +14,7 @@ const examples = [
   { id: '04', name: 'Core + Parts API', component: App04 },
   { id: '05', name: 'React + Default Components', component: App05 },
   { id: '06', name: 'React + useSchemaForm Hook', component: App06 },
+  { id: '07', name: 'React + Array Support', component: App07 },
 ]
 
 function App() {
