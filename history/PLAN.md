@@ -37,8 +37,9 @@ Enforcement: a **Stop hook** runs the deterministic subset every iteration; the 
 - ⏳ **Stop hook** — wire `npm run gate` as a Stop hook so a loop can't end red (opt-in; changes session behavior).
 - ⏳ **deps-cruiser** dependency-direction fitness function — add when there is >1 spoke.
 
-### Spike — the re-entrant renderer (PAIRED, not looped)
-- Prove override-at-any-node (root / subtree / single leaf) + `renderChildren()` continuation by hand, building on the existing `walk(handlers)` primitive. Confirm the *feel* of the API. This is the differentiator; gates can't judge ergonomics.
+### Spike — the recursive continuation renderer (PAIRED) — DESIGN LOCKED in ADR 010
+- Prove the one primitive end-to-end against a nested schema (loose types): `renderNode` (node hijack, top-level + scoped) + `node.Default` / `node.Children` / `node.child(p).Default` (tree re-entry) + `parts={{…}}` and `part.Default` (part scope) + `<Form>{(root) => …}</Form>` (root place-yourself). Confirm the *feel*; gates can't judge ergonomics.
+- Deferred skins (ADR 010): overrides-map, compound slots, component registry, typed module factory + the `.Default`-free `<fields.x/>` form (needs `6nb`).
 
 ### Phase A — Core + reference stack to golden-green
 - Curate the golden scenarios (e.g. signup, nested address, array-of-objects, enum/select, value-dependent conditional, one nasty VNDLY-shaped form).

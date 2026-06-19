@@ -49,12 +49,23 @@ Serializable conditional logic (e.g. conditionally required/hidden fields), used
 
 ## Rendering & customization
 
-**Override** / **Hijack**:
-Supplying your own JSX for a node in the form tree instead of the default renderer. Available at any node — root, subtree, or a single leaf.
-_Avoid_: widget override, template (those are RJSF's schema-keyed registries; ours is JSX).
+See ADR 010 for the full model. One recursive primitive, two granularities (node, part), three moves (take default / swap sub-pieces / place yourself), fractal from `<Form>` to `part.Default`.
 
-**renderChildren** (continuation):
-The handle a hijack receives to hand control *back* to the default renderer for that node's subtree. The re-entrancy that lets you customize precisely one node and let the library render the rest.
+**Hijack**:
+Supplying your own JSX for a node or part instead of the default renderer — at any level, paying only for what you change.
+_Avoid_: widget override, template (RJSF's schema-keyed registries; ours is a JSX continuation).
+
+**`renderNode`**:
+The per-node hook the renderer calls while walking the tree. Return custom JSX to hijack a node, or `<node.Default/>` to keep the default. The function form of node-scope customization.
+
+**`Default`**:
+The component that renders the default for the thing it hangs off — `node.Default` (a whole node) or `part.Default` (one part). Re-enters the engine, so descendants still pass through `renderNode`.
+
+**`Children`**:
+`node.Children` renders a node's child *nodes* through the resolver — the inter-node continuation that lets you take the reins on a node's layout while the library renders below.
+
+**`parts={{…}}`**:
+The part-scope intercept on `node.Default`: override individual parts (each override receives the part object, which carries both its data and its own `.Default`) while the rest render default.
 
 ## Working method
 
