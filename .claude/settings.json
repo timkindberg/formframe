@@ -21,6 +21,18 @@
         ],
         "matcher": ""
       }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/gate-stop-hook.sh\"",
+            "timeout": 120
+          }
+        ]
+      }
     ]
   }
 }
