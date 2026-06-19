@@ -3,8 +3,8 @@ import {
   serializeNode,
   type JSONSchemaObject,
   type ValidationRules,
-  type BaseNode,
 } from './utils'
+import type { FieldNode, FieldParts } from './nodeTypes'
 
 // Re-export for type inference
 export type { ValidationRules }
@@ -13,7 +13,7 @@ export function createFieldNode(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-) {
+): FieldNode {
   const validation = buildValidation(schema, required)
 
   // Check for enum or oneOf pattern
@@ -129,11 +129,10 @@ export function createFieldNode(
     toJSON() {
       return serializeNode(this)
     },
-  } satisfies BaseNode
+  }
 }
 
-export type FieldNode = ReturnType<typeof createFieldNode>
-export type FieldParts = FieldNode['parts']
+export type { FieldNode, FieldParts }
 
 // Build HTML input attributes from schema and validation
 export function buildInputAttrs(

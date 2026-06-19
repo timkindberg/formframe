@@ -78,7 +78,9 @@ function App() {
   const handleSubmit = (data: Record<string, unknown>) => {
     console.log('Form submitted with array data:', data)
     console.log('- Multiselect fields return arrays')
-    console.log('- Dynamic arrays unflatten from dot notation (addresses.0.street)')
+    console.log(
+      '- Dynamic arrays unflatten from dot notation (addresses.0.street)'
+    )
     console.log('- Sparse arrays are supported')
   }
 
@@ -86,17 +88,37 @@ function App() {
     <div>
       <h1>JSON Schema Form - Array Support</h1>
 
-      <div style={{ marginBottom: '2rem', backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '4px' }}>
+      <div
+        style={{
+          marginBottom: '2rem',
+          backgroundColor: '#f5f5f5',
+          padding: '1rem',
+          borderRadius: '4px',
+        }}
+      >
         <h2 style={{ marginTop: 0, fontSize: '1.2rem' }}>Array Field Types</h2>
         <ul style={{ marginBottom: 0 }}>
-          <li><strong>Multiselect</strong>: Primitive arrays (string[], number[]) with enum/oneOf → renders as <code>&lt;select multiple&gt;</code></li>
-          <li><strong>Dynamic Arrays</strong>: Complex arrays (objects, nested types) → renders with add/remove buttons</li>
+          <li>
+            <strong>Multiselect</strong>: Primitive arrays (string[], number[])
+            with enum/oneOf → renders as <code>&lt;select multiple&gt;</code>
+          </li>
+          <li>
+            <strong>Dynamic Arrays</strong>: Complex arrays (objects, nested
+            types) → renders with add/remove buttons
+          </li>
         </ul>
       </div>
 
       <Form onSubmit={form.submit(handleSubmit)} />
 
-      <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>
+      <div
+        style={{
+          marginTop: '2rem',
+          padding: '1rem',
+          backgroundColor: '#e3f2fd',
+          borderRadius: '4px',
+        }}
+      >
         <h3 style={{ marginTop: 0 }}>Try it out:</h3>
         <ul style={{ marginBottom: 0 }}>
           <li>Select multiple skills (hold Ctrl/Cmd to select multiple)</li>

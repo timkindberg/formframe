@@ -1,14 +1,16 @@
 import type { JSONSchema } from 'json-schema-typed/draft-07'
-import { ArrayItemNode, ArrayNode, createArrayNode } from './arrayNode'
-import { createFieldNode, type FieldNode } from './fieldNode'
+import { createArrayNode } from './arrayNode'
+import { createFieldNode } from './fieldNode'
 import { transformCheckboxes, unflatten } from './groupNode.submitUtils'
-import {
-  type JSONSchemaObject,
-  type BaseNode,
-  type ContainerNode,
-  serializeNode,
-  walkNode,
-} from './utils'
+import { type JSONSchemaObject, serializeNode, walkNode } from './utils'
+import type {
+  AnyNode,
+  ArrayItemNode,
+  FieldNode,
+  GroupNode,
+  GroupParts,
+  WalkHandlers,
+} from './nodeTypes'
 
 // Type guard for object schemas
 export function isObjectSchema(schema: JSONSchema): schema is JSONSchemaObject {
@@ -19,8 +21,8 @@ export function createGroupNode(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-) {
-  const children: BaseNode[] = []
+): GroupNode {
+  const children: AnyNode[] = []
   const requiredFields = schema.required || []
 
   if (schema.properties) {
@@ -59,7 +61,7 @@ export function createGroupNode(
     }),
   }
 
-  return {
+  const groupNode: GroupNode = {
     nodeType: 'group',
     path,
     schema,
@@ -83,7 +85,7 @@ export function createGroupNode(
 
       for (const child of children) {
         if (child.nodeType === 'field' && child.path === fullPath) {
-          return child as FieldNode
+          return child
         } else if (child.nodeType === 'group') {
           // Check if target is within this child group
           if (
@@ -91,8 +93,8 @@ export function createGroupNode(
             fullPath === child.path
           ) {
             const relativePath = fullPath.substring(child.path.length + 1)
-            const found = (child as ContainerNode).getField(relativePath)
-            if (found) return found as FieldNode
+            const found = child.getField(relativePath)
+            if (found) return found
           }
         }
       }
@@ -104,11 +106,9 @@ export function createGroupNode(
 
       for (const child of children) {
         if (child.nodeType === 'field') {
-          fields.push(child as FieldNode)
+          fields.push(child)
         } else if (child.nodeType === 'group') {
-          fields.push(
-            ...((child as ContainerNode).getAllFields() as FieldNode[])
-          )
+          fields.push(...child.getAllFields())
         }
       }
 
@@ -117,13 +117,13 @@ export function createGroupNode(
 
     walk<R>(handlers?: WalkHandlers<R>): R[] {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return walkNode(this, handlers as any)
+      return walkNode(groupNode, handlers as any)
     },
 
-    isField: false as const,
-    isGroup: true as const,
-    isArray: false as const,
-    isArrayItem: false as const,
+    isField: false,
+    isGroup: true,
+    isArray: false,
+    isArrayItem: false,
 
     toJSON() {
       return serializeNode(this)
@@ -150,14 +150,14 @@ export function createGroupNode(
 
         // Identify all array fields (multiselect and dynamic arrays)
         const arrayFieldPaths = new Set<string>()
-        this.walk({
-          field(fieldNode: BaseNode) {
+        this.walk<void>({
+          field(fieldNode: FieldNode) {
             // Multiselect fields should always return arrays
             if (fieldNode.widget === 'multiselect') {
               arrayFieldPaths.add(fieldNode.path)
             }
           },
-          arrayItem(itemNode: BaseNode) {
+          arrayItem(itemNode: ArrayItemNode) {
             // Dynamic array items - their parent array path should be tracked
             // Extract array path from item path (e.g., "hobbies.0" -> "hobbies")
             const itemPath = itemNode.path
@@ -200,17 +200,9 @@ export function createGroupNode(
         onSubmit(nested)
       }
     },
-  } satisfies ContainerNode
+  }
+
+  return groupNode
 }
 
-// Derived types from factory function
-export type GroupNode = ReturnType<typeof createGroupNode>
-export type GroupParts = GroupNode['parts']
-
-// WalkHandlers uses derived node types
-export interface WalkHandlers<R> {
-  field?: (node: FieldNode, handlers: WalkHandlers<R>) => R
-  group?: (node: GroupNode, handlers: WalkHandlers<R>) => R
-  array?: (node: ArrayNode, handlers: WalkHandlers<R>) => R
-  arrayItem?: (node: ArrayItemNode, handlers: WalkHandlers<R>) => R
-}
+export type { GroupNode, GroupParts, WalkHandlers }

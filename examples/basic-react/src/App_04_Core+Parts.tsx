@@ -1,4 +1,4 @@
-import { parseSchema } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
 
 const schema: JSONSchema = {
@@ -48,7 +48,7 @@ const schema: JSONSchema = {
   required: ['name', 'email', 'theme', 'terms'],
 }
 
-const form = parseSchema(schema)
+const form = jsonSchemaToTree(schema)
 
 function App() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {

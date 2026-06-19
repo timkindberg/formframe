@@ -1,5 +1,9 @@
 import React, { useState, createContext, useContext } from 'react'
-import type { ArrayNode, ArrayItemNode, WalkHandlers } from '@jsonschema-form/core'
+import type {
+  ArrayNode,
+  ArrayItemNode,
+  WalkHandlers,
+} from '@jsonschema-form/core'
 
 // ============================================================================
 // Context
@@ -56,7 +60,9 @@ export function useArrayField(arrayNode: ArrayNode) {
 export function useArrayItem() {
   const context = useContext(ArrayItemContext)
   if (!context) {
-    throw new Error('useArrayItem must be used within an ArrayItemContext.Provider')
+    throw new Error(
+      'useArrayItem must be used within an ArrayItemContext.Provider'
+    )
   }
   return context
 }
@@ -77,7 +83,8 @@ export function DefaultArrayTemplate({
   handlers: WalkHandlers<JSX.Element>
 }) {
   const { items, addItem, removeItem, canRemove } = useArrayField(node)
-  const { container, label, description, itemsContainer, addButton } = node.parts
+  const { container, label, description, itemsContainer, addButton } =
+    node.parts
 
   return (
     <div

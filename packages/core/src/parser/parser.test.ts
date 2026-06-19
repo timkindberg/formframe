@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { parseSchema } from './index'
+import { jsonSchemaToTree } from './index'
 import type { JSONSchema, GroupNode } from '../types'
 
-describe('parseSchema', () => {
+describe('jsonSchemaToTree', () => {
   describe('basic object schemas', () => {
     it('parses a simple object schema with one field', () => {
       const schema: JSONSchema = {
@@ -12,7 +12,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
 
       expect(form.nodeType).toBe('group')
       expect(form.path).toBe('')
@@ -30,17 +30,17 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
 
       expect(form.children).toHaveLength(3)
       expect(form.getAllFields()).toHaveLength(3)
     })
 
     it('throws error for boolean schemas', () => {
-      expect(() => parseSchema(true)).toThrow(
+      expect(() => jsonSchemaToTree(true)).toThrow(
         'Boolean schemas are not yet supported'
       )
-      expect(() => parseSchema(false)).toThrow(
+      expect(() => jsonSchemaToTree(false)).toThrow(
         'Boolean schemas are not yet supported'
       )
     })
@@ -55,7 +55,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('name')
 
       expect(field?.parts.label.text).toBe('Full Name')
@@ -69,7 +69,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('email')
 
       expect(field?.parts.description?.text).toBe('Your email address')
@@ -85,7 +85,7 @@ describe('parseSchema', () => {
         required: ['name'],
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const nameField = form.getField('name')
       const emailField = form.getField('email')
 
@@ -103,7 +103,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('name')
 
       expect(field?.parts.input?.attrs.type).toBe('text')
@@ -117,7 +117,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('email')
 
       expect(field?.parts.input?.attrs.type).toBe('email')
@@ -131,7 +131,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('age')
 
       expect(field?.parts.input?.attrs.type).toBe('number')
@@ -145,7 +145,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('subscribe')
 
       expect(field?.parts.input?.attrs.type).toBe('checkbox')
@@ -160,7 +160,7 @@ describe('parseSchema', () => {
         required: ['name'],
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('name')
 
       expect(field?.parts.input?.attrs.required).toBe(true)
@@ -174,7 +174,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('age')
 
       expect(field?.parts.input?.attrs.min).toBe(0)
@@ -189,7 +189,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('username')
 
       expect(field?.parts.input?.attrs.minLength).toBe(3)
@@ -204,7 +204,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('zipcode')
 
       expect(field?.parts.input?.attrs.pattern).toBe('^[0-9]{5}$')
@@ -227,7 +227,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
 
       expect(form.children).toHaveLength(1)
       expect(form.children[0].nodeType).toBe('group')
@@ -251,7 +251,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const street = form.getField('address.street')
       const city = form.getField('address.city')
 
@@ -274,7 +274,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const street = form.getField('address.street')
       const city = form.getField('address.city')
 
@@ -296,7 +296,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const group = form.children[0] as GroupNode
 
       expect(group.children).toHaveLength(2)
@@ -317,7 +317,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const addressGroup = form.children[0] as GroupNode
 
       // Query relative to the group
@@ -339,7 +339,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const nameField = form.getField('name')
       const emailField = form.getField('email')
 
@@ -355,7 +355,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('nonexistent')
 
       expect(field).toBeUndefined()
@@ -376,7 +376,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const allFields = form.getAllFields()
 
       expect(allFields).toHaveLength(3)
@@ -401,7 +401,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const allFields = form.getAllFields()
 
       expect(allFields.every((f) => f.nodeType === 'field')).toBe(true)
@@ -431,7 +431,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const addressGroup = form.children.find(
         (c) => c.path === 'address'
       ) as GroupNode
@@ -466,7 +466,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const json = form.toJSON()
 
       expect(() => JSON.stringify(json)).not.toThrow()
@@ -483,7 +483,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const json = form.toJSON()
       const jsonString = JSON.stringify(json)
 
@@ -508,7 +508,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const nameField = form.getField('name')
       const addressGroup = form.children.find((c) => c.path === 'address')
 
@@ -531,7 +531,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const nameField = form.getField('name')
       const streetField = form.getField('address.street')
 
@@ -549,7 +549,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const nameField = form.getField('name')
       const emailField = form.getField('email')
 
@@ -575,7 +575,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const nameField = form.getField('name')
       const streetField = form.getField('address.street')
 
@@ -596,7 +596,7 @@ describe('parseSchema', () => {
           },
         }
 
-        const form = parseSchema(schema)
+        const form = jsonSchemaToTree(schema)
         const field = form.getField('name')
 
         expect(field?.parts.container).toEqual({
@@ -613,7 +613,7 @@ describe('parseSchema', () => {
           required: ['name'],
         }
 
-        const form = parseSchema(schema)
+        const form = jsonSchemaToTree(schema)
         const field = form.getField('name')
 
         expect(field?.parts.label).toEqual({
@@ -633,7 +633,7 @@ describe('parseSchema', () => {
           },
         }
 
-        const form = parseSchema(schema)
+        const form = jsonSchemaToTree(schema)
         const field = form.getField('email')
 
         expect(field?.parts.description).toEqual({
@@ -649,7 +649,7 @@ describe('parseSchema', () => {
           },
         }
 
-        const form = parseSchema(schema)
+        const form = jsonSchemaToTree(schema)
         const field = form.getField('name')
 
         expect(field?.parts.description).toBeUndefined()
@@ -663,7 +663,7 @@ describe('parseSchema', () => {
           },
         }
 
-        const form = parseSchema(schema)
+        const form = jsonSchemaToTree(schema)
         const field = form.getField('age')
 
         expect(field?.parts.input).toEqual({
@@ -692,7 +692,7 @@ describe('parseSchema', () => {
           },
         }
 
-        const form = parseSchema(schema)
+        const form = jsonSchemaToTree(schema)
         const addressGroup = form.children.find(
           (c) => c.path === 'address'
         ) as GroupNode
@@ -716,7 +716,7 @@ describe('parseSchema', () => {
           },
         }
 
-        const form = parseSchema(schema)
+        const form = jsonSchemaToTree(schema)
         const addressGroup = form.children.find(
           (c) => c.path === 'address'
         ) as GroupNode
@@ -739,7 +739,7 @@ describe('parseSchema', () => {
           },
         }
 
-        const form = parseSchema(schema)
+        const form = jsonSchemaToTree(schema)
         const addressGroup = form.children.find(
           (c) => c.path === 'address'
         ) as GroupNode
@@ -761,7 +761,7 @@ describe('parseSchema', () => {
           },
         }
 
-        const form = parseSchema(schema)
+        const form = jsonSchemaToTree(schema)
         const addressGroup = form.children.find(
           (c) => c.path === 'address'
         ) as GroupNode
@@ -786,7 +786,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('color')
 
       expect(field?.nodeType).toBe('field')
@@ -805,7 +805,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('size')
 
       expect(field?.parts.select).toBeDefined()
@@ -830,7 +830,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('size')
 
       expect(field?.parts.select?.options).toEqual([
@@ -854,7 +854,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('status')
 
       expect(field?.widget).toBe('select')
@@ -877,7 +877,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('rating')
 
       expect(field?.widget).toBe('select')
@@ -902,7 +902,7 @@ describe('parseSchema', () => {
         required: ['country'],
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('country')
 
       expect(field?.validation.required).toBe(true)
@@ -921,7 +921,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const allFields = form.getAllFields()
 
       expect(allFields).toHaveLength(4)
@@ -954,7 +954,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const methodField = form.getField('shipping.method')
       const priorityField = form.getField('shipping.priority')
 
@@ -980,7 +980,7 @@ describe('parseSchema', () => {
         required: ['status'],
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('status')
 
       expect(field?.parts.select).toEqual({
@@ -1007,7 +1007,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('field')
 
       expect(field?.widget).toBe('input')
@@ -1025,7 +1025,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('color')
 
       expect(field?.widget).toBe('select')
@@ -1041,7 +1041,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('name')
 
       expect(field?.widget).toBe('input')
@@ -1063,7 +1063,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('terms')
 
       expect(field?.nodeType).toBe('field')
@@ -1083,7 +1083,7 @@ describe('parseSchema', () => {
         required: ['terms'],
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('terms')
 
       expect(field?.validation.required).toBe(true)
@@ -1102,7 +1102,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const allFields = form.getAllFields()
 
       expect(allFields).toHaveLength(4)
@@ -1127,7 +1127,7 @@ describe('parseSchema', () => {
         required: ['notifications'],
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const field = form.getField('notifications')
 
       expect(field?.parts.input).toEqual({
@@ -1171,7 +1171,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const emailField = form.getField('preferences.emailNotifications')
       const smsField = form.getField('preferences.smsNotifications')
 
@@ -1191,7 +1191,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const handler = form.submit(() => {})
 
       expect(typeof handler).toBe('function')
@@ -1210,13 +1210,13 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const addressNode = form.children.find(
         (child) => child.path === 'address'
       )
 
       expect(() => {
-        if (addressNode?.isGroup()) {
+        if (addressNode?.isGroup) {
           addressNode.submit(() => {})
         }
       }).toThrow('submit() can only be called on root GroupNode')
@@ -1236,7 +1236,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       let submittedData: Record<string, unknown> | null = null
       const handleSubmit = form.submit((data) => {
         submittedData = data
@@ -1252,16 +1252,21 @@ describe('parseSchema', () => {
       }
 
       // Mock FormData
-      const originalFormData = global.FormData
-      global.FormData = class MockFormData {
+      const originalFormData = globalThis.FormData
+      globalThis.FormData = class MockFormData {
         entries() {
           return mockFormData.entries()
         }
       } as unknown as typeof FormData
 
-      handleSubmit(mockEvent as { preventDefault(): void; currentTarget: EventTarget | null })
+      handleSubmit(
+        mockEvent as {
+          preventDefault(): void
+          currentTarget: EventTarget | null
+        }
+      )
 
-      global.FormData = originalFormData
+      globalThis.FormData = originalFormData
 
       expect(submittedData).toEqual({
         skills: ['JavaScript'], // Should be array, not single value
@@ -1282,35 +1287,42 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       let submittedData: Record<string, unknown> | null = null
       const handleSubmit = form.submit((data) => {
         submittedData = data
       })
 
-      // Simulate form submission with multiple selected values
-      const mockFormData = new Map([
+      // Simulate form submission with multiple selected values.
+      // Real FormData is a multimap (duplicate keys allowed); a JS Map is not,
+      // so back the mock with an array of [key, value] pairs to preserve both.
+      const mockFormData: Array<[string, string]> = [
         ['skills', 'JavaScript'],
         ['skills', 'TypeScript'],
-      ])
+      ]
       const mockEvent = {
         preventDefault: () => {},
         currentTarget: {
-          entries: () => mockFormData.entries(),
+          entries: () => mockFormData.values(),
         } as unknown as HTMLFormElement,
       }
 
       // Mock FormData
-      const originalFormData = global.FormData
-      global.FormData = class MockFormData {
+      const originalFormData = globalThis.FormData
+      globalThis.FormData = class MockFormData {
         entries() {
-          return mockFormData.entries()
+          return mockFormData.values()
         }
       } as unknown as typeof FormData
 
-      handleSubmit(mockEvent as { preventDefault(): void; currentTarget: EventTarget | null })
+      handleSubmit(
+        mockEvent as {
+          preventDefault(): void
+          currentTarget: EventTarget | null
+        }
+      )
 
-      global.FormData = originalFormData
+      globalThis.FormData = originalFormData
 
       expect(submittedData).toEqual({
         skills: ['JavaScript', 'TypeScript'], // Should be array
@@ -1334,7 +1346,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       let submittedData: Record<string, unknown> | null = null
       const handleSubmit = form.submit((data) => {
         submittedData = data
@@ -1350,16 +1362,21 @@ describe('parseSchema', () => {
       }
 
       // Mock FormData
-      const originalFormData = global.FormData
-      global.FormData = class MockFormData {
+      const originalFormData = globalThis.FormData
+      globalThis.FormData = class MockFormData {
         entries() {
           return mockFormData.entries()
         }
       } as unknown as typeof FormData
 
-      handleSubmit(mockEvent as { preventDefault(): void; currentTarget: EventTarget | null })
+      handleSubmit(
+        mockEvent as {
+          preventDefault(): void
+          currentTarget: EventTarget | null
+        }
+      )
 
-      global.FormData = originalFormData
+      globalThis.FormData = originalFormData
 
       expect(submittedData).toEqual({
         colors: ['red'], // Should be array, not single value
@@ -1381,7 +1398,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       let submittedData: Record<string, unknown> | null = null
       const handleSubmit = form.submit((data) => {
         submittedData = data
@@ -1397,16 +1414,21 @@ describe('parseSchema', () => {
       }
 
       // Mock FormData
-      const originalFormData = global.FormData
-      global.FormData = class MockFormData {
+      const originalFormData = globalThis.FormData
+      globalThis.FormData = class MockFormData {
         entries() {
           return mockFormData.entries()
         }
       } as unknown as typeof FormData
 
-      handleSubmit(mockEvent as { preventDefault(): void; currentTarget: EventTarget | null })
+      handleSubmit(
+        mockEvent as {
+          preventDefault(): void
+          currentTarget: EventTarget | null
+        }
+      )
 
-      global.FormData = originalFormData
+      globalThis.FormData = originalFormData
 
       // When no values are selected, the field doesn't appear in FormData
       // So it won't be in the submitted data (not even as empty array)
@@ -1428,7 +1450,7 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       let submittedData: Record<string, unknown> | null = null
       const handleSubmit = form.submit((data) => {
         submittedData = data
@@ -1447,16 +1469,21 @@ describe('parseSchema', () => {
       }
 
       // Mock FormData
-      const originalFormData = global.FormData
-      global.FormData = class MockFormData {
+      const originalFormData = globalThis.FormData
+      globalThis.FormData = class MockFormData {
         entries() {
           return mockFormData.entries()
         }
       } as unknown as typeof FormData
 
-      handleSubmit(mockEvent as { preventDefault(): void; currentTarget: EventTarget | null })
+      handleSubmit(
+        mockEvent as {
+          preventDefault(): void
+          currentTarget: EventTarget | null
+        }
+      )
 
-      global.FormData = originalFormData
+      globalThis.FormData = originalFormData
 
       expect(submittedData).toEqual({
         hobbies: ['reading', 'coding'], // Should be array
@@ -1480,12 +1507,12 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const skillsField = form.children.find((child) => child.path === 'skills')
 
       expect(skillsField?.nodeType).toBe('field')
-      expect(skillsField?.isField()).toBe(true)
-      if (skillsField?.isField()) {
+      expect(skillsField?.isField).toBe(true)
+      if (skillsField?.isField) {
         expect(skillsField.widget).toBe('multiselect')
         expect(skillsField.parts.select?.attrs.multiple).toBe(true)
         expect(skillsField.parts.select?.options).toHaveLength(3)
@@ -1514,12 +1541,12 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const colorsField = form.children.find((child) => child.path === 'colors')
 
       expect(colorsField?.nodeType).toBe('field')
-      expect(colorsField?.isField()).toBe(true)
-      if (colorsField?.isField()) {
+      expect(colorsField?.isField).toBe(true)
+      if (colorsField?.isField) {
         expect(colorsField.widget).toBe('multiselect')
         expect(colorsField.parts.select?.options).toHaveLength(3)
         expect(colorsField.parts.select?.options[0]).toEqual({
@@ -1545,11 +1572,11 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const skillsField = form.children.find((child) => child.path === 'skills')
 
       expect(skillsField?.nodeType).toBe('field')
-      if (skillsField?.isField()) {
+      if (skillsField?.isField) {
         expect(skillsField.validation.minLength).toBe(2)
         expect(skillsField.validation.maxLength).toBe(5)
       }
@@ -1575,16 +1602,16 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const addressesNode = form.children.find(
         (child) => child.path === 'addresses'
       )
 
       expect(addressesNode?.nodeType).toBe('array')
       expect(addressesNode?.widget).toBe('array')
-      expect(addressesNode?.isArray()).toBe(true)
+      expect(addressesNode?.isArray).toBe(true)
 
-      if (addressesNode?.isArray()) {
+      if (addressesNode?.isArray) {
         expect(addressesNode.parts.addButton.label).toBe('Add Addresses')
         expect(addressesNode.parts.label?.text).toBe('Addresses')
       }
@@ -1607,13 +1634,13 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const addressesNode = form.children.find(
         (child) => child.path === 'addresses'
       )
 
-      expect(addressesNode?.isArray()).toBe(true)
-      if (addressesNode?.isArray()) {
+      expect(addressesNode?.isArray).toBe(true)
+      if (addressesNode?.isArray) {
         expect(addressesNode.children).toHaveLength(2)
         expect(addressesNode.validation.minItems).toBe(2)
       }
@@ -1636,12 +1663,12 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const addressesNode = form.children.find(
         (child) => child.path === 'addresses'
       )
 
-      if (addressesNode?.isArray()) {
+      if (addressesNode?.isArray) {
         expect(addressesNode.children[0].nodeType).toBe('arrayItem')
         expect(addressesNode.children[0].path).toBe('addresses.0')
         expect(addressesNode.children[1].path).toBe('addresses.1')
@@ -1661,10 +1688,12 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
-      const hobbiesNode = form.children.find((child) => child.path === 'hobbies')
+      const form = jsonSchemaToTree(schema)
+      const hobbiesNode = form.children.find(
+        (child) => child.path === 'hobbies'
+      )
 
-      if (hobbiesNode?.isArray()) {
+      if (hobbiesNode?.isArray) {
         const newItem = hobbiesNode.getItem(5)
         expect(newItem.nodeType).toBe('arrayItem')
         expect(newItem.path).toBe('hobbies.5')
@@ -1694,15 +1723,15 @@ describe('parseSchema', () => {
         },
       }
 
-      const form = parseSchema(schema)
+      const form = jsonSchemaToTree(schema)
       const todosNode = form.children.find((child) => child.path === 'todos')
 
-      expect(todosNode?.isArray()).toBe(true)
-      if (todosNode?.isArray()) {
+      expect(todosNode?.isArray).toBe(true)
+      if (todosNode?.isArray) {
         const item = todosNode.getItem(0)
-        expect(item.children[0].isGroup()).toBe(true)
+        expect(item.children[0].isGroup).toBe(true)
 
-        if (item.children[0].isGroup()) {
+        if (item.children[0].isGroup) {
           const tagsField = item.children[0].children.find(
             (c) => c.path === 'todos.0.tags'
           )

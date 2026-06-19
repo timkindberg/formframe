@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { DefaultGroupTemplate } from './DefaultGroupTemplate'
-import { parseSchema } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type { GroupNode, JSONSchema } from '@jsonschema-form/core'
 
 describe('DefaultGroupTemplate', () => {
@@ -17,7 +17,7 @@ describe('DefaultGroupTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema) as GroupNode
+    const parsed = jsonSchemaToTree(schema) as GroupNode
 
     const screen = await render(
       <DefaultGroupTemplate node={parsed}>
@@ -41,7 +41,7 @@ describe('DefaultGroupTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema) as GroupNode
+    const parsed = jsonSchemaToTree(schema) as GroupNode
 
     const screen = await render(
       <DefaultGroupTemplate node={parsed}>
@@ -66,7 +66,7 @@ describe('DefaultGroupTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema) as GroupNode
+    const parsed = jsonSchemaToTree(schema) as GroupNode
 
     const screen = await render(
       <DefaultGroupTemplate node={parsed}>
@@ -92,7 +92,7 @@ describe('DefaultGroupTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema) as GroupNode
+    const parsed = jsonSchemaToTree(schema) as GroupNode
 
     const screen = await render(
       <DefaultGroupTemplate node={parsed}>
@@ -117,7 +117,7 @@ describe('DefaultGroupTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema) as GroupNode
+    const parsed = jsonSchemaToTree(schema) as GroupNode
 
     const screen = await render(
       <DefaultGroupTemplate node={parsed}>
@@ -147,7 +147,7 @@ describe('DefaultGroupTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema) as GroupNode
+    const parsed = jsonSchemaToTree(schema) as GroupNode
 
     const screen = await render(
       <DefaultGroupTemplate node={parsed}>
@@ -166,7 +166,7 @@ describe('DefaultGroupTemplate', () => {
       properties: {},
     }
 
-    const parsed = parseSchema(schema) as GroupNode
+    const parsed = jsonSchemaToTree(schema) as GroupNode
 
     const screen = await render(
       <DefaultGroupTemplate node={parsed}>{null}</DefaultGroupTemplate>

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { DefaultFieldTemplate } from './DefaultFieldTemplate'
-import { parseSchema } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type { FieldNode, JSONSchema } from '@jsonschema-form/core'
 
 describe('DefaultFieldTemplate', () => {
@@ -16,7 +16,7 @@ describe('DefaultFieldTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema)
+    const parsed = jsonSchemaToTree(schema)
     const nameField = parsed.children[0] as FieldNode
 
     const screen = await render(<DefaultFieldTemplate node={nameField} />)
@@ -40,7 +40,7 @@ describe('DefaultFieldTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema)
+    const parsed = jsonSchemaToTree(schema)
     const ageField = parsed.children[0] as FieldNode
 
     const screen = await render(<DefaultFieldTemplate node={ageField} />)
@@ -61,7 +61,7 @@ describe('DefaultFieldTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema)
+    const parsed = jsonSchemaToTree(schema)
     const activeField = parsed.children[0] as FieldNode
 
     const screen = await render(<DefaultFieldTemplate node={activeField} />)
@@ -83,7 +83,7 @@ describe('DefaultFieldTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema)
+    const parsed = jsonSchemaToTree(schema)
     const statusField = parsed.children[0] as FieldNode
 
     const screen = await render(<DefaultFieldTemplate node={statusField} />)
@@ -112,7 +112,7 @@ describe('DefaultFieldTemplate', () => {
       required: ['email'],
     }
 
-    const parsed = parseSchema(schema)
+    const parsed = jsonSchemaToTree(schema)
     const emailField = parsed.children[0] as FieldNode
 
     const screen = await render(<DefaultFieldTemplate node={emailField} />)
@@ -131,7 +131,7 @@ describe('DefaultFieldTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema)
+    const parsed = jsonSchemaToTree(schema)
     const nicknameField = parsed.children[0] as FieldNode
 
     const screen = await render(<DefaultFieldTemplate node={nicknameField} />)
@@ -157,7 +157,7 @@ describe('DefaultFieldTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema)
+    const parsed = jsonSchemaToTree(schema)
     const passwordField = parsed.children[0] as FieldNode
 
     const screen = await render(<DefaultFieldTemplate node={passwordField} />)
@@ -178,7 +178,7 @@ describe('DefaultFieldTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema)
+    const parsed = jsonSchemaToTree(schema)
     const usernameField = parsed.children[0] as FieldNode
 
     const screen = await render(<DefaultFieldTemplate node={usernameField} />)
@@ -200,7 +200,7 @@ describe('DefaultFieldTemplate', () => {
       },
     }
 
-    const parsed = parseSchema(schema)
+    const parsed = jsonSchemaToTree(schema)
     const quantityField = parsed.children[0] as FieldNode
 
     const screen = await render(<DefaultFieldTemplate node={quantityField} />)

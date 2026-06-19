@@ -120,9 +120,6 @@ export interface ArrayItemNode extends NodeBase, ContainerMethods {
 // Every concrete node.
 export type AnyNode = FieldNode | GroupNode | ArrayNode | ArrayItemNode
 
-// Back-compat alias for the previous loose base type. Prefer `AnyNode`.
-export type BaseNode = AnyNode
-
 // Container nodes (those with children) — used by walk plumbing.
 export type ContainerNode = GroupNode | ArrayNode | ArrayItemNode
 

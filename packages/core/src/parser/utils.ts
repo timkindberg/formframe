@@ -1,4 +1,5 @@
 import type { JSONSchema } from 'json-schema-typed/draft-07'
+import type { AnyNode, ContainerNode } from './nodeTypes'
 
 // JSONSchema can be a boolean in draft-07, but we only work with object schemas
 export type JSONSchemaObject = Exclude<JSONSchema, boolean>
@@ -11,7 +12,8 @@ export interface ValidationRules {
   minimum?: number
   maximum?: number
   pattern?: string
-  [key: string]: unknown
+  minItems?: number
+  maxItems?: number
 }
 
 // Build validation object from schema
@@ -42,54 +44,22 @@ export function buildValidation(schema: JSONSchemaObject, required: boolean) {
   return validation
 }
 
-// Base interface that all nodes must satisfy
-export interface BaseNode {
-  nodeType: 'field' | 'group' | 'array' | 'arrayItem'
-  path: string
-  schema: JSONSchemaObject
-  widget:
-    | 'fieldset'
-    | 'input'
-    | 'select'
-    | 'multiselect'
-    | 'array'
-    | 'arrayItem'
-  validation: { required: boolean; [key: string]: unknown }
-  isRoot: boolean
-  depth: number
-  parts: { container: { key: string } }
-  isField: boolean
-  isGroup: boolean
-  isArray: boolean
-  isArrayItem: boolean
-  toJSON(): object
-}
-
-// Container nodes have children and traversal methods
-export interface ContainerNode extends BaseNode {
-  children: BaseNode[]
-  getField(path: string): BaseNode | undefined
-  getAllFields(): BaseNode[]
-  walk<R>(handlers?: unknown): R[]
-  [key: string]: unknown
-}
+// Node interfaces (ContainerNode, FieldNode, …) live in ./nodeTypes.
 
 // Helper to serialize nodes without circular references or functions
-export function serializeNode(node: BaseNode): object {
-  const containerNode = node as ContainerNode
-  const arrayNode = node as BaseNode & { itemSchema?: unknown }
+export function serializeNode(node: AnyNode): object {
+  const children = 'children' in node ? node.children : undefined
+  const itemSchema = 'itemSchema' in node ? node.itemSchema : undefined
   return {
     nodeType: node.nodeType,
     path: node.path,
     widget: node.widget,
     validation: node.validation,
     parts: node.parts,
-    ...(containerNode.children && {
-      children: containerNode.children.map((child) => serializeNode(child)),
-    }),
-    ...(arrayNode.itemSchema !== undefined
-      ? { itemSchema: arrayNode.itemSchema }
+    ...(children
+      ? { children: children.map((child) => serializeNode(child)) }
       : {}),
+    ...(itemSchema !== undefined ? { itemSchema } : {}),
     // Omit schema to avoid circular refs
   }
 }

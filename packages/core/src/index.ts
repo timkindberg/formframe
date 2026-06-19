@@ -11,7 +11,7 @@ export const VERSION = '0.0.0'
 export type {
   JSONSchema,
   NodeType,
-  BaseNode,
+  AnyNode,
   ContainerNode,
   FieldNode,
   GroupNode,
@@ -25,4 +25,4 @@ export type {
 } from './types'
 
 // Export main parser
-export { parseSchema } from './parser/index'
+export { jsonSchemaToTree } from './parser/index'

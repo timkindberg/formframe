@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { parseSchema } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
 import { DefaultRootTemplate } from './DefaultRootTemplate'
 import { DefaultFieldTemplate } from './DefaultFieldTemplate'
@@ -24,7 +24,7 @@ import {
  */
 export function useSchemaForm(schema: JSONSchema) {
   // Parse schema once and memoize
-  const form = useMemo(() => parseSchema(schema), [schema])
+  const form = useMemo(() => jsonSchemaToTree(schema), [schema])
 
   // Memoize Form component to maintain stable identity across renders
   const Form = useMemo(() => {
