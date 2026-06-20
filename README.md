@@ -1,180 +1,64 @@
-# JSON Schema Form Library - Mission Statement
+# jsonschema-form
 
-## Project Vision
+A schema-driven form library, built as a better-architected alternative to [React JSON Schema Form (RJSF)](https://github.com/rjsf-team/react-jsonschema-form).
 
-### The Problem
-[React JSON Schema Form (RJSF)](https://github.com/rjsf-team/react-jsonschema-form) is widely used but suffers from architectural issues and tight coupling. The library is difficult to maintain, extend, and customize. Organizations become locked into its decisions around React, validation libraries, UI frameworks, and form management.
+## The problem
 
-### The Goal
-Build a modular, tiny, well-architected alternative from scratch that:
-- Separates concerns into distinct, composable layers
-- Minimizes bundle size through extreme modularity
-- Enables any combination of frameworks, validation, forms, and UI libraries
-- Provides a clean, intuitive API at every layer
-- Impeccable TypeScript types throughout
+RJSF sits at one extreme: schema drives *everything*, including customization. The easy 80% is fast, but every hard-20% need forces more `ui_schema`/`rule_schema` indirection — because RJSF's overrides are schema-keyed registries, not code. Plain form libraries (React Hook Form, TanStack Form) sit at the other extreme: code for everything, no auto-generation at all.
 
-### The Philosophy
-This project prioritizes **intentional exploration over speed**. We build through:
-- Pseudo-coding that evolves into small MVPs
-- Starting with minimal JSON Schema support, expanding gradually
-- Making deliberate, taste-driven API decisions at every step
-- Pairing with developers who drive architectural choices
+## The goal
 
-## Layered Architecture
+**A schema generates the form automatically — that's the reason this library exists.** You customize in **JSX (code)**, not in more schema. Hand-authoring a whole form node-by-node is a non-goal — if that's what you want, use a form library directly.
 
-The library is structured in five distinct layers, each completely decoupled from the others:
+This puts jsonschema-form in between RJSF and the plain form libraries: **serialize when you must, code when you can** — a principle that applies per form, even per node.
 
-### 1. Core Layer (Headless Foundation)
-**Zero dependencies. No framework coupling.**
+A serializable customization path also exists for genuinely DB-driven cases (Mode 1, see below), where the customization itself must be stored, not just the schema. That path is pushed into adapters, including ones you write yourself, and stays deliberately minimal — see [ADR 007](./architecture_records/007_schema_generates_jsx_customizes.md).
 
-The Core provides the fundamental logic for interpreting JSON Schema and managing form state:
-- Schema traversal and parsing
-- Widget/component type registry and mapping rules
-- Form state management (values, touched, dirty state)
-- Field metadata computation
-- Schema resolution (`$ref`, `allOf`, `anyOf`, `oneOf`, conditionals)
-- Default value computation
-- Dependency tracking
-- Abstract event system (onChange, onBlur, etc.)
-- Data path utilities for nested access
+## The model
 
-The Core knows *what* needs to be rendered and *when*, but has no knowledge of React, HTML, or CSS.
+Earlier drafts of this library described "five decoupled layers" in a linear stack (Core → Validation → Framework → Form Library → UI). That framing has been superseded — see [ADR 006](./architecture_records/006_core_as_form_tree_ir_with_adapters.md).
 
-### 2. Validation Layer
-**Pluggable validation.**
+**Core is the form tree** — an intermediate representation (IR) — plus the recursive fold over it. It is stateless, framework-agnostic, and imports nothing. JSON Schema parsing is just *one front-end* that compiles a schema into the tree (the entry point is `jsonSchemaToTree`); a Zod schema or TypeScript type would be equally valid front-ends.
 
-Support for multiple JSON Schema validation libraries:
-- AJV (primary target)
-- Other validators as plugins
-- Custom validation hooks
+Everything else hangs off Core as an **adapter**, filling one or more **capability slots**:
 
-The validation layer integrates with Core but remains swappable.
+- **Front-end** — compiles a source schema into the tree (JSON Schema today; Zod/TS are plausible future front-ends).
+- **Structure / framework-binding** — renders the tree (React today).
+- **Validation** — side-loaded, framework-agnostic, rides directly on Core.
+- **Form-state** — holds values + reactivity. The default is a *headless* adapter wrapping nothing: native `<form>` + FormData. RHF/TanStack Form are optional wrapped adapters for teams that need live reactivity or want to plug into existing form infrastructure.
+- **Presentation (UI)** — the actual rendered components and styling.
 
-### 3. Framework Layer
-**JavaScript framework adapters.**
+Adapters are first-class and **user-writable** — the extension model is "write an adapter," never "fork Core." We deliberately don't draw a layered-stack diagram: the dependency shape is more hub-and-spoke than linear (e.g. validation doesn't sit "above" React; a UI kit may ship its own form-state). The one fixed invariant is the **stubborn Core boundary**: Core imports nothing, holds no state, and touches no DOM or framework.
 
-Transforms Core's headless logic into framework-specific implementations:
-- **React** (primary target)
-- Vue (future)
-- Solid (future)
-- Svelte (future)
+See `CONTEXT.md` for the full glossary and `architecture_records/` for the decisions behind it.
 
-This layer handles framework-specific concerns like component lifecycle, reactivity systems, and rendering.
+## Customizing: the continuation model
 
-### 4. Form Library Layer
-**Pluggable form management.**
+Customization is one recursive primitive, available at any granularity, fractal from the whole form down to a single field part. The renderer walks the tree and calls `renderNode(node)` per node; you re-enter the engine with `node.Default`, `node.Children`, or a specific child, or override individual parts of a field with `parts={{ partName: (part) => <JSX/> }}`. At every node you have three moves: take the default whole, keep the default layout but swap a sub-piece, or place the sub-pieces yourself. You pay only for what you customize — the library renders the rest.
 
-Each framework has multiple form libraries. This layer provides adapters:
-- **React Hook Form** (primary target)
-- TanStack Form
-- Formik
-- Framework-specific form libraries for Vue, Solid, etc.
+This is the RJSF-killer: the hard 20% is JSX, not schema sprawl. Full detail lives in [ADR 010](./architecture_records/010_recursive_continuation_rendering.md).
 
-Enables developers to use their preferred form state management solution.
+## Reference stack & swappability
 
-### 5. UI Library Layer
-**Styling and components.**
+Designing every swap seam up front tends to produce speculative, wrong abstractions. Instead, **swappability is earned by a second implementation** ([ADR 008](./architecture_records/008_swappability_earned_by_second_implementation.md)):
 
-The final layer provides actual rendered components with styling:
-- Tailwind CSS
-- Shadcn/ui
-- Chakra UI
-- Material UI
-- Radix UI
-- Custom component libraries
+- **Phase A** — Core plus a **zero-dependency reference stack**: React + native `<form>`/FormData (uncontrolled) + no validation + bare default UI. The stubborn Core boundary is the only hard architectural gate at this stage.
+- **Phase B** — slots fill in one at a time, each forced by its *first real adapter*. **Validation and UI swap in first** — they're visible to end users and where teams have the most existing investment. **Form-state is a shallow slot and swaps in last, and only when needed** ([ADR 011](./architecture_records/011_form_state_is_a_shallow_slot.md)): reach for RHF/TanStack only for live/reactive behavior or interop with existing form infrastructure, not for its own sake.
 
-This is where inputs, labels, buttons, and layout components are defined.
+## Monorepo structure
 
-## Development Approach
+- `packages/core` — headless foundation: the form-tree IR, the JSON Schema front-end, the recursive fold
+- `packages/react` — React framework-binding adapter (hooks, default templates, the continuation renderer)
+- `packages/validation-ajv` — AJV validation adapter
+- `packages/react-hook-form` — React Hook Form form-state adapter
+- `packages/ui-tailwind` — Tailwind presentation adapter
+- `examples/basic-react` — example app exercising the library end to end
 
-### Pairing Philosophy
-**You are pairing with the developer, not driving.** The developer makes all major API decisions. Your role is to:
-- Implement their vision
-- Ask clarifying questions
-- Suggest alternatives when asked
-- Never vomit code without discussion
+## Key decisions
 
-### Incremental Development
-1. **Phase 1: Minimal MVP**
-   - Basic string and number inputs
-   - Simple validation
-   - Prove the architectural concepts work
+- **Core is stateless and framework-agnostic** — form-state adapters own values; React owns rendering.
+- **No "kitchen sink" component** — we provide building blocks, not `<JsonSchemaForm />`.
+- **"label" not "title"** — field nodes use `label` for clarity despite JSON Schema's `title`.
+- **Boolean schemas throw** — `true`/`false` as schema values are not supported.
 
-2. **Phase 2: Medium Scope**
-   - Common field types (boolean, enum, dates)
-   - Arrays and objects
-   - More complex validation rules
-
-3. **Phase 3: Feature Expansion**
-   - Advanced schema features
-   - Complex UI patterns
-   - Performance optimization
-
-### Methodology
-- Start with pseudo-code and architectural discussions
-- Build small, working MVPs that handle tiny JSON Schema chunks
-- Gradually expand supported features
-- Test architectural decisions before committing
-- Explore RJSF features as needed, but don't be bound by their APIs
-
-## Key Principles
-
-1. **Extreme Modularity**
-   - Each layer is a separate package
-   - Consumers import only what they need
-   - Clear boundaries between concerns
-
-2. **Minimal Bundle Size**
-   - Tree-shakeable exports
-   - No unnecessary dependencies
-   - Every byte counts
-
-3. **Zero Framework Coupling at Core**
-   - Core is pure TypeScript/JavaScript
-   - No React, Vue, or any framework in Core
-   - No DOM manipulation in Core
-
-4. **Pluggable Everything**
-   - Validation library: your choice
-   - Framework: your choice
-   - Form library: your choice
-   - UI library: your choice
-
-5. **Monorepo Architecture**
-   - Separate packages for each layer
-   - Shared tooling and build configuration
-   - Easy to develop and test integrations
-
-## Getting Started
-
-This project is in early exploration phase. We're building the foundation thoughtfully, one decision at a time.
-
-### Architecture Records
-
-Detailed design decisions and API explorations are documented in:
-- [001: Core Layer, Tree Structure, and State Decisions](./architecture_records/001_core_layer_tree_structure_and_state_decisions.md)
-
-### For AI Assistants
-This document represents the complete vision and constraints for the project. When working on this codebase:
-- Always refer back to these principles
-- Read the architecture records in `./architecture_records/` to understand design decisions
-- Never compromise on the layered architecture
-- Pair with the developer on API design
-- Start small, build incrementally
-- Ask before making architectural decisions
-
-### For Contributors
-We welcome contributors who share the vision of a modular, well-architected form library. Before contributing:
-- Read and understand this mission statement
-- Start with small, focused contributions
-- Discuss architectural changes before implementing
-- Maintain the separation of concerns between layers
-
----
-
-**Status:** Early development - Core layer implemented
-
-**Primary Author:** Tim Kindberg
-
-**Inspiration:** Lessons learned from React JSON Schema Form and the broader ecosystem
-
+See `architecture_records/` for the full rationale behind every decision above.
