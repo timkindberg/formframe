@@ -17,23 +17,48 @@ export interface SelectOption {
   label: string
 }
 
-// A field's parts are uniform whether it renders as input, select, or
-// multiselect — `input?`/`select?` are optional and chosen by `widget`.
-export interface FieldParts {
+// Framework-neutral HTML attribute contracts, owned by Core (the IR) — they
+// model native, schema-derived attributes every renderer/UI-kit needs. NOT
+// React/DOM types (importing those would break Core's stubborn boundary).
+// Adapters spread `{...attrs}` and add presentation on top. See ADR 012.
+export type HtmlInputType = 'text' | 'email' | 'number' | 'checkbox'
+
+export interface HtmlInputAttrs {
+  id: string
+  name: string
+  type: HtmlInputType
+  required?: boolean
+  minLength?: number
+  maxLength?: number
+  min?: number
+  max?: number
+  pattern?: string
+}
+
+export interface HtmlSelectAttrs {
+  id: string
+  name: string
+  required?: boolean
+  multiple?: boolean
+}
+
+// A field's parts are widget-discriminated (ADR 012): narrow on `widget` to
+// reach `input` (input widget) or `select` (select/multiselect widget).
+export interface FieldPartsBase {
   container: { key: string }
   label: { text: string; attrs: { for: string }; showRequired: boolean }
   description?: { text: string }
-  input?: { attrs: Record<string, string | number | boolean> }
-  select?: {
-    attrs: {
-      id: string
-      name: string
-      multiple?: boolean
-      required?: boolean
-    }
-    options: SelectOption[]
-  }
 }
+
+export interface InputFieldParts extends FieldPartsBase {
+  input: { attrs: HtmlInputAttrs }
+}
+
+export interface SelectFieldParts extends FieldPartsBase {
+  select: { attrs: HtmlSelectAttrs; options: SelectOption[] }
+}
+
+export type FieldParts = InputFieldParts | SelectFieldParts
 
 export interface GroupParts {
   container: { key: string }
@@ -72,15 +97,26 @@ interface ContainerMethods {
   walk<R>(handlers?: WalkHandlers<R>): R[]
 }
 
-export interface FieldNode extends NodeBase {
+interface FieldNodeBase extends NodeBase {
   nodeType: 'field'
-  widget: 'input' | 'select' | 'multiselect'
-  parts: FieldParts
   isField: true
   isGroup: false
   isArray: false
   isArrayItem: false
 }
+
+export interface InputFieldNode extends FieldNodeBase {
+  widget: 'input'
+  parts: InputFieldParts
+}
+
+export interface SelectFieldNode extends FieldNodeBase {
+  widget: 'select' | 'multiselect'
+  parts: SelectFieldParts
+}
+
+// A field leaf — widget-discriminated. Narrow on `widget` (ADR 012).
+export type FieldNode = InputFieldNode | SelectFieldNode
 
 export interface GroupNode extends NodeBase, ContainerMethods {
   nodeType: 'group'

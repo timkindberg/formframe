@@ -6,11 +6,12 @@ import { ReactNode } from 'react'
  * Handles all field types (string, number, boolean, enum)
  */
 export function DefaultFieldTemplate({ node }: { node: FieldNode }) {
-  const { container, label, description, input, select } = node.parts
+  const { container, label, description } = node.parts
 
   let inputElement: ReactNode
 
-  if (select) {
+  if (node.widget === 'select' || node.widget === 'multiselect') {
+    const { select } = node.parts
     inputElement = (
       <select
         {...select.attrs}
@@ -24,9 +25,8 @@ export function DefaultFieldTemplate({ node }: { node: FieldNode }) {
         ))}
       </select>
     )
-  }
-
-  if (input) {
+  } else if (node.widget === 'input') {
+    const { input } = node.parts
     inputElement = (
       <input
         {...input.attrs}

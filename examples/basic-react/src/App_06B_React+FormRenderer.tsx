@@ -68,7 +68,7 @@ function App() {
         <code>useSchemaForm</code> hook holding the tree for you, you call{' '}
         <code>jsonSchemaToTree</code> yourself and hand the tree to{' '}
         <code>FormRenderer</code> (the ADR-010 continuation engine). With no{' '}
-        <code>renderNode</code> override it renders every node's default.{' '}
+        <code>renderNode</code> override it renders every {"node's"} default.{' '}
         <code>useSchemaForm</code> wraps exactly this.
       </p>
 

@@ -57,7 +57,7 @@ function App() {
                 <small>{node.parts.description.text}</small>
               )}
 
-              {node.widget === 'select' && node.parts.select ? (
+              {node.widget === 'select' ? (
                 <select {...node.parts.select.attrs}>
                   <option value="">-- Select --</option>
                   {node.parts.select.options.map((opt) => (
@@ -66,7 +66,7 @@ function App() {
                     </option>
                   ))}
                 </select>
-              ) : node.parts.input ? (
+              ) : node.widget === 'input' ? (
                 <input {...node.parts.input.attrs} />
               ) : null}
             </div>

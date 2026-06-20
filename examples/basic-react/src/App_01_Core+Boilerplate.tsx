@@ -44,9 +44,15 @@ console.log('Email field:', form.getField('email'))
 console.log('Age field:', form.getField('age'))
 console.log('\n=== Field Attrs ===')
 const nameField = form.getField('name')
-console.log('Name field attrs:', nameField?.parts.input?.attrs)
+console.log(
+  'Name field attrs:',
+  nameField?.widget === 'input' ? nameField.parts.input.attrs : undefined
+)
 const emailField = form.getField('email')
-console.log('Email field attrs:', emailField?.parts.input?.attrs)
+console.log(
+  'Email field attrs:',
+  emailField?.widget === 'input' ? emailField.parts.input.attrs : undefined
+)
 console.log('\n=== JSON Export ===')
 console.log('JSON:', form.toJSON())
 
@@ -78,7 +84,7 @@ function App() {
                   <small>{node.parts.description.text}</small>
                 )}
 
-                {node.widget === 'select' && node.parts.select ? (
+                {node.widget === 'select' ? (
                   <select {...node.parts.select.attrs}>
                     <option value="">-- Select --</option>
                     {node.parts.select.options.map((opt) => (
@@ -87,7 +93,7 @@ function App() {
                       </option>
                     ))}
                   </select>
-                ) : node.parts.input ? (
+                ) : node.widget === 'input' ? (
                   <input {...node.parts.input.attrs} />
                 ) : null}
               </div>
@@ -105,8 +111,7 @@ function App() {
                           {childNode.parts.label.text}
                           {childNode.validation.required && <span> *</span>}
                         </label>
-                        {childNode.widget === 'select' &&
-                        childNode.parts.select ? (
+                        {childNode.widget === 'select' ? (
                           <select {...childNode.parts.select.attrs}>
                             <option value="">-- Select --</option>
                             {childNode.parts.select.options.map((opt) => (
@@ -115,7 +120,7 @@ function App() {
                               </option>
                             ))}
                           </select>
-                        ) : childNode.parts.input ? (
+                        ) : childNode.widget === 'input' ? (
                           <input {...childNode.parts.input.attrs} />
                         ) : null}
                       </div>

@@ -67,7 +67,7 @@ function App() {
         {form.walk({
           field: (node) => {
             // Access parts - just data, not components
-            const { container, label, description, input, select } = node.parts
+            const { container, label, description } = node.parts
 
             return (
               <div key={container.key} style={{ marginBottom: '1rem' }}>
@@ -82,21 +82,21 @@ function App() {
                   </small>
                 )}
 
-                {select ? (
+                {node.widget === 'select' || node.widget === 'multiselect' ? (
                   <select
-                    {...select.attrs}
+                    {...node.parts.select.attrs}
                     style={{ display: 'block', marginTop: '0.25rem' }}
                   >
                     <option value="">-- Select --</option>
-                    {select.options.map((opt) => (
+                    {node.parts.select.options.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
                     ))}
                   </select>
-                ) : input ? (
+                ) : node.widget === 'input' ? (
                   <input
-                    {...input.attrs}
+                    {...node.parts.input.attrs}
                     style={{ display: 'block', marginTop: '0.25rem' }}
                   />
                 ) : null}

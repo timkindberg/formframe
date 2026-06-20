@@ -8,6 +8,7 @@ import type {
   ArrayItemNode,
   ArrayItemParts,
   FieldNode,
+  SelectFieldNode,
   WalkHandlers,
 } from './nodeTypes'
 
@@ -263,7 +264,7 @@ function createMultiselectFieldNode(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-): FieldNode {
+): SelectFieldNode {
   const itemsSchema = schema.items as JSONSchemaObject
 
   // Build options from enum or oneOf
@@ -305,7 +306,7 @@ function createMultiselectFieldNode(
     },
   }
 
-  return {
+  const node: SelectFieldNode = {
     nodeType: 'field',
     path,
     schema,
@@ -330,4 +331,5 @@ function createMultiselectFieldNode(
       return serializeNode(this)
     },
   }
+  return node
 }
