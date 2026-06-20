@@ -2,6 +2,28 @@
 
 This document provides guidance for AI assistants working on this project.
 
+## Development philosophy: a verification-gated autonomous loop
+
+Earlier guidance here said "you are pairing with the developer, not driving" and asked agents to check in before architectural decisions. **That's inverted on this branch** ([ADR 009](./architecture_records/009_verification_gated_autonomous_loop.md)): development runs as a loop that iterates against a **deterministic gate suite** until the golden scenarios are green, and the agent works largely unsupervised within that gate.
+
+**Autonomy is bounded by verifiability** — you decide alone exactly to the degree the gate suite can catch you being wrong. Three tiers:
+
+1. **Decide & proceed** — anything fully covered by green gates: make a red test green, implement within an existing pattern, fix types/lint, refactor and stay green, pick widget defaults, organize files.
+2. **Propose-an-ADR, then proceed** — introducing a new abstraction or seam (only once a second implementation forces it — [ADR 008](./architecture_records/008_swappability_earned_by_second_implementation.md)), a new capability slot, a new front-end, or a public-API shape change. Write the ADR, then continue — don't wait for a round-trip.
+3. **Stop & escalate** — crossing the stubborn Core boundary, changing the golden-scenario set, adding a heavy dependency, hitting something that can't be made green, deleting existing work, or being stuck with no green progress after several iterations.
+
+The gate suite is `npm run gate` (typecheck + lint + test). It must stay deterministic and run every iteration — a Stop hook is the natural enforcement (`scripts/gate-stop-hook.sh`, opt-in via `JSF_GATE_ENFORCE=1`). Weak gates mean unsafe autonomy, so strengthening the gate is always in scope. You do not grade your own work — a separate checker/evaluator decides "done" and audits placement/taste; verification is objective output (test/type/lint results, render counts), shown as evidence, not asserted.
+
+### Budget posture
+
+This is built on a **$20/mo Claude Pro plan** — budget is a first-class constraint, not an afterthought. The gate is free (`npm run gate` is a shell command); agent reasoning and especially subagents cost usage. Default to:
+
+- **A single agent, interactive**, working one issue at a time (`bd ready`) against the gate. The 3-tier autonomy above keeps permission round-trips low, which saves tokens versus strict pairing. Use a cheaper model for implementation grind; reserve a stronger model for design/placement calls.
+- **tech-lead orchestration** (Opus orchestrator + Sonnet subagents) only for large, well-specified chunks (e.g. a whole Phase-B adapter) — not for small interactive iterations, where spawn/parse overhead dominates. Net savings are unproven; measure before relying on it.
+- **Avoid token-multiplying orchestration** (Dynamic Workflows / Sandcastle-style parallel multi-agent runs) — parked until budget allows.
+
+The runner (single agent vs. tech-lead vs. something else) is a swappable implementation detail. What's non-negotiable is the gate suite and an independent evaluator, not any particular orchestration tool.
+
 ## Issue Tracking with bd (beads)
 
 **IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
@@ -131,7 +153,7 @@ history/
 - ❌ Do NOT clutter repo root with planning documents
 
 For more details about the project architecture, see `architecture_records/` and `ARCHITECTURE.md`.
-For more details about the project and coding philosophy, see `README.md`.
+For more details about the project and the product vision, see `README.md`.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker

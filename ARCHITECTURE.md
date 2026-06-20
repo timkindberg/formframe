@@ -1,84 +1,129 @@
 # Architecture & Design Decisions
 
-This document captures the evolving design decisions, API explorations, and architectural patterns for the JSON Schema Form library.
+This document captures the architecture of the JSON Schema Form library: what Core is, how adapters hang off it, and how rendering/customization works. For the decision history behind each section, see `architecture_records/`. For vocabulary, see `CONTEXT.md`.
 
-## Core Design Principles
+## Core: the form-tree IR
 
-### Layered Abstraction Philosophy
-We follow the **Chakra UI model** of providing different layers of abstraction:
-- Each layer has a clean, usable API
-- Developers work at the highest layer they can
-- Every layer is built with the same APIs we expose
-- You can drop down to lower layers when you need more control
+**Core is the form tree** — an intermediate representation (IR) — plus the recursive fold over it. It is stateless, framework-agnostic, and imports nothing ([ADR 006](./architecture_records/006_core_as_form_tree_ir_with_adapters.md)).
 
-### State Management Philosophy
-**Core is stateless.** It only interprets schema into structure. State management is handled by:
-- Form libraries (React Hook Form, TanStack Form, etc.) at their layer
-- Framework layers (React, Vue, etc.) with their reactivity systems
+Earlier drafts described Core as a JSON Schema *parser* inside a five-layer linear stack. That framing is superseded: JSON Schema is only one possible **front-end** — a Zod schema or a TypeScript type carries the same shape information and is an equally valid source. The entry point is named `jsonSchemaToTree`, not `parseSchema`, so the seam stays honest about what Core's identity actually is.
 
-This allows maximum flexibility - users aren't locked into our state management opinions.
+We deliberately do not commit to a layered-stack vs. hub-and-spoke diagram. The dependency reality is more hub-and-spoke than linear — validation is framework-agnostic and rides directly on Core, not "above" React; a UI kit may ship its own form-state. The one firm invariant is the **stubborn Core boundary**: Core imports nothing, holds no state, touches no DOM or framework.
 
-### Validation Philosophy
-**Validation is side-loaded**, not baked into any particular layer. Validation libraries (AJV, etc.) are:
-- Framework-agnostic
-- Plugged in at the framework layer or form library layer
-- Independent of Core's schema interpretation
+### Adapters: front-ends and consumers
 
-## Core Layer API Design
+Everything outside Core is an adapter, and adapters are first-class and **user-writable** — the extension model is "write an adapter," never "fork Core."
 
-### The Tree Structure
+- **Front-end** — compiles a source schema *into* the tree (the JSON Schema front-end today).
+- **Consumer** — folds *over* the tree to produce something: a framework binding, validation, form-state, rendered UI.
 
-Core's primary job is to parse a JSON Schema and produce a **navigable tree structure**. This tree represents the "shape" of the form.
+### Capability slots
 
-#### Node Types
+A **capability slot** is a swappable responsibility: structure, validation, framework-binding, form-state, presentation. Swappability is per-slot — one package may fill several slots at once (e.g. a UI kit that ships its own form-state). Slots are filled by adapters; which slots exist and how they're divided is allowed to evolve as real second implementations force the seams (see "Swappability," below).
+
+## The Tree Structure
+
+Core's primary job is to compile a schema into a **navigable tree structure** representing the shape of the form.
+
+### Node Types
 
 ```typescript
 type NodeType = 'root' | 'group' | 'field'
 ```
 
-**Field Node** (leaf): Represents a single form input
-- Contains: path, widget type, required flag, HTML attrs, schema reference
-- Example: An email input, a number field, a text area
+**Field Node** (leaf): a single form input — path, widget type, required flag, HTML attrs, schema reference, and `parts` (the framework-agnostic render structure for that field).
 
-**Group Node** (branch): Represents a nested object
-- Contains: path, title, description, required flag, children
-- Can contain Fields or other Groups
-- Example: An "address" object with street/city fields
-- Rationale: Objects in JSON Schema can have their own metadata (title, description, required status), so they deserve their own node type
+**Group Node** (branch): a nested object — path, title, description, required flag, children. Can contain Fields or other Groups. Objects in JSON Schema carry their own metadata (title, description, required status), so they deserve their own node type.
 
-**Root Node**: Top-level container
-- Contains: children, query methods
-- Provides both tree traversal and flat access patterns
+**Root Node**: the top-level container — children, plus query methods for both tree traversal and flat access.
 
 ### Tree Traversal Patterns
-
-Users can work with the tree in two ways:
 
 ```typescript
 // Pattern 1: Tree walking (preserves hierarchy)
 form.root.children.forEach(node => {
   if (node.nodeType === 'group') {
-    // Render a fieldset
     node.children.forEach(field => {
-      // Render inputs
+      // render inputs
     })
   }
 })
 
 // Pattern 2: Flat access (convenience)
-form.getAllFields() // => Array of all leaf fields
-form.getField('address.street') // => Direct path access
+form.getAllFields()           // => Array of all leaf fields
+form.getField('address.street') // => Direct path access, relative to the calling group
 ```
 
 ### Widget Determination
 
-Core keeps widget types **minimal and unopinionated**:
-- Default widget: `'input'`
-- Core provides sensible defaults but allows configuration
-- Computed `attrs` object contains HTML attributes (type, min, max, etc.)
-- Framework and UI layers can override/extend this
+Core keeps widget types **minimal and unopinionated**: the default widget is `'input'`, with a computed `attrs` object carrying HTML attributes (type, min, max, etc.). Framework and presentation adapters can override or extend this — Core doesn't know what UI components consumers want, so it stays flexible.
 
-**Rationale:** We don't know what UI components users will want. Keep it flexible.
+## Product model: schema generates, JSX customizes
+
+**A schema generates the form automatically** — that's the reason the library exists. Hand-authoring a whole form node-by-node is a non-goal ([ADR 007](./architecture_records/007_schema_generates_jsx_customizes.md)).
+
+Customization has two surfaces:
+
+- **JSX (code)** — the first-class, default surface. Override any node with your own JSX and re-enter the default renderer for that node's subtree. This is the differentiator vs. RJSF.
+- **Serializable schema (data)** — for DB-driven cases where the customization itself must be stored, not just the schema. This heavier path is pushed into adapters (including user-written ones), and its precise shape is deliberately deferred.
+
+**Guardrail:** never grow the *core* schema vocabulary to solve a customization problem. A new core `ui_schema` keyword is a smell that the form is actually static and should use JSX instead.
+
+## Rendering & customization: the continuation model
+
+The React renderer is built on **one recursive primitive: the continuation** ([ADR 010](./architecture_records/010_recursive_continuation_rendering.md)). Recursion lives in the engine; the user re-enters it through a small set of components:
+
+- `renderNode(node)` — the per-node hook the renderer calls while walking the tree. Return custom JSX to hijack a node, or `<node.Default/>` to keep the default.
+- `node.Default` — render this node's default composition; descendants still pass through `renderNode`.
+- `node.Children` — render this node's child nodes through the resolver.
+- `node.child(path).Default` — render one specific child node.
+- `parts={{ partName: (part) => <JSX/> }}` on `node.Default` — override individual parts of a field; each part carries both its data and its own `.Default`, so "augment" and "replace" are the same signature.
+
+**Three moves at every node:** take the default whole; keep the default layout and swap sub-pieces; or place the sub-pieces yourself with custom JSX. This is progressive disclosure — work at the highest level (`<Form/>`, all defaults) and drop down precisely where you need control: swap a part, place the sub-pieces, or fall all the way to the raw `walk`.
+
+**Fully fractal** — `<Form/>` is the root node's `Default`. `<Form>{(root) => …}</Form>` places yourself at the root, which is sugar for `renderNode` firing on the root. The root's *parts* are the chrome (the `<form>` element, submit, reset/cancel, optional title/description/error summary); the root's *children* are the top-level fields/groups. `renderNode` reappears, scoped, on any container's `node.Default` — nearest scope wins. A field bottoms node-recursion (it has parts, no child nodes); an atomic part bottoms part-recursion.
+
+`Default`/`Children` are React-layer constructs, not Core's. Core's node stays headless; the `node` passed to `renderNode` is the React adapter's enriched wrapper around the same underlying data.
+
+A typed-factory skin (`<fields.address.street/>`, `.Default`-free, keyed and renderable) is planned on top of the same engine once shape inference lands — see ADR 010 for status.
+
+## Swappability: earned, not designed
+
+Designing every swap seam up front requires taste and tends to produce speculative, wrong abstractions from a single example. Instead, **swappability is earned by a second implementation** ([ADR 008](./architecture_records/008_swappability_earned_by_second_implementation.md)):
+
+- **Phase A** — Core plus the **zero-dependency reference stack**: React, native `<form>` + FormData (uncontrolled, submit-time, zero value-driven re-renders) for form-state, no validation, bare default UI templates. The stubborn Core boundary is the only hard architectural gate.
+- **Phase B** — fill/swap one slot at a time, letting each *first real adapter* carve its seam (contract tests + a throwaway fake adapter written at that moment). Priority: **validation and UI first** (visible, high-investment swaps), **form-state last and optional** ([ADR 011](./architecture_records/011_form_state_is_a_shallow_slot.md)):
+  - Validation → AJV, then Zod (via Standard Schema)
+  - Presentation → Chakra, then raw React + Tailwind
+  - Form-state → RHF / TanStack Form, justified only by reactivity needs or interop with existing infrastructure — never swapped for its own sake
+  - Framework stays React for now (no second framework yet — YAGNI)
+
+**Rule-of-three:** an abstraction is not extracted until a second real adapter demands it. Phase-A "everything else" stays honestly decomposed into well-named files/folders even while cross-importing freely, so a later seam extraction is "promote a folder to a package," not "untangle a hairball."
+
+**Performance is per-adapter, not a universal guarantee.** Some form libraries are inherently slower than others; we gate only our own non-degradation — the library must add no re-renders on top of whatever reactivity the host form-state adapter provides.
+
+## Form-state is a shallow slot
+
+In a schema-driven form, the end user never sees the form-state library — it's plumbing slotted into an adapter, unlike validation and UI, which are visible and where teams have real existing investment ([ADR 011](./architecture_records/011_form_state_is_a_shallow_slot.md)).
+
+- The default form-state adapter is **headless**: it wraps no external library. The minimal headless adapter is native `<form>` + FormData — uncontrolled, submit-time, zero dependencies, covering the static majority of forms.
+- External form-lib adapters (RHF, TanStack Form) are **optional**, justified only by:
+  1. **Reactivity** — live/conditional behavior (show B when A==X, live validation errors, dirty/touched, reactive arrays) that submit-time FormData can't do.
+  2. **Interop** — backing forms with a team's existing form infrastructure (shared resolver, submit pipeline, devtools).
+- We do not chase every form library — native plus at most RHF/TanStack.
+- *Live* validation display requires a reactive form-state adapter; submit-time validation works fine on the native adapter.
+
+A first-party reactive store (dependency-free live behavior without reaching for RHF/TanStack) is a deferred idea — YAGNI until a concrete need (e.g. live tenant rules) forces it.
+
+## Type System Decisions
+
+We use **`json-schema-typed`** (draft-07) for the JSON Schema front-end's types: battle-tested (120M+ downloads), supports modern drafts, no known vulnerabilities, and stable enough that its type definitions don't need constant updates. Core re-exports the type:
+
+```typescript
+export type { JSONSchema } from 'json-schema-typed/draft-07'
+```
+
+This lets consumers import the schema type from our package without knowing our internal dependencies.
 
 ## What We Decided Against
 
@@ -87,76 +132,21 @@ Core keeps widget types **minimal and unopinionated**:
 // We DON'T provide this
 <JsonSchemaForm schema={schema} onSubmit={handleSubmit} />
 ```
-
-**Why not:** This is too opinionated. Teams might build this themselves, but it's not our library's job. We provide the building blocks.
+Too opinionated — teams might build this themselves, but it's not this library's job. We provide building blocks.
 
 ### ❌ Vanilla/HTML String Layer
-We initially explored a pure HTML string renderer as the first rendering layer:
-```typescript
-renderToHTML(form, values) // => '<form>...'
-```
-
-**Why not:** Nobody would actually use this in practice. It felt like unnecessary indirection. We'll jump straight to framework layers (React, etc.) with an HTMX layer as a future possibility if needed.
+We explored a pure HTML string renderer (`renderToHTML(form, values) // => '<form>...'`) as a first rendering surface. Nobody would actually use it in practice; it was unnecessary indirection. We go straight to framework adapters (React first).
 
 ### ❌ Stateful Core
-We considered having Core manage form values:
-```typescript
-core.setValue('name', 'Tim')
-core.getValue('name')
-```
-
-**Why not:** Different form libraries want to manage state differently. Core staying stateless gives maximum flexibility and doesn't compete with existing form state solutions.
+We considered having Core manage form values directly (`core.setValue(...)`, `core.getValue(...)`). Different form-state adapters want to manage state differently; keeping Core stateless gives maximum flexibility and avoids competing with form libraries on their own turf.
 
 ### ❌ Baked-in Validation
-We considered tightly coupling validation to Core or framework layers.
+Validation libraries are framework-agnostic and should be side-loaded, not forced into Core or any single layer's architecture.
 
-**Why not:** Validation libraries (AJV, etc.) are framework-agnostic. They should be side-loaded plugins that work at any layer, not forced into our architecture.
-
-## Type System Decisions
-
-### JSON Schema Types
-We use **`json-schema-typed`** (draft-07):
-- Battle-tested: 120M+ downloads
-- Supports modern JSON Schema drafts
-- No security vulnerabilities
-- Stable (type definitions don't need constant updates)
-- Can swap later if needed (it's just types)
-
-**Alternative considered:** `@types/json-schema` (more conservative, only draft-07)
-
-### Export Strategy
-Core re-exports the JSONSchema type:
-```typescript
-export type { JSONSchema } from 'json-schema-typed/draft-07'
-```
-
-This allows consumers to import from our package without knowing our internal dependencies.
-
-## Development Approach
-
-### Exploration Over Speed
-We're proceeding carefully:
-1. Pseudo-code and discussion before implementation
-2. Small, incremental changes
-3. Type-driven development where it helps thinking
-4. No "code vomiting" - every API decision is intentional
-
-### Minimal Viable Features
-Start with the absolute minimum:
-- Basic field types: string, number
-- Simple validation
-- Nested objects
-- Prove the architecture works
-
-Expand gradually:
-- More field types
-- Arrays
-- Enums/selects
-- Complex validation
-- Schema resolution ($ref, allOf, etc.)
+### ❌ Designing all swap seams up front
+Speculative, taste-heavy, premature abstraction — and not verifiable by the gate suite. See "Swappability," above.
 
 ---
 
-**Last Updated:** 2025-11-16  
+**Last Updated:** 2026-06-19
 **Contributors:** Tim Kindberg
-
