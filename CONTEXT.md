@@ -28,6 +28,9 @@ _Avoid_: layer (implies a strict linear stack; the shape is deliberately undrawn
 **Capability slot**:
 A swappable responsibility: structure, validation, framework-binding, form-state, presentation. Swappability is per-slot — one package may fill several slots (e.g. a UI kit that ships its own form-state).
 
+**Form-state adapter**:
+The slot that holds values + reactivity. *Headless* (wraps no external lib — native `<form>` + FormData is the minimal one; a first-party reactive store would be a richer one, deferred) or *wrapped* (React Hook Form / TanStack Form — optional, for reactivity + interop). A shallow slot; validation and UI are the primary swaps (ADR 011).
+
 ## Authoring
 
 **Schema** (the source):

@@ -4,7 +4,7 @@ This is the working plan for the experiment branch `worktree-agentic-loop-experi
 
 ## North star (definition of done)
 
-**Golden scenarios** — a small set of representative, sanitized VNDLY-style forms — green at **three test altitudes** (unit · component-integration · end-to-end in the example app), on the **reference stack: React + React Hook Form + JSON-Schema/AJV + Chakra UI**.
+**Golden scenarios** — a small set of representative, sanitized VNDLY-style forms — green at **three test altitudes** (unit · component-integration · end-to-end in the example app), on the **zero-dependency reference stack: React + native FormData (uncontrolled) + no validation + bare default UI**. Validation, UI, and (optionally) a form lib are swapped in during Phase B (ADR 008 / 011).
 
 ## Principles (the constraints the loop obeys)
 
@@ -43,11 +43,11 @@ Enforcement: a **Stop hook** runs the deterministic subset every iteration; the 
 
 ### Phase A — Core + reference stack to golden-green
 - Curate the golden scenarios (e.g. signup, nested address, array-of-objects, enum/select, value-dependent conditional, one nasty VNDLY-shaped form).
-- Get them green at all 3 altitudes on React + RHF + AJV + Chakra.
+- Get them green at all 3 altitudes on the native zero-dep stack (React + FormData, no validation, bare UI).
 - Keep "everything-else" honestly decomposed in files.
 
 ### Phase B — earn the seams
-- Introduce a second implementation one slot at a time: **TanStack Form**, **Zod**, **raw React + Tailwind** (framework stays React — YAGNI).
+- Fill/swap slots, **validation and UI first, form-state last & optional** (ADR 011): Validation **AJV → Zod** (via Standard Schema), UI **Chakra → Tailwind**, form-state **RHF / TanStack** (optional). Framework stays React (YAGNI).
 - Each 2nd impl forces a seam → write contract tests + fake adapter *at that moment*. Validation interop via **Standard Schema** (validation emits a schema the form lib runs; it does not push results upward).
 - Re-run all golden scenarios across the swapped stacks.
 - Good fit to trial **Dynamic Workflows** (independent, parallel slots).

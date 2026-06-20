@@ -12,10 +12,11 @@ The library's prime directive is extreme swappability (any framework × validati
 
 **Do not design seams speculatively. Let the second implementation force them.**
 
-- **Phase A** — build Core + one **reference stack** and get the golden scenarios green, with the stubborn Core boundary as the *only* hard architectural gate:
-  - Framework: **React** · Form lib: **React Hook Form** · Validation: **JSON Schema / AJV** · UI: **Chakra UI**
-- **Phase B** — introduce a **second implementation of one slot at a time**, and let it carve the seam (contract tests + a fake adapter are written *at that moment*, never before):
-  - Form lib → **TanStack Form** · Validation → **Zod** · UI → **raw React + Tailwind**
+- **Phase A** — build Core + the **zero-dependency reference stack** and get the golden scenarios green, with the stubborn Core boundary as the *only* hard architectural gate:
+  - Framework: **React** · Form-state: **native `<form>` + FormData** (uncontrolled, submit-time) · Validation: **none** · UI: **bare default templates**
+  - A real, coherent stack — native form-state is the *uncontrolled* adapter (zero value-driven re-renders), not a placeholder.
+- **Phase B** — fill/swap one slot at a time, letting each *first real adapter* carve its seam (contract tests + a fake adapter written *at that moment*). **Priority: validation and UI first** (the visible, high-investment swaps); **form libs last and optional** (ADR 011):
+  - Validation → **AJV**, then **Zod** (via Standard Schema) · UI → **Chakra**, then **raw React + Tailwind** · Form-state → **RHF** / **TanStack Form** (optional — reactivity + interop)
   - Framework stays React for now (YAGNI; no second framework yet).
 
 **Rule-of-three, enforced by the loop:** the agent may not extract an abstraction until a second real adapter demands it. To keep extraction cheap, Phase-A "everything-else" must stay **honestly decomposed into well-named files/folders** even while it cross-imports freely — so a seam extraction is "promote a folder to a package," not "untangle a hairball."
