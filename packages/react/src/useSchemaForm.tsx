@@ -1,69 +1,43 @@
-import React, { useMemo } from 'react'
+import { useMemo, type FC, type FormEvent, type ReactNode } from 'react'
 import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
-import { DefaultRootTemplate } from './DefaultRootTemplate'
-import { DefaultFieldTemplate } from './DefaultFieldTemplate'
-import { DefaultGroupTemplate } from './DefaultGroupTemplate'
-import {
-  DefaultArrayTemplate,
-  DefaultArrayItemTemplate,
-} from './DefaultArrayTemplate'
+import { FormRenderer, type EGroup, type RenderNode } from './renderer'
 
 /**
- * React hook that creates a form from a JSON Schema
- * Returns a Form component with default rendering using DefaultRootTemplate/Field/GroupTemplate
+ * Props accepted by the `Form` component returned from `useSchemaForm`.
+ * These pass straight through to {@link FormRenderer}.
+ */
+export interface SchemaFormProps {
+  onSubmit?: (e: FormEvent<HTMLFormElement>) => void
+  /** Per-node hijack (ADR 010). Omit to render every node's default. */
+  renderNode?: RenderNode
+  /** Place-yourself at the root: receives the enriched root node. */
+  children?: (root: EGroup) => ReactNode
+}
+
+/**
+ * Convenience hook: compiles a JSON Schema into the Core form tree and hands
+ * back a ready `Form` component. The hook is pure sugar over
+ * {@link FormRenderer} (ADR 010) — `useSchemaForm` holds the tree for you and
+ * forwards `renderNode`/place-yourself children to the same continuation engine.
  *
  * @example
  * ```tsx
- * function MyForm() {
- *   const { Form } = useSchemaForm(schema)
- *
- *   return <Form onSubmit={handleSubmit} />
- * }
+ * const { Form } = useSchemaForm(schema)
+ * return <Form onSubmit={handleSubmit} />
  * ```
  */
 export function useSchemaForm(schema: JSONSchema) {
-  // Parse schema once and memoize
   const form = useMemo(() => jsonSchemaToTree(schema), [schema])
 
-  // Memoize Form component to maintain stable identity across renders
-  const Form = useMemo(() => {
-    const FormComponent = ({
-      onSubmit,
-    }: {
-      onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void
-    }) => {
-      // Memoize the walk result - handlers defined inside so they don't need to be deps
-      const children = useMemo(() => {
-        return form.walk({
-          field: (node) => <DefaultFieldTemplate key={node.path} node={node} />,
-          group: (node, handlers) => (
-            <DefaultGroupTemplate key={node.path} node={node}>
-              {node.walk(handlers)}
-            </DefaultGroupTemplate>
-          ),
-          array: (node, handlers) => (
-            <DefaultArrayTemplate
-              key={node.path}
-              node={node}
-              handlers={handlers}
-            />
-          ),
-          arrayItem: (node, handlers) => (
-            <DefaultArrayItemTemplate key={node.path} node={node}>
-              {node.walk(handlers)}
-            </DefaultArrayItemTemplate>
-          ),
-        })
-      }, [])
-
+  const Form = useMemo<FC<SchemaFormProps>>(() => {
+    return function Form({ onSubmit, renderNode, children }: SchemaFormProps) {
       return (
-        <DefaultRootTemplate onSubmit={onSubmit}>
+        <FormRenderer form={form} onSubmit={onSubmit} renderNode={renderNode}>
           {children}
-        </DefaultRootTemplate>
+        </FormRenderer>
       )
     }
-    return FormComponent
   }, [form])
 
   return { form, Form }

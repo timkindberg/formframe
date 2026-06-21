@@ -18,6 +18,8 @@ import React, {
 import type {
   AnyNode,
   FieldNode,
+  InputFieldNode,
+  SelectFieldNode,
   GroupNode,
   ArrayNode,
   ArrayItemNode,
@@ -39,11 +41,20 @@ type PartsOverrides<P> = {
   [K in keyof P]?: (part: EnrichPart<NonNullable<P[K]>>) => ReactNode
 }
 
-/** Enriched field node — a leaf: parts + Default, no child nodes. */
-export type EField = FieldNode & {
-  parts: EnrichedParts<FieldNode['parts']>
-  Default: FC<{ parts?: PartsOverrides<FieldNode['parts']> }>
+/**
+ * Enriched field node — a leaf: parts + Default, no child nodes.
+ *
+ * Distributive over the widget-discriminated `FieldNode` union (ADR 012): each
+ * variant's `parts`/overrides are keyed by *its own* parts, so narrowing on
+ * `node.widget` reaches `input` (input widget) or `select` (select widgets).
+ * A non-distributive `FieldNode & {…}` would collapse to the union's *common*
+ * keys and lose `input`/`select`.
+ */
+type EFieldOf<N extends FieldNode> = N & {
+  parts: EnrichedParts<N['parts']>
+  Default: FC<{ parts?: PartsOverrides<N['parts']> }>
 }
+export type EField = EFieldOf<InputFieldNode> | EFieldOf<SelectFieldNode>
 
 type EContainer<N extends GroupNode | ArrayNode | ArrayItemNode> = N & {
   parts: EnrichedParts<N['parts']>

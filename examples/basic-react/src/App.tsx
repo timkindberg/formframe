@@ -7,7 +7,7 @@ import App05 from './App_05_React+DefaultComponents'
 import App06 from './App_06_React+UseSchemaForm'
 import App06B from './App_06B_React+FormRenderer'
 import App07 from './App_07_React+Arrays'
-import App08 from './App_08_Spike_Overrides'
+import App08 from './App_08_React+Overrides'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -18,7 +18,7 @@ const examples = [
   { id: '06', name: 'React + useSchemaForm Hook', component: App06 },
   { id: '06B', name: 'React + FormRenderer (ADR 010)', component: App06B },
   { id: '07', name: 'React + Array Support', component: App07 },
-  { id: '08', name: 'Spike + Overrides (ADR 010)', component: App08 },
+  { id: '08', name: 'React + Overrides (ADR 010)', component: App08 },
 ]
 
 function App() {
