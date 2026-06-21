@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/react" },
+    { "path": "./packages/vanilla" },
     { "path": "./examples/basic-react" }
   ],
   "compilerOptions": {
