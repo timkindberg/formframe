@@ -1,156 +1,50 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Typed recursive continuation renderer (ADR 010).
+// React adapter for Core's continuation engine (ADR 010 + ADR 014).
+//
+// The recursion, enrichment, and scoping live in Core (`createContinuation`).
+// This file is the **R = ReactNode** adapter: the default template-set as JSX,
+// plus `combine` = a keyed fragment. Notably there is no Context here anymore —
+// the engine threads the active resolver as a parameter and each node's
+// `Default`/`Children` closes over it, so a lazily-rendered `<node.Default/>`
+// still sees the right (possibly scoped) resolver. The vanilla probe (ADR 008)
+// proved that Context was incidental; conformance keeps the two renderers honest.
 //
 // Front-end-agnostic: this operates on the Core form *tree*, never a schema.
 // The JSON Schema entry point (`jsonSchemaToTree`) is imported only by the
 // `useSchemaForm` convenience hook — so a future Zod/TS front-end is a drop-in.
-//
-// Phase-A typing: nodes are fully typed (the discriminated `ENode` union);
-// part-level overrides are keyed by part name. Full path-typing (the
-// `<fields.address.street/>` factory skin) is deferred to epic 6nb.
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  type FC,
-  type ReactNode,
-} from 'react'
-import type {
-  AnyNode,
-  FieldNode,
-  InputFieldNode,
-  SelectFieldNode,
-  GroupNode,
-  ArrayNode,
-  ArrayItemNode,
+import { useMemo, Fragment, type ReactNode, type FormEvent } from 'react'
+import {
+  createContinuation,
+  type ContinuationAdapter,
+  type ENode as CoreENode,
+  type EField as CoreEField,
+  type EGroup as CoreEGroup,
+  type EArray as CoreEArray,
+  type EArrayItem as CoreEArrayItem,
+  type Resolver,
+  type GroupNode,
 } from '@jsonschema-form/core'
 
 // ---------------------------------------------------------------------------
-// Public types
+// Public types — React instantiates the generic engine at R = ReactNode.
 // ---------------------------------------------------------------------------
 
 /** Per-node render hook: return custom JSX to hijack, or `<node.Default/>`. */
-export type RenderNode = (node: ENode) => ReactNode
-
-/** A part gains a `.Default` renderer; non-object parts pass through. */
-type EnrichPart<T> = T extends object ? T & { Default: FC } : T
-type EnrichedParts<P> = { [K in keyof P]: EnrichPart<P[K]> }
-
-/** Override individual parts of a node; each receives the enriched part. */
-type PartsOverrides<P> = {
-  [K in keyof P]?: (part: EnrichPart<NonNullable<P[K]>>) => ReactNode
-}
-
-/**
- * Enriched field node — a leaf: parts + Default, no child nodes.
- *
- * Distributive over the widget-discriminated `FieldNode` union (ADR 012): each
- * variant's `parts`/overrides are keyed by *its own* parts, so narrowing on
- * `node.widget` reaches `input` (input widget) or `select` (select widgets).
- * A non-distributive `FieldNode & {…}` would collapse to the union's *common*
- * keys and lose `input`/`select`.
- */
-type EFieldOf<N extends FieldNode> = N & {
-  parts: EnrichedParts<N['parts']>
-  Default: FC<{ parts?: PartsOverrides<N['parts']> }>
-}
-export type EField = EFieldOf<InputFieldNode> | EFieldOf<SelectFieldNode>
-
-type EContainer<N extends GroupNode | ArrayNode | ArrayItemNode> = N & {
-  parts: EnrichedParts<N['parts']>
-  /** Children keyed by last path segment — `node.children.street.Default`. */
-  children: Record<string, ENode>
-  /** Dynamic/relative child lookup (not usable as a JSX tag). */
-  child: (relativePath: string) => ENode | undefined
-  /** Render all child nodes through the resolver. */
-  Children: FC
-  Default: FC<{ parts?: PartsOverrides<N['parts']>; renderNode?: RenderNode }>
-}
-
-export type EGroup = EContainer<GroupNode>
-export type EArray = EContainer<ArrayNode>
-export type EArrayItem = EContainer<ArrayItemNode>
-export type ENode = EField | EGroup | EArray | EArrayItem
+export type RenderNode = Resolver<ReactNode>
+export type ENode = CoreENode<ReactNode>
+export type EField = CoreEField<ReactNode>
+export type EGroup = CoreEGroup<ReactNode>
+export type EArray = CoreEArray<ReactNode>
+export type EArrayItem = CoreEArrayItem<ReactNode>
 
 // ---------------------------------------------------------------------------
-// Engine
+// Default template-set (R = ReactNode)
+//
+// Near-styleless (ADR 012 §4): semantic markup + stable `jsf-*` class hooks, no
+// inline styles. Kept identical to the vanilla oracle by the conformance suite.
 // ---------------------------------------------------------------------------
 
-const RenderNodeContext = createContext<RenderNode>((node) => <node.Default />)
-
-function Resolve({ core }: { core: AnyNode }) {
-  const renderNode = useContext(RenderNodeContext)
-  return <>{renderNode(enrich(core))}</>
-}
-
-function NodeChildren({
-  core,
-}: {
-  core: GroupNode | ArrayNode | ArrayItemNode
-}) {
-  return (
-    <>
-      {core.children.map((child) => (
-        <Resolve key={child.path} core={child} />
-      ))}
-    </>
-  )
-}
-
-function enrichParts(parts: object): Record<string, any> {
-  const out: Record<string, any> = {}
-  for (const [name, data] of Object.entries(parts)) {
-    out[name] =
-      data && typeof data === 'object'
-        ? { ...data, Default: () => <DefaultPart name={name} part={data} /> }
-        : data
-  }
-  return out
-}
-
-function enrich(core: AnyNode): ENode {
-  const parts = enrichParts(core.parts)
-
-  if (core.isField) {
-    const Default: FC<{ parts?: any }> = (props) => (
-      <DefaultNode core={core} partsOverrides={props?.parts} />
-    )
-    return { ...core, parts, Default } as unknown as EField
-  }
-
-  // container: group | array | arrayItem
-  const childrenMap: Record<string, ENode> = {}
-  for (const c of core.children) {
-    childrenMap[c.path.split('.').pop() as string] = enrich(c)
-  }
-  const Default: FC<{ parts?: any; renderNode?: RenderNode }> = (props) => (
-    <DefaultNode
-      core={core}
-      partsOverrides={props?.parts}
-      scoped={props?.renderNode}
-    />
-  )
-  const Children: FC = () => <NodeChildren core={core} />
-  const child = (relativePath: string): ENode | undefined => {
-    const full = core.path ? `${core.path}.${relativePath}` : relativePath
-    const found = core.children.find((c) => c.path === full)
-    return found ? enrich(found) : undefined
-  }
-  return {
-    ...core,
-    parts,
-    children: childrenMap,
-    child,
-    Children,
-    Default,
-  } as unknown as ENode
-}
-
-// ---------------------------------------------------------------------------
-// Default renderers
-// ---------------------------------------------------------------------------
-
-function DefaultPart({ name, part }: { name: string; part: any }) {
+function DefaultPart({ name, part }: { name: string; part: any }): ReactNode {
   switch (name) {
     case 'label':
       return (
@@ -179,71 +73,62 @@ function DefaultPart({ name, part }: { name: string; part: any }) {
   }
 }
 
-function DefaultField({
-  core,
-  partsOverrides,
-}: {
-  core: FieldNode
-  partsOverrides?: Record<string, (part: any) => ReactNode>
-}) {
-  const parts = enrichParts(core.parts)
-  const render = (name: string) => {
-    const p = parts[name]
-    if (!p) return null
-    const override = partsOverrides?.[name]
+// ---------------------------------------------------------------------------
+// The R = ReactNode adapter
+// ---------------------------------------------------------------------------
+
+type ReactPart = { Default: () => ReactNode }
+
+const adapter: ContinuationAdapter<ReactNode> = {
+  part: (name, data) => <DefaultPart name={name} part={data} />,
+
+  field: (node, overrides) => {
+    const parts = node.parts as Record<string, ReactPart | undefined>
+    const render = (name: string): ReactNode => {
+      const part = parts[name]
+      if (!part) return null
+      const override = overrides?.[name]
+      return (
+        <Fragment key={name}>
+          {override ? override(part as never) : <part.Default />}
+        </Fragment>
+      )
+    }
+    const control = node.widget === 'input' ? render('input') : render('select')
     return (
-      <React.Fragment key={name}>
-        {override ? override(p) : <p.Default />}
-      </React.Fragment>
+      <div className="jsf-field">
+        {render('label')}
+        {render('description')}
+        {control}
+      </div>
     )
-  }
-  return (
-    <div className="jsf-field">
-      {render('label')}
-      {render('description')}
-      {parts.select ? render('select') : render('input')}
-    </div>
-  )
+  },
+
+  group: (node, children) => {
+    const { label, description } = node.parts
+    return (
+      <fieldset className="jsf-group">
+        {label && <legend>{label.text}</legend>}
+        {description && (
+          <small className="jsf-description">{description.text}</small>
+        )}
+        {children}
+      </fieldset>
+    )
+  },
+
+  combine: (children) => (
+    <>
+      {children.map((c) => (
+        <Fragment key={c.key}>{c.node}</Fragment>
+      ))}
+    </>
+  ),
 }
 
-function DefaultGroup({ core }: { core: GroupNode }) {
-  if (core.isRoot) return <NodeChildren core={core} />
-  const { label, description } = core.parts
-  return (
-    <fieldset className="jsf-group">
-      {label && <legend>{label.text}</legend>}
-      {description && (
-        <small className="jsf-description">{description.text}</small>
-      )}
-      <NodeChildren core={core} />
-    </fieldset>
-  )
-}
+const engine = createContinuation<ReactNode>(adapter)
 
-function DefaultNode({
-  core,
-  partsOverrides,
-  scoped,
-}: {
-  core: AnyNode
-  partsOverrides?: Record<string, (part: any) => ReactNode>
-  scoped?: RenderNode
-}) {
-  let content: ReactNode
-  if (core.isField)
-    content = <DefaultField core={core} partsOverrides={partsOverrides} />
-  else if (core.isGroup) content = <DefaultGroup core={core} />
-  // array / arrayItem: render children (dynamic add/remove UI is a follow-up)
-  else content = <NodeChildren core={core} />
-
-  return scoped ? (
-    <RenderNodeContext.Provider value={scoped}>
-      {content}
-    </RenderNodeContext.Provider>
-  ) : (
-    <>{content}</>
-  )
-}
+const defaultResolver: RenderNode = (node) => <node.Default />
 
 // ---------------------------------------------------------------------------
 // Form renderer (front-end-agnostic — takes the Core tree, not a schema)
@@ -253,7 +138,7 @@ export interface FormRendererProps {
   /** The Core form tree (e.g. from `jsonSchemaToTree`). */
   form: GroupNode
   renderNode?: RenderNode
-  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void
+  onSubmit?: (e: FormEvent<HTMLFormElement>) => void
   /** Place-yourself at the root: receives the enriched root node. */
   children?: (root: EGroup) => ReactNode
 }
@@ -264,26 +149,27 @@ export function FormRenderer({
   onSubmit,
   children,
 }: FormRendererProps) {
-  const resolver: RenderNode = renderNode ?? ((node) => <node.Default />)
-  const root = useMemo(() => enrich(form) as EGroup, [form])
+  const resolver = renderNode ?? defaultResolver
+  const root = useMemo(
+    () => engine.enrich(form, resolver) as EGroup,
+    [form, resolver]
+  )
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     onSubmit?.(e)
   }
 
   return (
-    <RenderNodeContext.Provider value={resolver}>
-      <form onSubmit={handleSubmit}>
-        {children ? (
-          children(root)
-        ) : (
-          <>
-            <Resolve core={form} />
-            <button type="submit">Submit</button>
-          </>
-        )}
-      </form>
-    </RenderNodeContext.Provider>
+    <form onSubmit={handleSubmit}>
+      {children ? (
+        children(root)
+      ) : (
+        <>
+          {engine.resolve(form, resolver)}
+          <button type="submit">Submit</button>
+        </>
+      )}
+    </form>
   )
 }
