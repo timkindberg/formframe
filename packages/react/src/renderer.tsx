@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // React adapter for Core's continuation engine (ADR 010 + ADR 014).
 //
 // The recursion, enrichment, and scoping live in Core (`createContinuation`).
@@ -16,6 +15,8 @@ import { useMemo, Fragment, type ReactNode, type FormEvent } from 'react'
 import {
   createContinuation,
   type ContinuationAdapter,
+  type PartOverrideMap,
+  type PartView,
   type ENode as CoreENode,
   type EField as CoreEField,
   type EGroup as CoreEGroup,
@@ -44,24 +45,25 @@ export type EArrayItem = CoreEArrayItem<ReactNode>
 // inline styles. Kept identical to the vanilla oracle by the conformance suite.
 // ---------------------------------------------------------------------------
 
-function DefaultPart({ name, part }: { name: string; part: any }): ReactNode {
-  switch (name) {
+/** One part's default markup — passed to the engine by reference (`part: DefaultPart`). */
+function DefaultPart(view: PartView): ReactNode {
+  switch (view.name) {
     case 'label':
       return (
-        <label htmlFor={part.attrs?.for}>
-          {part.text}
-          {part.showRequired && <span aria-hidden> *</span>}
+        <label htmlFor={view.data.attrs?.for}>
+          {view.data.text}
+          {view.data.showRequired && <span aria-hidden> *</span>}
         </label>
       )
     case 'description':
-      return <small className="jsf-description">{part.text}</small>
+      return <small className="jsf-description">{view.data.text}</small>
     case 'input':
-      return <input {...part.attrs} />
+      return <input {...view.data.attrs} />
     case 'select':
       return (
-        <select {...part.attrs}>
+        <select {...view.data.attrs}>
           <option value="">-- select --</option>
-          {part.options?.map((o: any) => (
+          {view.data.options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
@@ -73,51 +75,61 @@ function DefaultPart({ name, part }: { name: string; part: any }): ReactNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// The R = ReactNode adapter
-// ---------------------------------------------------------------------------
+/** A field's default: label, description, and the widget control. */
+function DefaultField({
+  node,
+  overrides,
+}: {
+  node: EField
+  overrides?: PartOverrideMap<ReactNode>
+}): ReactNode {
+  const parts = node.parts as Record<string, { Default(): ReactNode } | undefined>
+  const render = (name: string): ReactNode => {
+    const part = parts[name]
+    if (!part) return null
+    const override = overrides?.[name]
+    return override ? override(part) : <part.Default />
+  }
+  const control = node.widget === 'input' ? render('input') : render('select')
+  return (
+    <div className="jsf-field">
+      {render('label')}
+      {render('description')}
+      {control}
+    </div>
+  )
+}
 
-type ReactPart = { Default: () => ReactNode }
+/** A group's default: a captioned `<fieldset>`, or a plain `<div>` when nameless. */
+function DefaultGroup({
+  node,
+  children,
+}: {
+  node: EGroup
+  children: ReactNode
+}): ReactNode {
+  const { label, description } = node.parts
+  if (!label && !description) return <div className="jsf-group">{children}</div>
+  return (
+    <fieldset className="jsf-group">
+      {label && <legend>{label.text}</legend>}
+      {description && (
+        <small className="jsf-description">{description.text}</small>
+      )}
+      {children}
+    </fieldset>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// The R = ReactNode adapter — default template-set passed by reference.
+// ---------------------------------------------------------------------------
 
 const adapter: ContinuationAdapter<ReactNode> = {
-  part: (name, data) => <DefaultPart name={name} part={data} />,
-
-  field: (node, overrides) => {
-    const parts = node.parts as Record<string, ReactPart | undefined>
-    const render = (name: string): ReactNode => {
-      const part = parts[name]
-      if (!part) return null
-      const override = overrides?.[name]
-      return (
-        <Fragment key={name}>
-          {override ? override(part as never) : <part.Default />}
-        </Fragment>
-      )
-    }
-    const control = node.widget === 'input' ? render('input') : render('select')
-    return (
-      <div className="jsf-field">
-        {render('label')}
-        {render('description')}
-        {control}
-      </div>
-    )
-  },
-
-  group: (node, children) => {
-    const { label, description } = node.parts
-    return (
-      <fieldset className="jsf-group">
-        {label && <legend>{label.text}</legend>}
-        {description && (
-          <small className="jsf-description">{description.text}</small>
-        )}
-        {children}
-      </fieldset>
-    )
-  },
-
-  combine: (children) => (
+  part: DefaultPart,
+  field: DefaultField,
+  group: DefaultGroup,
+  combine: ({ children }) => (
     <>
       {children.map((c) => (
         <Fragment key={c.key}>{c.node}</Fragment>

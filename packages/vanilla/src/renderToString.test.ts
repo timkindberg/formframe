@@ -50,6 +50,22 @@ describe('renderToString — default rendering', () => {
     expect(html).toContain('<legend>Address</legend>')
   })
 
+  it('renders a nameless group as a plain div, not a fieldset', () => {
+    const nameless = jsonSchemaToTree({
+      type: 'object',
+      properties: {
+        meta: {
+          type: 'object',
+          properties: { note: { type: 'string', title: 'Note' } },
+        },
+      },
+    })
+    const out = renderToString(nameless)
+    expect(out).toContain('<div class="jsf-group">')
+    expect(out).not.toContain('<fieldset')
+    expect(out).toContain('<label for="meta.note">Note')
+  })
+
   it('marks required fields with an asterisk', () => {
     expect(html).toContain('<span aria-hidden="true"> *</span>')
   })

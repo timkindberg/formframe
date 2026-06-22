@@ -10,6 +10,7 @@
 import {
   createContinuation,
   type ContinuationAdapter,
+  type PartView,
   type ENode,
   type EField,
   type EGroup,
@@ -19,9 +20,6 @@ import {
   type ESelectField,
   type GroupNode,
   type Resolver,
-  type HtmlInputAttrs,
-  type HtmlSelectAttrs,
-  type SelectOption,
 } from '@jsonschema-form/core'
 
 // ---------------------------------------------------------------------------
@@ -77,28 +75,21 @@ function renderAttrs(attrs: object): string {
 // src/conformance.test.tsx), which treats this output as the oracle.
 // ---------------------------------------------------------------------------
 
-function renderPart(name: string, data: object): string {
-  switch (name) {
+function renderPart(view: PartView): string {
+  switch (view.name) {
     case 'label': {
-      const p = data as {
-        text: string
-        attrs: { for: string }
-        showRequired: boolean
-      }
-      const req = p.showRequired ? '<span aria-hidden="true"> *</span>' : ''
-      return `<label${renderAttrs(p.attrs)}>${escapeText(p.text)}${req}</label>`
+      const { text, attrs, showRequired } = view.data
+      const req = showRequired ? '<span aria-hidden="true"> *</span>' : ''
+      return `<label${attrs ? renderAttrs(attrs) : ''}>${escapeText(
+        text
+      )}${req}</label>`
     }
-    case 'description': {
-      const p = data as { text: string }
-      return `<small class="jsf-description">${escapeText(p.text)}</small>`
-    }
-    case 'input': {
-      const p = data as { attrs: HtmlInputAttrs }
-      return `<input${renderAttrs(p.attrs)}>`
-    }
+    case 'description':
+      return `<small class="jsf-description">${escapeText(view.data.text)}</small>`
+    case 'input':
+      return `<input${renderAttrs(view.data.attrs)}>`
     case 'select': {
-      const p = data as { attrs: HtmlSelectAttrs; options: SelectOption[] }
-      const opts = p.options
+      const opts = view.data.options
         .map(
           (o) =>
             `<option value="${escapeAttr(String(o.value))}">${escapeText(
@@ -107,7 +98,7 @@ function renderPart(name: string, data: object): string {
         )
         .join('')
       return `<select${renderAttrs(
-        p.attrs
+        view.data.attrs
       )}><option value="">-- select --</option>${opts}</select>`
     }
     default:
@@ -124,13 +115,13 @@ type StringPart = { Default(): string }
 const adapter: ContinuationAdapter<string> = {
   part: renderPart,
 
-  field(node, overrides) {
+  field({ node, overrides }) {
     const parts = node.parts as Record<string, StringPart | undefined>
     const render = (name: string): string => {
       const part = parts[name]
       if (!part) return ''
       const override = overrides?.[name]
-      return override ? override(part as never) : part.Default()
+      return override ? override(part) : part.Default()
     }
     const control = node.widget === 'input' ? render('input') : render('select')
     return `<div class="jsf-field">${render('label')}${render(
@@ -138,8 +129,9 @@ const adapter: ContinuationAdapter<string> = {
     )}${control}</div>`
   },
 
-  group(node, children) {
+  group({ node, children }) {
     const { label, description } = node.parts
+    if (!label && !description) return `<div class="jsf-group">${children}</div>`
     const legend = label ? `<legend>${escapeText(label.text)}</legend>` : ''
     const desc = description
       ? `<small class="jsf-description">${escapeText(description.text)}</small>`
@@ -147,7 +139,7 @@ const adapter: ContinuationAdapter<string> = {
     return `<fieldset class="jsf-group">${legend}${desc}${children}</fieldset>`
   },
 
-  combine(children) {
+  combine({ children }) {
     return children.map((c) => c.node).join('')
   },
 }

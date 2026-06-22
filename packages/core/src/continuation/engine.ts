@@ -27,6 +27,9 @@ import type {
   ArrayItemNode,
   InputFieldNode,
   SelectFieldNode,
+  HtmlInputAttrs,
+  HtmlSelectAttrs,
+  SelectOption,
 } from '../parser/nodeTypes'
 
 // ---------------------------------------------------------------------------
@@ -91,18 +94,46 @@ export interface ChildResult<R> {
   node: R
 }
 
-/** Loosely-typed part-override map as seen by the adapter (precise at call site). */
-type PartOverrideMap<R> = Record<string, (part: never) => R>
+/**
+ * A part handed to `adapter.part`, discriminated by `name` so the adapter can
+ * `switch` and reach typed `data` — no `any`, no casts on the adapter side.
+ * (`label` widens `attrs`/`showRequired` to optional so a group's bare `{text}`
+ * label fits the same arm as a field's full label.)
+ */
+export type PartView =
+  | {
+      name: 'label'
+      data: { text: string; attrs?: { for: string }; showRequired?: boolean }
+    }
+  | { name: 'description'; data: { text: string } }
+  | { name: 'input'; data: { attrs: HtmlInputAttrs } }
+  | { name: 'select'; data: { attrs: HtmlSelectAttrs; options: SelectOption[] } }
+  | { name: 'container'; data: { key: string } }
+  | { name: 'itemsContainer'; data: { key: string } }
+  | { name: 'addButton'; data: { attrs: { type: 'button' }; label: string } }
+  | { name: 'removeButton'; data: { attrs: { type: 'button' }; label: string } }
 
+/**
+ * Loosely-typed part-override map as seen by the adapter (precise at the public
+ * call site via `PartsOverrides`). `unknown` lets the adapter forward the
+ * enriched part without an `as never` cast.
+ */
+export type PartOverrideMap<R> = Record<string, (part: unknown) => R>
+
+/**
+ * The only `R`-specific surface a renderer supplies. Every method takes a single
+ * object so a framework component can be passed by reference (e.g. a React
+ * `function Field(props)` as `field: Field`).
+ */
 export interface ContinuationAdapter<R> {
   /** Render a field's default: compose its parts (honoring `overrides`). */
-  field(node: EField<R>, overrides?: PartOverrideMap<R>): R
+  field(props: { node: EField<R>; overrides?: PartOverrideMap<R> }): R
   /** Render a non-root group's default, given already-rendered `children`. */
-  group(node: EGroup<R>, children: R): R
+  group(props: { node: EGroup<R>; children: R }): R
   /** Render a single part's default markup. */
-  part(name: string, data: object): R
+  part(view: PartView): R
   /** Combine child results into one `R` (React: keyed fragment; vanilla: join). */
-  combine(children: ChildResult<R>[]): R
+  combine(props: { children: ChildResult<R>[] }): R
 }
 
 export interface Continuation<R> {
@@ -124,23 +155,26 @@ function lastSegment(path: string): string {
 export function createContinuation<R>(
   adapter: ContinuationAdapter<R>
 ): Continuation<R> {
-  type Overrides = Record<string, (part: never) => R>
+  type Overrides = PartOverrideMap<R>
 
   function enrichParts(parts: object): Record<string, unknown> {
     const out: Record<string, unknown> = {}
     for (const [name, data] of Object.entries(parts)) {
       out[name] =
         data && typeof data === 'object'
-          ? { ...data, Default: () => adapter.part(name, data) }
+          ? { ...data, Default: () => adapter.part({ name, data } as PartView) }
           : data
     }
     return out
   }
 
   function renderChildren(core: ContainerNode, resolver: Resolver<R>): R {
-    return adapter.combine(
-      core.children.map((c) => ({ key: c.path, node: resolve(c, resolver) }))
-    )
+    return adapter.combine({
+      children: core.children.map((c) => ({
+        key: c.path,
+        node: resolve(c, resolver),
+      })),
+    })
   }
 
   function renderDefault(
@@ -149,15 +183,18 @@ export function createContinuation<R>(
     overrides?: Overrides
   ): R {
     if (core.isField) {
-      return adapter.field(enrich(core, resolver) as EField<R>, overrides)
+      return adapter.field({
+        node: enrich(core, resolver) as EField<R>,
+        overrides,
+      })
     }
     if (core.isGroup) {
       // root is a transparent shell — its default is just its children.
       if (core.isRoot) return renderChildren(core, resolver)
-      return adapter.group(
-        enrich(core, resolver) as EGroup<R>,
-        renderChildren(core, resolver)
-      )
+      return adapter.group({
+        node: enrich(core, resolver) as EGroup<R>,
+        children: renderChildren(core, resolver),
+      })
     }
     // array | arrayItem — structural pass-through (interactivity deferred).
     return renderChildren(core, resolver)

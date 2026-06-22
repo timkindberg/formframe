@@ -52,4 +52,6 @@ export type {
   Continuation,
   ChildResult,
   PartsOverrides,
+  PartOverrideMap,
+  PartView,
 } from './continuation/engine'
