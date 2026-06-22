@@ -160,9 +160,7 @@ function DefaultPart({ name, part }: { name: string; part: any }) {
         </label>
       )
     case 'description':
-      return (
-        <small style={{ display: 'block', color: '#666' }}>{part.text}</small>
-      )
+      return <small className="jsf-description">{part.text}</small>
     case 'input':
       return <input {...part.attrs} />
     case 'select':
@@ -200,7 +198,7 @@ function DefaultField({
     )
   }
   return (
-    <div style={{ marginBottom: '0.75rem' }}>
+    <div className="jsf-field">
       {render('label')}
       {render('description')}
       {parts.select ? render('select') : render('input')}
@@ -212,12 +210,10 @@ function DefaultGroup({ core }: { core: GroupNode }) {
   if (core.isRoot) return <NodeChildren core={core} />
   const { label, description } = core.parts
   return (
-    <fieldset
-      style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #999' }}
-    >
+    <fieldset className="jsf-group">
       {label && <legend>{label.text}</legend>}
       {description && (
-        <small style={{ color: '#666' }}>{description.text}</small>
+        <small className="jsf-description">{description.text}</small>
       )}
       <NodeChildren core={core} />
     </fieldset>

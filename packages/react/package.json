@@ -34,6 +34,7 @@
     "react": "^18.0.0"
   },
   "devDependencies": {
+    "@jsonschema-form/vanilla": "*",
     "@types/react": "^18.2.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/browser": "^4.0.14",

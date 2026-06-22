@@ -114,8 +114,9 @@ function renderAttrs(attrs: object): string {
 // Default template-set (the built-in defaults, as HTML strings)
 //
 // Near-styleless on purpose (ADR 012 §4): semantic markup + stable `jsf-*`
-// class hooks, no inline styles. The React defaults still carry inline styles;
-// aligning the two is a conformance finding tracked separately.
+// class hooks, no inline styles. The React defaults emit the same markup —
+// kept honest by the cross-framework conformance suite (packages/react
+// src/conformance.test.tsx), which treats this output as the oracle.
 // ---------------------------------------------------------------------------
 
 function renderPart(name: string, data: object): string {
