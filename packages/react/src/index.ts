@@ -18,15 +18,3 @@ export type {
   EArray,
   EArrayItem,
 } from './renderer'
-
-// Default component renderers
-export { DefaultRootTemplate } from './DefaultRootTemplate'
-export { DefaultFieldTemplate } from './DefaultFieldTemplate'
-export { DefaultGroupTemplate } from './DefaultGroupTemplate'
-export {
-  DefaultArrayTemplate,
-  DefaultArrayItemTemplate,
-  useArrayField,
-  useArrayItem,
-  ArrayItemContext,
-} from './DefaultArrayTemplate'

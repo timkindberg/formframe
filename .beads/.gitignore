@@ -24,3 +24,8 @@ LOCK
 !*.jsonl
 !metadata.json
 !config.json
+
+# Local runtime state (machine-specific embedded dolt DB + logs; not for git)
+embeddeddolt/
+interactions.jsonl
+last-touched

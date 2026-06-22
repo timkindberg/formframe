@@ -61,6 +61,17 @@ This refactor crosses the Core boundary and rewrites both renderers. It was safe
 - **Keep React's Context for scoping** — rejected: the probe showed it was incidental; dropping it removed code and unified the two renderers on one algorithm.
 - **Generalize over a "scheduler" so the engine itself is lazy or eager** — rejected as over-engineering: laziness is React's private concern (closures already carry the resolver); the engine stays eager and simple.
 
+## Addendum (2026-06-22): adapter ergonomics
+
+A follow-up pass tightened the adapter seam (no behavior change; conformance stayed green):
+
+- **`PartView`** — a discriminated `{ name; data }` union, exported from Core. The engine casts once at the dynamic `Object.entries` boundary; each adapter then `switch (view.name)`es with narrowed `view.data`, removing the `any`/`as { text: … }` casts that the loose `part(name, data)` signature had forced.
+- **Single-object adapter methods** — `field({ node, overrides })`, `group({ node, children })`, `part(view)`, `combine({ children })`. A framework component can now be passed by reference (React: `part: DefaultPart`), since a single props object is exactly what a component receives.
+- **`PartOverrideMap` = `(part: unknown) => R`** — lets an adapter forward an enriched part to a user override without an `as never` cast; the precise typing still lives at the public `PartsOverrides` call site.
+- **Nameless groups render `<div class="jsf-group">`**, not an empty `<fieldset>`; a `<fieldset>`+`<legend>` is reserved for groups that actually have a label/description.
+
+These are refinements *within* the adapter contract above (which the Decision section still sketches in its original, looser form); they do not change the engine algorithm or the React≡vanilla equivalence.
+
 ---
 
 **Relates to:** ADR 005 (`walk<R>` — the non-re-entrant fold this generalizes), ADR 008 (swappability earned by a second implementation — the vanilla probe), ADR 010 (continuation rendering — the contract, formerly React-only, now Core), ADR 012 (typed IR; the discriminated `EField<R>` mirrors `FieldNode`), ADR 013 (engine vs template-set decomposition — this realizes the engine half; the injectable template-set/`h` unification remains deferred).
