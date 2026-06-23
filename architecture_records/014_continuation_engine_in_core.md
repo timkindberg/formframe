@@ -27,7 +27,7 @@ The enriched-node types (`ENode<R>`, `EField<R>`, `EGroup<R>`, …) and `Resolve
 ### 2. An adapter supplies only the `R`-specific surface
 
 ```ts
-interface ContinuationAdapter<R> {
+interface RendererAdapter<R> {
   field(node: EField<R>, overrides?): R          // compose a field's parts
   group(node: EGroup<R>, children: R): R         // a non-root group's shell
   part(name: string, data: object): R            // one part's default markup
@@ -50,7 +50,7 @@ This refactor crosses the Core boundary and rewrites both renderers. It was safe
 ## Consequences
 
 - **One source of truth for the fold.** Enrichment/recursion/scoping live once in Core. Renderers shrank to a template-set + `combine`; React lost its Context, `Resolve`, and `NodeChildren` plumbing.
-- **The IR's mandate is now literal.** Core is "the tree **plus the fold**"; `createContinuation` is the fold, `walk` its non-re-entrant sibling. A future Vue/Solid/vanilla-DOM adapter implements `ContinuationAdapter<R>` and inherits the algorithm — and must pass conformance.
+- **The IR's mandate is now literal.** Core is "the tree **plus the fold**"; `createContinuation` is the fold, `walk` its non-re-entrant sibling. A future Vue/Solid/vanilla-DOM adapter implements `RendererAdapter<R>` and inherits the algorithm — and must pass conformance.
 - **Markup duplication remains, deliberately.** The per-kind default markup still exists twice (JSX vs strings). That is `R`-specific and small; unifying it behind an abstract `h(tag, attrs, …children): R` hyperscript (which would also fold ADR 013's template-set into Core) is a *separate*, not-yet-earned move — a third target, now a smaller prize than the algorithm was.
 - **Open items unchanged.** Arrays/array-items are still pass-through and submit chrome is still hand-placed (ADR 013 open questions stand). Parts-overrides are now uniformly supported by the engine, so vanilla gained them for free.
 

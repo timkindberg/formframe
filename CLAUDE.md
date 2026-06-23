@@ -50,9 +50,9 @@ Core is **stateless** — it only compiles a schema into the form-tree structure
 Tree traversal: Nodes have `walk(handlers)` for recursive traversal with `field` and `group` handlers. Queries (`getField`, `getAllFields`) use **relative paths** from the calling group.
 
 ### React Layer (`@jsonschema-form/react`)
-- `useSchemaForm(schema)` → Returns `{ form, Form }` where Form is a ready-to-render component
-- `DefaultFieldTemplate`, `DefaultGroupTemplate`, `DefaultRootTemplate` - Default renderers
-- Customization is the recursive continuation primitive (ADR 010): `renderNode` to hijack a node, `node.Default`/`node.Children`/`node.child(path).Default` to re-enter the engine, `parts={{…}}` to override individual field parts. Fractal from `<Form>` down to a single part.
+- `useSchemaForm(schema)` → Returns `{ form, SchemaFields }` where `SchemaFields` is a ready-to-render component (content only — you own the `<form>` + submit, ADR 013)
+- `SchemaFields` (batteries-included) / `createRenderer` (the public floor that takes a partial renderer set) / `defaultAdapter` + `diagnosticAdapter` (the two built-in renderer sets you spread over) — ADR 013
+- Customization is the recursive continuation primitive (ADR 010): `renderNode` to hijack a node, `node.Default`/`node.Children`/`node.child(path).Default` to re-enter the engine, `parts={{…}}` to override individual field parts. Fractal from `<SchemaFields>` down to a single part.
 
 ## Issue Tracking
 

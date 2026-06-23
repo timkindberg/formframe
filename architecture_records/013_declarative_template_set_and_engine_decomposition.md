@@ -1,92 +1,89 @@
-# ADR 013: A Declarative Template-Set Over the Continuation Engine — and Decomposing FormRenderer
+# ADR 013: The Renderer Adapter as the Customization Seam — and Decomposing FormRenderer
 
-**Date:** 2026-06-21
-**Status:** Proposed
+**Date:** 2026-06-21 (revised 2026-06-22)
+**Status:** Accepted
 **Deciders:** Tim Kindberg
 
 ## Context
 
-With `useSchemaForm` now rewired as pure sugar over `FormRenderer` (ADR 010), the engine's responsibilities are visible in one place — and `FormRenderer` bundles **three** distinct jobs:
+With `useSchemaForm` rewired as pure sugar over the React renderer (ADR 010) and the continuation engine extracted to Core (ADR 014), the renderer's responsibilities became visible in one place — and the old `FormRenderer` bundled **three** distinct jobs:
 
-1. **The engine** — recursion over the IR, `renderNode` dispatch, nearest-scope-wins context, and the re-entry handles (`node.Default`/`Children`/`child`/`parts.X.Default`).
-2. **A default template-set** — the hardcoded JSX for each node *kind* and *part*: `DefaultField`/`DefaultGroup`/`DefaultPart` (a `<fieldset>` for groups, label+input/select for fields, etc.).
+1. **The engine** — recursion over the IR, `renderNode` dispatch, scoping, and the re-entry handles (`node.Default`/`Children`/`child`/`parts.X.Default`). *This already moved to Core (ADR 014).*
+2. **A default template-set** — the hardcoded JSX for each node *kind* and *part* (`DefaultField`/`DefaultGroup`/`DefaultPart`).
 3. **Form chrome** — the `<form>` element and the submit button.
 
-Two observations forced this ADR:
+Two observations forced this ADR. First, the override ergonomics: customizing one node means a `renderNode` arrow with a path check; customizing all nodes of a kind means a `renderNode` switch — a *function* where a structured **renderer set** reads better, and exactly what the old `Default*Template` overrides *felt* like, minus their dead-end (they couldn't hand control back to the engine). Second, Tim's framing: "FormRenderer maybe did too much all at once" — is the default rendering a *separable, injectable* concern, with a meaningful **lower rung** where the defaults are not assembled for you?
 
-- **Porting App_08 onto the typed engine** showed the override ergonomics. To customize *one* node you write a `renderNode` arrow with a path check; to customize *all nodes of a kind* you write a `renderNode` switch on `node.isGroup`/`node.widget`. That works (ADR 012 §5) but it's a function where a **declarative map** would read better — and it's exactly what the old `Default*Template` overrides *felt* like, minus their dead-end (they couldn't hand control back to the engine).
-- **Tim's framing:** "FormRenderer maybe did too much all at once." Is the default template-set a *separable, injectable* concern? Is there a meaningful **lower rung** — conceptually App_05's altitude — where the defaults are **not assembled for you**, i.e. you *configure the defaults* (or are forced to supply them) and the engine only drives recursion/scoping?
+The original draft (Proposed) sketched a separate declarative `templates={…}` map desugaring to a kind-switching `renderNode`. A design grilling rejected that in favor of making **the renderer adapter itself** the override unit. This revision records what we built.
 
-This is the **registration / component-registry skin already named in ADR 010 and deferred in ADR 012 §5**. This ADR sharpens its design and records the decomposition rationale; it does **not** yet authorize building it (see Status / Decision §4).
+## Decision
 
-## Decision (proposed)
+### 1. The override unit is the renderer adapter — a *compound per node kind*
 
-### 1. The default template-set is a concern *separate* from the engine
-
-The continuation engine knows nothing about HTML. A **template-set** supplies the per-kind / per-part default rendering:
+There is no separate `templates` map. The adapter the renderer hands to Core's `createContinuation` *is* the customization seam, organized by node kind, each kind a `root` (composition renderer) plus its parts:
 
 ```ts
-interface TemplateSet {
-  field?: FC<{ node: EField }>
-  group?: FC<{ node: EGroup }>
-  array?: FC<{ node: EArray }>
-  arrayItem?: FC<{ node: EArrayItem }>
-  // optional finer granularity, keyed by widget and/or part:
-  widgets?: Partial<Record<Widget, FC<{ node: ENode }>>>
-  parts?: Partial<Record<PartName, (part: EnrichedPart) => ReactNode>>
+interface RendererAdapter<R> {
+  field: { root, label, description, input, select }
+  group: { root, label, description }
+  combine // plumbing: join sibling results
 }
 ```
 
-Every template receives the **enriched** node, so it can re-enter the engine (`node.Children`, `node.child(p).Default`, `part.Default`) — it is *not* a dead-end the way the old `Default*Template`s were. This is the crucial difference from ADR 004's templates.
-
-### 2. The declarative map desugars to a kind-switching `renderNode`
-
-Supplying a template-set is sugar over the one primitive — no new engine capability (consistent with ADR 012 §5):
+You customize by overriding entries **by reference**:
 
 ```tsx
-// declarative (proposed)
-<FormRenderer form={form} templates={{ group: MyGroup, widgets: { select: MySelect } }} />
-
-// …is exactly:
-renderNode={(node) => {
-  if (node.isGroup) return <MyGroup node={node} />
-  if (node.isField && node.widget === 'select') return <MySelect node={node} />
-  return <node.Default />
-}}
+const adapter = { ...defaultAdapter, field: { ...defaultAdapter.field, label: MyLabel } }
 ```
 
-`renderNode` (the function) remains the general primitive; `templates` (the map) is the ergonomic, declarative skin for the common "swap defaults by kind" case. Both compose; a `renderNode` may still be passed alongside for per-node hijacks.
+`root` follows the compound-component convention (Chakra/Radix/Ark — the root of *that* component); it's namespaced under the kind, so it does **not** collide with the form-tree root (`node.isRoot`). Parts are **per-node-context**: a field's `label` renders a `<label>`, a group's `label` renders a `<legend>` — genuinely different renderers, co-located where they belong. Each part's `Default` dispatches to `adapter[kind][partName]`, so the built-in defaults are *just the default renderer set*, not privileged engine code. Arrays/arrayItems are structural pass-through for now (interactivity deferred — bead `bi4`); they have no adapter entry and fold through `combine`.
 
-### 3. `FormRenderer` = engine + built-in template-set + chrome (a bundle)
+### 2. A public floor with a diagnostic fallback
 
-`FormRenderer` stays the batteries-included rung: it injects the **built-in** template-set and renders form chrome. `templates={…}` overrides *entries* in that set (inherit the rest). The engine's own `node.Default` is, in effect, "render via the active template-set" — so the built-in defaults become *just the default template-set*, not privileged engine code.
+The lowest public rung, `createRenderer(partialAdapter)`, binds a renderer set and returns a `SchemaFields`-style component (React) / `renderToString`-style function (vanilla). The adapter is **partial**: any missing **content** renderer falls back to a visible `[… not implemented: {json}]` **diagnostic** marker, so an incomplete adapter still runs and tells you what's missing. `combine` is plumbing (no meaningful "[combine not implemented]"), so it always carries the framework's real default and sits outside the diagnostic floor.
 
-### 4. Status: designed, **not yet built** — gated by the rule-of-three and the open decomposition
+Each renderer ships two built-in sets: the real **`defaultAdapter`** and the **`diagnosticAdapter`**. `createRenderer` is `createContinuation(mergeAdapter(diagnosticAdapter, partial))`; the batteries-included renderer is simply `createRenderer(defaultAdapter)`.
 
-Per ADR 008 (swappability earned by a second implementation) and ADR 012 §5 (this skin is deferred until the UI second-implementation forces it), we do **not** build `templates` now. This ADR is **Proposed** to give the open decomposition discussion (below) a concrete artifact. It is promoted to **Accepted** when either (a) a second UI/template-set implementation forces the seam, or (b) the decomposition discussion resolves to build it deliberately.
+### 3. Chrome is the consumer's
 
-## Open questions (for the FormRenderer-decomposition discussion)
+The `<form>` element and submit button are **not** rendered by the library. The top-level component renders the form's *content only* and is renamed **`SchemaFields`** (it renders fields, not a `<form>`). Consumers wrap it:
 
-These are deliberately unresolved here:
+```tsx
+<form onSubmit={form.submit(onSubmit)}>
+  <SchemaFields />
+  <button type="submit">Submit</button>
+</form>
+```
 
-1. **Is a "no-defaults" rung worth exposing?** A layer where the engine drives recursion/scoping but renders *nothing* until you supply a template-set — the strict "configure-the-defaults" altitude (≈ App_05). Or is "override-some, inherit-the-rest" always enough, making a no-defaults rung academic?
-2. **Where does form chrome live?** The `<form>` element and submit are currently baked into `FormRenderer`. Porting App_08's place-yourself sections required hand-writing `<button type="submit">` because **submit is not modeled as a part** (the spike faked `root.parts.submit`). Is form chrome (a) engine responsibility, (b) a root-node part, or (c) the consumer's job in the place-yourself branch?
-3. **What's the new example's altitude?** Does the injectable template-set become **App_05B** (FormRenderer with a hand-provided template-set), sitting just below 06/06B?
-4. **Relationship to styling (ADR 012 §4) and the UI-kit swap (ADR 010).** The template-set, the styling-hooks axis, and a full UI-kit/theme are three points on one spectrum; this ADR should not pre-empt where the UI-kit boundary lands.
+This keeps renderers nesting cleanly (a `SchemaFields` inside another consumer's `SchemaFields` — the VNDLY nested-form pain — needs no chrome-stripping workaround) and resolves the App_08 spike's "submit is not a part" gap: submit was never a part; it's chrome, and chrome is the consumer's. `useSchemaForm` now returns `{ form, SchemaFields }`.
+
+### 4. The rungs, top to bottom
+
+- `useSchemaForm(schema) → { form, SchemaFields }` — holds the tree; sugar.
+- `SchemaFields` — batteries-included; `createRenderer(defaultAdapter)`.
+- `createRenderer(partialAdapter)` — the public floor; gaps → diagnostic markers.
+- `createContinuation(adapter)` (Core) — the mechanism; takes a complete adapter.
+
+## Resolved open questions (from the Proposed draft)
+
+1. **Is a "no-defaults" rung worth exposing?** Yes — `createRenderer` with a partial set is exactly that altitude, made safe (not crash-y) by the diagnostic floor. New **App_05** demonstrates it coming alive.
+2. **Where does form chrome live?** The consumer's (§3). Not engine, not a root-node part.
+3. **What's the new example's altitude?** `App_05` ("React + Renderer Adapter — the floor"), just below the hook; the 01→08 discovery arc stays intact.
+4. **Relationship to styling (ADR 012 §4) and the UI-kit swap.** Unchanged: the renderer set, styling-hooks axis, and a full UI-kit are points on one spectrum; this ADR doesn't pre-empt the UI-kit boundary.
 
 ## Consequences
 
-- Records that the engine and the default template-set are *conceptually separable*, reframing the built-in defaults as "the default template-set" rather than privileged engine code — without forcing a refactor before it's earned.
-- Gives the "FormRenderer does too much" discussion a concrete vocabulary (engine / template-set / chrome) and a concrete API sketch (`templates`).
-- Defers implementation, honoring ADR 008's rule-of-three and ADR 012 §5; avoids a speculative public-API surface until forced.
-- Surfaces "submit is not a part" as a real gap exposed by the App_08 port, to be decided in the decomposition chat.
+- The presentation seam is now one well-typed contract (`RendererAdapter<R>`) that every renderer and future UI kit conforms to — the genuine hard-to-reverse commitment here (the rest — the `SchemaFields` rename, chrome-out, diagnostic base — is reversible/additive). Pre-1.0 with zero external adapters, even the contract is cheap to reshape today.
+- Recovers the ADR-004 template *feel* (declarative, by-reference overrides) without the dead-end: every entry re-enters the engine.
+- `Default*Template` and the `templates`-map sketch are both superseded.
 
 ## Alternatives Considered
 
-- **Build `templates` now as accepted API** — rejected (for now): contradicts ADR 012 §5's explicit deferral and ADR 008's rule-of-three; the second template-set (a real UI kit) hasn't arrived to validate the shape.
-- **Leave only `renderNode`** — viable but under-serves the common "swap all groups/fields" case; the declarative map is materially more ergonomic and recovers the ADR 004 template feel without the dead-end.
-- **Resurrect `Default*Template` as the override mechanism** — rejected: they dead-end (no re-entry into the engine), which is the very flaw the continuation model (ADR 010) fixed.
+- **A separate declarative `templates={…}` map** (the original Proposed draft) — rejected: a second namespace over the same mechanism; making the adapter itself the override unit is one concept, not two.
+- **Flat renderer record** (`{ field, group, label, input, …, combine }`) — rejected in the grill: it blurs node- and part-altitude into one namespace and can't express per-node-context parts (`field.label` ≠ `group.label`).
+- **Keep chrome in the component** — rejected: nesting renderers then requires stripping a nested `<form>`; additive to re-add later as an optional wrapper if wanted.
+- **Resurrect `Default*Template`** — rejected: they dead-end (no re-entry), the very flaw the continuation model (ADR 010) fixed.
 
 ---
 
-**Relates to:** ADR 004 (the original React default templates — superseded mechanism), ADR 010 (continuation rendering; the named-but-deferred registration skin), ADR 008 (swappability earned by a second implementation), ADR 012 §4–§5 (styling axis; kind-level overrides desugar to `renderNode`).
+**Relates to:** ADR 004 (the original React default templates — superseded mechanism), ADR 010 (continuation rendering; the named-but-deferred registration skin), ADR 008 (swappability earned by a second implementation), ADR 012 §4–§5 (styling axis; kind-level overrides), ADR 014 (the continuation engine in Core).

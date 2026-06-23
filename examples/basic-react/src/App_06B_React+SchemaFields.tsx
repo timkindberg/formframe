@@ -1,6 +1,6 @@
 import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
-import { FormRenderer } from '@jsonschema-form/react'
+import { SchemaFields } from '@jsonschema-form/react'
 
 // Same schema as App_06 so the two can be compared side by side.
 const schema: JSONSchema = {
@@ -62,17 +62,22 @@ function App() {
 
   return (
     <div>
-      <h1>JSON Schema Form - FormRenderer (de-sugared useSchemaForm)</h1>
+      <h1>JSON Schema Form - SchemaFields (de-sugared useSchemaForm)</h1>
       <p>
         Same altitude as example 06, one notch more explicit: instead of the{' '}
         <code>useSchemaForm</code> hook holding the tree for you, you call{' '}
         <code>jsonSchemaToTree</code> yourself and hand the tree to{' '}
-        <code>FormRenderer</code> (the ADR-010 continuation engine). With no{' '}
+        <code>SchemaFields</code> (the ADR-010 continuation). With no{' '}
         <code>renderNode</code> override it renders every {"node's"} default.{' '}
+        <code>SchemaFields</code> renders content only — the{' '}
+        <code>&lt;form&gt;</code> + submit are yours (ADR 013).{' '}
         <code>useSchemaForm</code> wraps exactly this.
       </p>
 
-      <FormRenderer form={form} onSubmit={handleSubmit} />
+      <form onSubmit={handleSubmit}>
+        <SchemaFields form={form} />
+        <button type="submit">Submit</button>
+      </form>
     </div>
   )
 }

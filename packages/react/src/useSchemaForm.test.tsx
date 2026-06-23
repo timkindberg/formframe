@@ -3,6 +3,10 @@ import { render } from 'vitest-browser-react'
 import { useSchemaForm } from './useSchemaForm'
 import type { JSONSchema } from '@jsonschema-form/core'
 
+// `useSchemaForm` returns `{ form, SchemaFields }`. `SchemaFields` renders the form's
+// *content only* — chrome (`<form>` + submit) is the consumer's (ADR 013), so
+// these tests place it themselves where a submit is needed.
+
 describe('useSchemaForm', () => {
   it('should render a simple form with a text field', async () => {
     const schema: JSONSchema = {
@@ -16,8 +20,8 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { Form } = useSchemaForm(schema)
-      return <Form />
+      const { SchemaFields } = useSchemaForm(schema)
+      return <SchemaFields />
     }
 
     const screen = await render(<TestComponent />)
@@ -28,10 +32,6 @@ describe('useSchemaForm', () => {
     // Check for input
     const input = screen.getByRole('textbox', { name: 'Name' })
     await expect.element(input).toBeInTheDocument()
-
-    // Check for submit button
-    const submitButton = screen.getByRole('button', { name: 'Submit' })
-    await expect.element(submitButton).toBeInTheDocument()
   })
 
   it('should render required fields with asterisk', async () => {
@@ -47,8 +47,8 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { Form } = useSchemaForm(schema)
-      return <Form />
+      const { SchemaFields } = useSchemaForm(schema)
+      return <SchemaFields />
     }
 
     const screen = await render(<TestComponent />)
@@ -70,8 +70,8 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { Form } = useSchemaForm(schema)
-      return <Form />
+      const { SchemaFields } = useSchemaForm(schema)
+      return <SchemaFields />
     }
 
     const screen = await render(<TestComponent />)
@@ -93,8 +93,8 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { Form } = useSchemaForm(schema)
-      return <Form />
+      const { SchemaFields } = useSchemaForm(schema)
+      return <SchemaFields />
     }
 
     const screen = await render(<TestComponent />)
@@ -116,8 +116,8 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { Form } = useSchemaForm(schema)
-      return <Form />
+      const { SchemaFields } = useSchemaForm(schema)
+      return <SchemaFields />
     }
 
     const screen = await render(<TestComponent />)
@@ -142,8 +142,8 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { Form } = useSchemaForm(schema)
-      return <Form />
+      const { SchemaFields } = useSchemaForm(schema)
+      return <SchemaFields />
     }
 
     const screen = await render(<TestComponent />)
@@ -179,8 +179,8 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { Form } = useSchemaForm(schema)
-      return <Form />
+      const { SchemaFields } = useSchemaForm(schema)
+      return <SchemaFields />
     }
 
     const screen = await render(<TestComponent />)
@@ -197,7 +197,7 @@ describe('useSchemaForm', () => {
       .toBeInTheDocument()
   })
 
-  it('should handle onSubmit callback', async () => {
+  it('drives consumer-owned form chrome (form.submit + <button>)', async () => {
     const schema: JSONSchema = {
       type: 'object',
       properties: {
@@ -209,24 +209,26 @@ describe('useSchemaForm', () => {
     }
 
     let submitted = false
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault()
+    const handleSubmit = (data: Record<string, unknown>) => {
       submitted = true
+      expect(data).toBeDefined()
     }
 
     function TestComponent() {
-      const { Form } = useSchemaForm(schema)
-      return <Form onSubmit={handleSubmit} />
+      const { form, SchemaFields } = useSchemaForm(schema)
+      return (
+        <form onSubmit={form.submit(handleSubmit)}>
+          <SchemaFields />
+          <button type="submit">Submit</button>
+        </form>
+      )
     }
 
     const screen = await render(<TestComponent />)
     const submitButton = screen.getByRole('button', { name: 'Submit' })
-
     await expect.element(submitButton).toBeInTheDocument()
 
-    // Click the submit button
     await submitButton.click()
-
     expect(submitted).toBe(true)
   })
 
@@ -246,18 +248,18 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { form, Form } = useSchemaForm(schema)
+      const { form, SchemaFields } = useSchemaForm(schema)
 
       // Capture form node via ref pattern (safe for testing)
       // eslint-disable-next-line react-hooks/immutability
       formNodeRef.current = form
 
-      return <Form />
+      return <SchemaFields />
     }
 
     const screen = await render(<TestComponent />)
     await expect
-      .element(screen.getByRole('button', { name: 'Submit' }))
+      .element(screen.getByRole('textbox', { name: 'Name' }))
       .toBeInTheDocument()
 
     // Check that form node has correct structure after render

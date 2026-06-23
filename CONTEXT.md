@@ -8,11 +8,14 @@ This file is a glossary, not a spec. It defines the project's shared vocabulary 
 
 **Core**:
 The hub. Owns the form tree and the recursive fold over it. Stateless, framework-agnostic, imports nothing.
-_Avoid_: engine, kernel, parser (parsing is one front-end, not Core's identity).
+_Avoid_: kernel, parser (parsing is one front-end, not Core's identity). "Engine" is fine for the continuation mechanism *within* Core (see **Continuation** — "the continuation engine"), just not as a bare synonym for Core-the-hub.
 
 **Form tree** (the IR):
 Core's internal representation of a form — the intermediate representation that every front-end compiles *into* and every consumer folds *over*.
 _Avoid_: AST, model, schema (the schema is a source, not the tree).
+
+**Continuation** (the fold):
+Core's generic recursive fold over the form tree — `createContinuation<R>`, parameterized by the renderer's result type `R`. It enriches each node with its re-entry points (`Default`/`Children`) and threads the active `renderNode`; every renderer adapter plugs into it. ADR 014 also calls this **the continuation engine**.
 
 **Front-end**:
 An adapter that compiles a schema *into* the form tree (e.g. the JSON Schema front-end, the Zod front-end).
@@ -52,7 +55,15 @@ Serializable conditional logic (e.g. conditionally required/hidden fields), used
 
 ## Rendering & customization
 
-See ADR 010 for the full model. One recursive primitive, two granularities (node, part), three moves (take default / swap sub-pieces / place yourself), fractal from `<Form>` to `part.Default`.
+See ADR 010 for the full model. One recursive primitive, two granularities (node, part), three moves (take default / swap sub-pieces / place yourself), fractal from `<SchemaFields>` to `part.Default`.
+
+**`SchemaFields`** (the rendering entry point):
+The component that folds the form tree into UI — the fractal root from which `renderNode` / `Default` / `Children` descend. It renders the form's *content only*; the `<form>` element + submit button are the consumer's (chrome is deliberately not the library's, so renderers nest cleanly).
+_Avoid_: Form, FormRenderer (it renders fields, not a `<form>`); bare `Fields` (ambiguous with a form's fields — the `Schema` prefix marks it as the schema-driven renderer).
+
+**Renderer adapter** (a presentation consumer):
+A consumer that folds the form tree into UI for one target (React, vanilla DOM, …). It supplies the **default renderer set**, organized as a *compound per node kind*: each kind has a **`root`** (its composition renderer) plus its parts — `field: { root, label, description, input, select }`, `group: { root, label, description }` — plus the `combine` plumbing. (`root` follows the compound-component convention — Chakra/Radix/Ark — the root of *that* thing; namespaced under the kind, so distinct from the form-tree root.) You customize by overriding entries *by reference*: `{ ...defaultAdapter, field: { ...defaultAdapter.field, label: MyLabel } }`; the same set, partially overridden, is the lower rung beneath the batteries-included renderer. Parts are **per-node-context** — a field's `label` is a `<label>`, a group's `label` is a `<legend>`. A renderer ships two built-in sets: the real **defaults**, and a **diagnostic** set whose every content entry renders a visible `[… not implemented]` marker echoing the node's data — the floor's fallback, so an incomplete adapter still runs and tells you what's missing.
+_Avoid_: template, template-set (RJSF's schema-keyed registry; ours is a JSX continuation, overridden by reference).
 
 **Hijack**:
 Supplying your own JSX for a node or part instead of the default renderer — at any level, paying only for what you change.
