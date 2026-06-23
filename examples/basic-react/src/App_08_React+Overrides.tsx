@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
-import { FormRenderer } from '@jsonschema-form/react'
+import { SchemaFields } from '@jsonschema-form/react'
 
 // The real continuation engine (ADR 010) — the typed successor to the spike.
 // One primitive (`renderNode`), two granularities (node / part), three moves
@@ -92,11 +92,11 @@ export default function App() {
       <p>One primitive, two granularities, three moves — all the way down.</p>
 
       <Section title="1. Default whole form">
-        <FormRenderer form={form} />
+        <SchemaFields form={form} />
       </Section>
 
       <Section title="2. renderNode: hijack a subtree, swap parts, place-yourself, reorder">
-        <FormRenderer
+        <SchemaFields
           form={form}
           renderNode={(node) => {
             // augment ONLY the email label (input/description stay default)
@@ -176,25 +176,28 @@ export default function App() {
       </Section>
 
       <Section title="3. Place-yourself at the ROOT (function children)">
-        <FormRenderer form={form}>
-          {(root) => (
-            <>
-              <p style={{ color: '#666' }}>Custom top-level layout:</p>
-              <root.children.name.Default />
-              <root.children.email.Default />
-              <hr />
-              <root.children.address.Default />
-              <div style={{ marginTop: 12 }}>
-                <button type="submit">Submit</button>
-              </div>
-            </>
-          )}
-        </FormRenderer>
+        <form>
+          <SchemaFields form={form}>
+            {(root) => (
+              <>
+                <p style={{ color: '#666' }}>Custom top-level layout:</p>
+                <root.children.name.Default />
+                <root.children.email.Default />
+                <hr />
+                <root.children.address.Default />
+                <div style={{ marginTop: 12 }}>
+                  <button type="submit">Submit</button>
+                </div>
+              </>
+            )}
+          </SchemaFields>
+        </form>
       </Section>
 
       <Section title="4. Recursion within recursion — root layout + a scoped renderNode subtree">
-        <FormRenderer form={form}>
-          {(root) => {
+        <form>
+          <SchemaFields form={form}>
+            {(root) => {
             const theme = root.child('theme')
             const address = root.children.address
             return (
@@ -260,8 +263,9 @@ export default function App() {
                 </div>
               </>
             )
-          }}
-        </FormRenderer>
+            }}
+          </SchemaFields>
+        </form>
       </Section>
     </div>
   )

@@ -6,10 +6,20 @@
  * oracle (bead 0mw) that produces canonical HTML for cross-framework diffing.
  */
 
-export { renderToString } from './renderToString'
+// `renderToString` is batteries-included; `createRenderer` is the public floor
+// (bind a partial renderer set; gaps fall back to `diagnosticAdapter` markers);
+// spread `defaultAdapter` to override entries by reference (ADR 013).
+export {
+  renderToString,
+  createRenderer,
+  defaultAdapter,
+  diagnosticAdapter,
+} from './renderToString'
 export type {
   RenderNode,
   RenderToStringOptions,
+  VanillaAdapter,
+  VanillaPartialAdapter,
   VNode,
   VField,
   VInputField,

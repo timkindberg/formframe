@@ -6,6 +6,10 @@
 // React DOM normalizes to the identical shape. When we add a third adapter
 // (Vue, vanilla-DOM, …) it joins this table and must agree too.
 //
+// Both renderers emit *content only* (chrome is the consumer's, ADR 013), so we
+// wrap each side in a `<form>` purely to give the canonical comparison a shared
+// root element — the library renders nothing of the `<form>` itself.
+//
 // Two axes are checked:
 //   1. default rendering   — no renderNode, every node renders its default
 //   2. override rendering  — paired React/vanilla resolvers that express the
@@ -28,7 +32,7 @@ import {
   renderToString,
   type RenderNode as VanillaRenderNode,
 } from '@jsonschema-form/vanilla'
-import { FormRenderer, type RenderNode as ReactRenderNode } from './renderer'
+import { SchemaFields, type RenderNode as ReactRenderNode } from './renderer'
 
 /** Canonical, framework-neutral serialization of a DOM subtree. */
 function canonical(el: Element): string {
@@ -55,18 +59,22 @@ function canonical(el: Element): string {
 
 type Tree = ReturnType<typeof jsonSchemaToTree>
 
-/** Vanilla oracle → canonical <form>. */
+/** Vanilla oracle → canonical <form> (chrome-free content wrapped for compare). */
 function vanillaDom(tree: Tree, renderNode?: VanillaRenderNode): string {
   const html = renderToString(tree, renderNode ? { renderNode } : {})
-  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const doc = new DOMParser().parseFromString(`<form>${html}</form>`, 'text/html')
   const form = doc.querySelector('form')
   if (!form) throw new Error('vanilla output has no <form>')
   return canonical(form)
 }
 
-/** Live React → canonical <form>. */
+/** Live React → canonical <form> (chrome-free content wrapped for compare). */
 async function reactDom(tree: Tree, renderNode?: ReactRenderNode): Promise<string> {
-  await render(<FormRenderer form={tree} renderNode={renderNode} />)
+  await render(
+    <form>
+      <SchemaFields form={tree} renderNode={renderNode} />
+    </form>
+  )
   const el = document.querySelector('form')
   if (!el) throw new Error('react output has no <form>')
   return canonical(el)

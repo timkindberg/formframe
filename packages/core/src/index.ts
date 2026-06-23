@@ -38,7 +38,7 @@ export { jsonSchemaToTree } from './parser/index'
 
 // Continuation engine (ADR 014) — the generic, front-end-agnostic fold that
 // React/vanilla/… renderers instantiate at their own result type `R`.
-export { createContinuation } from './continuation/engine'
+export { createContinuation, mergeAdapter } from './continuation/engine'
 export type {
   ENode,
   EField,
@@ -48,10 +48,12 @@ export type {
   EArray,
   EArrayItem,
   Resolver,
-  ContinuationAdapter,
+  RendererAdapter,
+  PartialAdapter,
+  FieldPartRenderers,
+  GroupPartRenderers,
   Continuation,
   ChildResult,
   PartsOverrides,
   PartOverrideMap,
-  PartView,
 } from './continuation/engine'

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
-import { renderToString } from './renderToString'
+import { renderToString, createRenderer, defaultAdapter } from './renderToString'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -24,9 +24,11 @@ describe('renderToString — default rendering', () => {
   const form = jsonSchemaToTree(schema)
   const html = renderToString(form)
 
-  it('wraps in a form with a submit button', () => {
-    expect(html).toContain('<form>')
-    expect(html).toContain('<button type="submit">Submit</button>')
+  it('renders content only — no form chrome (consumer owns <form> + submit)', () => {
+    expect(html).not.toContain('<form')
+    expect(html).not.toContain('<button')
+    // it starts straight in on the field markup
+    expect(html.startsWith('<div class="jsf-field">')).toBe(true)
   })
 
   it('emits labels wired to inputs by id/for', () => {
@@ -132,3 +134,34 @@ describe('renderToString — continuation model', () => {
     expect(html).toContain('<label for="name">Name')
   })
 })
+
+describe('createRenderer — the floor (ADR 013)', () => {
+  const form = jsonSchemaToTree(schema)
+
+  it('an empty partial set renders diagnostic markers, not defaults', () => {
+    const render = createRenderer({})
+    const html = render(form)
+    expect(html).toContain('not implemented')
+    expect(html).not.toContain('<input')
+  })
+
+  it('a supplied entry renders for real; the rest stay diagnostic', () => {
+    const render = createRenderer({
+      field: { input: ({ attrs }) => `<input data-floor${attrsId(attrs.id)}>` },
+    })
+    const html = render(form)
+    // the implemented input is real…
+    expect(html).toContain('data-floor')
+    // …but its sibling label is still a diagnostic marker
+    expect(html).toContain('not implemented: label')
+  })
+
+  it('createRenderer(defaultAdapter) equals the batteries renderToString', () => {
+    const render = createRenderer(defaultAdapter)
+    expect(render(form)).toBe(renderToString(form))
+  })
+})
+
+function attrsId(id: string): string {
+  return ` id="${id}"`
+}

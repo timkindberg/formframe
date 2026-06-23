@@ -1,0 +1,109 @@
+import { jsonSchemaToTree } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/core'
+import { createRenderer, defaultAdapter } from '@jsonschema-form/react'
+
+// The floor (ADR 013): the lowest public rendering rung. `createRenderer` binds
+// a renderer set and returns a `SchemaFields`-style component. The set is *partial* —
+// anything you don't supply falls back to the visible `[… not implemented]`
+// diagnostic markers, so an incomplete adapter still runs and tells you exactly
+// what's missing. Watch the same form come alive as we fill entries in, and
+// note the punchline: the batteries-included `SchemaFields` is just
+// `createRenderer(defaultAdapter)`.
+
+const schema: JSONSchema = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', title: 'Full Name' },
+    color: { type: 'string', title: 'Color', enum: ['red', 'green', 'blue'] },
+    address: {
+      type: 'object',
+      title: 'Address',
+      properties: {
+        street: { type: 'string', title: 'Street' },
+      },
+    },
+  },
+  required: ['name'],
+}
+
+const form = jsonSchemaToTree(schema)
+
+// 1. Nothing supplied — the whole tree renders diagnostic markers.
+const FieldsEmpty = createRenderer({})
+
+// 2. Supply just the field input — inputs light up; the rest stay markers.
+const FieldsInput = createRenderer({
+  field: { input: ({ attrs }) => <input {...attrs} /> },
+})
+
+// 3. Supply the field's parts + the group's caption — almost there.
+const FieldsMost = createRenderer({
+  field: {
+    label: ({ text, attrs, showRequired }) => (
+      <label htmlFor={attrs.for}>
+        {text}
+        {showRequired && <span aria-hidden> *</span>}
+      </label>
+    ),
+    input: ({ attrs }) => <input {...attrs} />,
+    select: ({ attrs, options }) => (
+      <select {...attrs}>
+        <option value="">-- select --</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    ),
+  },
+  group: { label: ({ text }) => <legend>{text}</legend> },
+})
+
+// 4. The punchline: spread the real defaults → this *is* `SchemaFields`.
+const FieldsBatteries = createRenderer(defaultAdapter)
+
+function Section({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div style={{ marginTop: 32 }}>
+      <h2 style={{ borderBottom: '1px solid #ddd' }}>{title}</h2>
+      {children}
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <div>
+      <h1>The renderer adapter — the floor (ADR 013)</h1>
+      <p>
+        <code>createRenderer(partialAdapter)</code> is the lowest public rung.
+        Missing content renderers fall back to visible{' '}
+        <code>[… not implemented]</code> markers. Fill entries in by reference
+        and the same form comes alive.
+      </p>
+
+      <Section title="1. createRenderer({}) — everything is a diagnostic marker">
+        <FieldsEmpty form={form} />
+      </Section>
+
+      <Section title="2. …{ field: { input } } — inputs light up, the rest stay markers">
+        <FieldsInput form={form} />
+      </Section>
+
+      <Section title="3. …+ field label/select + group label — nearly there">
+        <FieldsMost form={form} />
+      </Section>
+
+      <Section title="4. createRenderer(defaultAdapter) — this is exactly <SchemaFields/>">
+        <FieldsBatteries form={form} />
+      </Section>
+    </div>
+  )
+}

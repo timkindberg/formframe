@@ -42,7 +42,7 @@ type NodeType = 'group' | 'field'
 
 **Group Node** (branch): Represents a nested object or the root form
 - Contains: path, label, description, required flag, children
-- Can contain Fields or other Groups
+- Can contain fields or other groups
 - Has query methods: `getField(path)`, `getAllFields()`, `toJSON()`
 - Example: An "address" object with street/city fields, or the root form (path: '')
 - Rationale: Objects in JSON Schema can have their own metadata (label, description, required status), so they deserve their own node type

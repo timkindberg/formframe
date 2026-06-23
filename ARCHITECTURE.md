@@ -79,11 +79,11 @@ The React renderer is built on **one recursive primitive: the continuation** ([A
 - `node.child(path).Default` — render one specific child node.
 - `parts={{ partName: (part) => <JSX/> }}` on `node.Default` — override individual parts of a field; each part carries both its data and its own `.Default`, so "augment" and "replace" are the same signature.
 
-**Three moves at every node:** take the default whole; keep the default layout and swap sub-pieces; or place the sub-pieces yourself with custom JSX. This is progressive disclosure — work at the highest level (`<Form/>`, all defaults) and drop down precisely where you need control: swap a part, place the sub-pieces, or fall all the way to the raw `walk`.
+**Three moves at every node:** take the default whole; keep the default layout and swap sub-pieces; or place the sub-pieces yourself with custom JSX. This is progressive disclosure — work at the highest level (`<SchemaFields/>`, all defaults) and drop down precisely where you need control: swap a part, place the sub-pieces, or fall all the way to the raw `walk`.
 
-**Fully fractal** — `<Form/>` is the root node's `Default`. `<Form>{(root) => …}</Form>` places yourself at the root, which is sugar for `renderNode` firing on the root. The root's *parts* are the chrome (the `<form>` element, submit, reset/cancel, optional title/description/error summary); the root's *children* are the top-level fields/groups. `renderNode` reappears, scoped, on any container's `node.Default` — nearest scope wins. A field bottoms node-recursion (it has parts, no child nodes); an atomic part bottoms part-recursion.
+**Fully fractal** — `<SchemaFields/>` resolves the form tree to its defaults. `<SchemaFields>{(root) => …}</SchemaFields>` places yourself at the root, which is sugar for `renderNode` firing on the root. `SchemaFields` renders the form's *content only* — the chrome (the `<form>` element, submit, reset/cancel) is the consumer's, not a root part (ADR 013); the root's *children* are the top-level fields/groups. `renderNode` reappears, scoped, on any container's `node.Default` — nearest scope wins. A field bottoms node-recursion (it has parts, no child nodes); an atomic part bottoms part-recursion.
 
-`Default`/`Children` are React-layer constructs, not Core's. Core's node stays headless; the `node` passed to `renderNode` is the React adapter's enriched wrapper around the same underlying data.
+`Default`/`Children` are the continuation's re-entry points, generic over the result type `R` and owned by Core's `createContinuation` (ADR 014); the React adapter instantiates them at `R = ReactNode`. Core's node stays headless data; enrichment wraps it with these handles at fold time.
 
 A typed-factory skin (`<fields.address.street/>`, `.Default`-free, keyed and renderable) is planned on top of the same engine once shape inference lands — see ADR 010 for status.
 

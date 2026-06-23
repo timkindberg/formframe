@@ -73,7 +73,7 @@ const schema: JSONSchema = {
 }
 
 function App() {
-  const { form, Form } = useSchemaForm(schema)
+  const { form, SchemaFields } = useSchemaForm(schema)
 
   const handleSubmit = (data: Record<string, unknown>) => {
     console.log('Form submitted with array data:', data)
@@ -109,7 +109,10 @@ function App() {
         </ul>
       </div>
 
-      <Form onSubmit={form.submit(handleSubmit)} />
+      <form onSubmit={form.submit(handleSubmit)}>
+        <SchemaFields />
+        <button type="submit">Submit</button>
+      </form>
 
       <div
         style={{

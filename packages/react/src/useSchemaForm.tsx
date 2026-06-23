@@ -1,14 +1,17 @@
-import { useMemo, type FC, type FormEvent, type ReactNode } from 'react'
+import { useMemo, type FC, type ReactNode } from 'react'
 import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
-import { FormRenderer, type EGroup, type RenderNode } from './renderer'
+import {
+  SchemaFields as SchemaFieldsRenderer,
+  type EGroup,
+  type RenderNode,
+} from './renderer'
 
 /**
- * Props accepted by the `Form` component returned from `useSchemaForm`.
- * These pass straight through to {@link FormRenderer}.
+ * Props accepted by the `SchemaFields` component returned from `useSchemaForm`.
+ * Same as {@link SchemaFieldsProps} minus `form` (the hook holds the tree).
  */
-export interface SchemaFormProps {
-  onSubmit?: (e: FormEvent<HTMLFormElement>) => void
+export interface BoundSchemaFieldsProps {
   /** Per-node hijack (ADR 010). Omit to render every node's default. */
   renderNode?: RenderNode
   /** Place-yourself at the root: receives the enriched root node. */
@@ -17,28 +20,36 @@ export interface SchemaFormProps {
 
 /**
  * Convenience hook: compiles a JSON Schema into the Core form tree and hands
- * back a ready `Form` component. The hook is pure sugar over
- * {@link FormRenderer} (ADR 010) — `useSchemaForm` holds the tree for you and
- * forwards `renderNode`/place-yourself children to the same continuation engine.
+ * back a `SchemaFields` component already bound to it. Pure sugar over the
+ * renderer (ADR 010/013) — `useSchemaForm` holds the tree and forwards
+ * `renderNode`/place-yourself children to the same continuation.
+ *
+ * `SchemaFields` renders the form's *content only* — wrap it in your own
+ * `<form>` and submit (chrome is the consumer's, ADR 013):
  *
  * @example
  * ```tsx
- * const { Form } = useSchemaForm(schema)
- * return <Form onSubmit={handleSubmit} />
+ * const { form, SchemaFields } = useSchemaForm(schema)
+ * return (
+ *   <form onSubmit={form.submit(onSubmit)}>
+ *     <SchemaFields />
+ *     <button type="submit">Submit</button>
+ *   </form>
+ * )
  * ```
  */
 export function useSchemaForm(schema: JSONSchema) {
   const form = useMemo(() => jsonSchemaToTree(schema), [schema])
 
-  const Form = useMemo<FC<SchemaFormProps>>(() => {
-    return function Form({ onSubmit, renderNode, children }: SchemaFormProps) {
+  const SchemaFields = useMemo<FC<BoundSchemaFieldsProps>>(() => {
+    return function SchemaFields({ renderNode, children }: BoundSchemaFieldsProps) {
       return (
-        <FormRenderer form={form} onSubmit={onSubmit} renderNode={renderNode}>
+        <SchemaFieldsRenderer form={form} renderNode={renderNode}>
           {children}
-        </FormRenderer>
+        </SchemaFieldsRenderer>
       )
     }
   }, [form])
 
-  return { form, Form }
+  return { form, SchemaFields }
 }

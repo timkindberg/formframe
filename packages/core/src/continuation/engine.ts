@@ -8,8 +8,13 @@
 //
 // What the engine owns: enrichment (attaching the re-entry points to a node),
 // the recursion, and **scoping** — the active resolver is threaded as a plain
-// parameter down the fold. What an adapter supplies (the `ContinuationAdapter`)
-// is only the `R`-specific default template-set + how to `combine` children.
+// parameter down the fold. What an adapter supplies (the `RendererAdapter`,
+// ADR 013) is only the `R`-specific **renderer set** — a compound *per node
+// kind* (`field`/`group`, each a `root` composition renderer plus its parts) +
+// how to `combine` children. The engine dispatches a part's `Default` to
+// `adapter[kind][partName]`, so swapping one entry by reference (or supplying a
+// partial set over a diagnostic floor) is all the customization machinery there
+// is — no privileged engine code for the defaults.
 //
 // The pivotal finding the second implementation forced (ADR 008): React's
 // Context was incidental, not essential. Because each node's `Default`/`Children`
@@ -27,9 +32,10 @@ import type {
   ArrayItemNode,
   InputFieldNode,
   SelectFieldNode,
-  HtmlInputAttrs,
-  HtmlSelectAttrs,
-  SelectOption,
+  FieldPartsBase,
+  InputFieldParts,
+  SelectFieldParts,
+  GroupParts,
 } from '../parser/nodeTypes'
 
 // ---------------------------------------------------------------------------
@@ -86,6 +92,15 @@ export type Resolver<R> = (node: ENode<R>) => R
 
 // ---------------------------------------------------------------------------
 // Adapter — the only `R`-specific surface a renderer must supply.
+//
+// A *compound per node kind* renderer set (ADR 013): each kind has a `root`
+// (composition renderer) plus its parts. Parts are per-node-context — a field's
+// `label` is a `<label>`, a group's `label` is a `<legend>` — so they live under
+// their kind, not in one global namespace. Override an entry by reference
+// (`{ ...defaultAdapter, field: { ...defaultAdapter.field, label: MyLabel } }`);
+// `combine` is plumbing, not content (no "diagnostic" form), so it sits beside
+// the kinds. Arrays/arrayItems are structural pass-through for now (interactivity
+// is deferred — see bead bi4); they have no entry and fold through `combine`.
 // ---------------------------------------------------------------------------
 
 /** A child's result paired with a stable key (React needs keys; others ignore). */
@@ -95,45 +110,71 @@ export interface ChildResult<R> {
 }
 
 /**
- * A part handed to `adapter.part`, discriminated by `name` so the adapter can
- * `switch` and reach typed `data` — no `any`, no casts on the adapter side.
- * (`label` widens `attrs`/`showRequired` to optional so a group's bare `{text}`
- * label fits the same arm as a field's full label.)
- */
-export type PartView =
-  | {
-      name: 'label'
-      data: { text: string; attrs?: { for: string }; showRequired?: boolean }
-    }
-  | { name: 'description'; data: { text: string } }
-  | { name: 'input'; data: { attrs: HtmlInputAttrs } }
-  | { name: 'select'; data: { attrs: HtmlSelectAttrs; options: SelectOption[] } }
-  | { name: 'container'; data: { key: string } }
-  | { name: 'itemsContainer'; data: { key: string } }
-  | { name: 'addButton'; data: { attrs: { type: 'button' }; label: string } }
-  | { name: 'removeButton'; data: { attrs: { type: 'button' }; label: string } }
-
-/**
- * Loosely-typed part-override map as seen by the adapter (precise at the public
- * call site via `PartsOverrides`). `unknown` lets the adapter forward the
- * enriched part without an `as never` cast.
+ * Loosely-typed part-override map as seen by `root` (precise at the public call
+ * site via `PartsOverrides`). `unknown` lets `root` forward the enriched part
+ * without an `as never` cast.
  */
 export type PartOverrideMap<R> = Record<string, (part: unknown) => R>
 
+/** Renderers for a field's parts, each typed by its own slice of the IR. */
+export interface FieldPartRenderers<R> {
+  label(data: FieldPartsBase['label']): R
+  description(data: NonNullable<FieldPartsBase['description']>): R
+  input(data: InputFieldParts['input']): R
+  select(data: SelectFieldParts['select']): R
+}
+
+/** Renderers for a group's parts (captions). */
+export interface GroupPartRenderers<R> {
+  label(data: NonNullable<GroupParts['label']>): R
+  description(data: NonNullable<GroupParts['description']>): R
+}
+
 /**
- * The only `R`-specific surface a renderer supplies. Every method takes a single
- * object so a framework component can be passed by reference (e.g. a React
- * `function Field(props)` as `field: Field`).
+ * The only `R`-specific surface a renderer supplies. `root` composes a node from
+ * its parts (honoring per-call `overrides`); the part renderers produce each
+ * part's default markup; `combine` joins sibling results. Every method takes a
+ * single object/data argument so a framework component can be passed by
+ * reference (e.g. a React `function Label(props)` as `field.label`).
  */
-export interface ContinuationAdapter<R> {
-  /** Render a field's default: compose its parts (honoring `overrides`). */
-  field(props: { node: EField<R>; overrides?: PartOverrideMap<R> }): R
-  /** Render a non-root group's default, given already-rendered `children`. */
-  group(props: { node: EGroup<R>; children: R }): R
-  /** Render a single part's default markup. */
-  part(view: PartView): R
+export interface RendererAdapter<R> {
+  field: FieldPartRenderers<R> & {
+    /** Compose a field's default: its parts, honoring `overrides`. */
+    root(props: { node: EField<R>; overrides?: PartOverrideMap<R> }): R
+  }
+  group: GroupPartRenderers<R> & {
+    /** Compose a non-root group's default, given already-rendered `children`. */
+    root(props: { node: EGroup<R>; children: R }): R
+  }
   /** Combine child results into one `R` (React: keyed fragment; vanilla: join). */
   combine(props: { children: ChildResult<R>[] }): R
+}
+
+/**
+ * A partial renderer set — what the public floor (`createRenderer`) accepts.
+ * Missing content entries fall back to the diagnostic set; `combine` always
+ * carries the framework's real default (it is plumbing, not content).
+ */
+export interface PartialAdapter<R> {
+  field?: Partial<RendererAdapter<R>['field']>
+  group?: Partial<RendererAdapter<R>['group']>
+  combine?: RendererAdapter<R>['combine']
+}
+
+/**
+ * Fill a partial renderer set over a complete `base` (e.g. the diagnostic floor
+ * or the real defaults), by reference. Per-kind shallow merge; `combine` is
+ * taken whole. This is the one merge every renderer's `createRenderer` uses.
+ */
+export function mergeAdapter<R>(
+  base: RendererAdapter<R>,
+  over: PartialAdapter<R>
+): RendererAdapter<R> {
+  return {
+    field: { ...base.field, ...over.field },
+    group: { ...base.group, ...over.group },
+    combine: over.combine ?? base.combine,
+  }
 }
 
 export interface Continuation<R> {
@@ -152,17 +193,42 @@ function lastSegment(path: string): string {
   return dot === -1 ? path : path.slice(dot + 1)
 }
 
+/** The kinds that own renderer entries; arrays/arrayItems pass through. */
+type PartKind = 'field' | 'group'
+function partKind(core: AnyNode): PartKind | null {
+  if (core.isField) return 'field'
+  if (core.isGroup) return 'group'
+  return null
+}
+
 export function createContinuation<R>(
-  adapter: ContinuationAdapter<R>
+  adapter: RendererAdapter<R>
 ): Continuation<R> {
   type Overrides = PartOverrideMap<R>
+  type AnyPartRenderer = (data: unknown) => R
 
-  function enrichParts(parts: object): Record<string, unknown> {
+  /** Look up the renderer for `kind`'s `name` part; `undefined` if none. */
+  function partRenderer(kind: PartKind | null, name: string): AnyPartRenderer | undefined {
+    if (!kind) return undefined
+    // Internal dynamic dispatch: the public adapter type stays precise; here we
+    // index by runtime part name (`root` is never a part name, so no collision).
+    const set = adapter[kind] as unknown as Record<string, AnyPartRenderer>
+    return set[name]
+  }
+
+  function enrichParts(parts: object, kind: PartKind | null): Record<string, unknown> {
     const out: Record<string, unknown> = {}
     for (const [name, data] of Object.entries(parts)) {
       out[name] =
         data && typeof data === 'object'
-          ? { ...data, Default: () => adapter.part({ name, data } as PartView) }
+          ? {
+              ...data,
+              Default: () => {
+                const renderer = partRenderer(kind, name)
+                // Unrendered parts (e.g. `container`, array buttons) → empty `R`.
+                return renderer ? renderer(data) : adapter.combine({ children: [] })
+              },
+            }
           : data
     }
     return out
@@ -183,7 +249,7 @@ export function createContinuation<R>(
     overrides?: Overrides
   ): R {
     if (core.isField) {
-      return adapter.field({
+      return adapter.field.root({
         node: enrich(core, resolver) as EField<R>,
         overrides,
       })
@@ -191,7 +257,7 @@ export function createContinuation<R>(
     if (core.isGroup) {
       // root is a transparent shell — its default is just its children.
       if (core.isRoot) return renderChildren(core, resolver)
-      return adapter.group({
+      return adapter.group.root({
         node: enrich(core, resolver) as EGroup<R>,
         children: renderChildren(core, resolver),
       })
@@ -201,7 +267,8 @@ export function createContinuation<R>(
   }
 
   function enrich(core: AnyNode, resolver: Resolver<R>): ENode<R> {
-    const parts = enrichParts(core.parts)
+    const kind = partKind(core)
+    const parts = enrichParts(core.parts, kind)
     const Default = (opts?: { parts?: Overrides; renderNode?: Resolver<R> }): R =>
       renderDefault(core, opts?.renderNode ?? resolver, opts?.parts)
 
