@@ -154,6 +154,37 @@ const defaultAdapterImpl: VanillaAdapter = {
     },
   },
 
+  array: {
+    root({ node, children }) {
+      const { label, description, addButton } = node.parts
+      const legend = label ? label.Default() : ''
+      const desc = description ? description.Default() : ''
+      return `<fieldset class="jsf-array">${legend}${desc}<div class="jsf-array-items">${children}</div>${addButton.Default()}</fieldset>`
+    },
+
+    label({ text }) {
+      return `<legend>${escapeText(text)}</legend>`
+    },
+
+    description({ text }) {
+      return `<small class="jsf-description">${escapeText(text)}</small>`
+    },
+
+    addButton({ attrs, label }: { attrs: { type: 'button' }; label: string }) {
+      return `<button${renderAttrs(attrs)}>${escapeText(label)}</button>`
+    },
+  },
+
+  arrayItem: {
+    root({ node, children }) {
+      return `<div class="jsf-array-item">${children}${node.parts.removeButton.Default()}</div>`
+    },
+
+    removeButton({ attrs, label }: { attrs: { type: 'button' }; label: string }) {
+      return `<button${renderAttrs(attrs)}>${escapeText(label)}</button>`
+    },
+  },
+
   combine({ children }) {
     return children.map((c) => c.node).join('')
   },
@@ -196,6 +227,26 @@ export const diagnosticAdapter: VanillaAdapter = {
     },
     label: (data) => notImplemented('label', data),
     description: (data) => notImplemented('description', data),
+  },
+  array: {
+    root({ node, children }) {
+      return `<div class="jsf-not-implemented" data-jsf-not-implemented="array.root">${notImplemented(
+        'array',
+        { path: node.path }
+      )}${children}</div>`
+    },
+    label: (data) => notImplemented('label', data),
+    description: (data) => notImplemented('description', data),
+    addButton: (data) => notImplemented('addButton', data),
+  },
+  arrayItem: {
+    root({ node, children }) {
+      return `<div class="jsf-not-implemented" data-jsf-not-implemented="arrayItem.root">${notImplemented(
+        'arrayItem',
+        { path: node.path }
+      )}${children}</div>`
+    },
+    removeButton: (data) => notImplemented('removeButton', data),
   },
   combine: defaultAdapterImpl.combine,
 }

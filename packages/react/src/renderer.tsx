@@ -17,13 +17,26 @@
 // Front-end-agnostic: this operates on the Core form *tree*, never a schema.
 // The JSON Schema entry point (`jsonSchemaToTree`) is imported only by the
 // `useSchemaForm` convenience hook — so a future Zod/TS front-end is a drop-in.
-import { useMemo, Fragment, type ReactNode } from 'react'
+import {
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+  useContext,
+  createContext,
+  memo,
+  Fragment,
+  type ReactNode,
+} from 'react'
 import {
   createContinuation,
   mergeAdapter,
+  type Continuation,
   type RendererAdapter,
   type PartialAdapter,
   type PartOverrideMap,
+  type AnyNode,
+  type ArrayItemNode,
   type ENode as CoreENode,
   type EField as CoreEField,
   type EGroup as CoreEGroup,
@@ -155,6 +168,155 @@ function DefaultGroupRoot({
   )
 }
 
+function DefaultArrayLabel({ text }: { text: string }): ReactNode {
+  return <legend>{text}</legend>
+}
+
+/**
+ * Per-array action handlers, supplied by the stateful `ArrayRoot` to the add /
+ * remove button parts through Context. Interactivity is per-adapter, *not* part
+ * of the markup contract (ADR 008/013) — the string oracle has no Context and
+ * renders the same buttons inert. Routing behavior through Context (rather than
+ * a button prop) keeps a button's *markup* overridable without losing the
+ * wiring, and isolates a button re-render from the items it sits beside.
+ */
+interface ArrayActions {
+  add?: () => void
+  remove?: () => void
+}
+const ArrayActionsContext = createContext<ArrayActions>({})
+
+function DefaultAddButton({
+  attrs,
+  label,
+}: {
+  attrs: { type: 'button' }
+  label: string
+}): ReactNode {
+  const { add } = useContext(ArrayActionsContext)
+  return (
+    <button {...attrs} onClick={add}>
+      {label}
+    </button>
+  )
+}
+
+function DefaultRemoveButton({
+  attrs,
+  label,
+}: {
+  attrs: { type: 'button' }
+  label: string
+}): ReactNode {
+  const { remove } = useContext(ArrayActionsContext)
+  return (
+    <button {...attrs} onClick={remove}>
+      {label}
+    </button>
+  )
+}
+
+/**
+ * Per-item Context boundary. Memoizing `actions` on `[remove, id]` — both stable
+ * — keeps the value referentially constant across `ArrayRoot` re-renders, so a
+ * sibling add/remove can never re-render this item's Remove button (a Context
+ * consumer) even though it sits below a memo-bailed `NodeRenderer`.
+ */
+function ArrayItemActions({
+  id,
+  remove,
+  children,
+}: {
+  id: number
+  remove: (id: number) => void
+  children: ReactNode
+}): ReactNode {
+  const actions = useMemo<ArrayActions>(() => ({ remove: () => remove(id) }), [remove, id])
+  return <ArrayActionsContext.Provider value={actions}>{children}</ArrayActionsContext.Provider>
+}
+
+/** A mounted array item: a stable synthetic id (its React key) + its Core item core. */
+interface ArraySlot {
+  id: number
+  core: ArrayItemNode
+}
+
+/**
+ * The stateful heart of array add/remove (React-only). It owns the list of item
+ * *slots* — each a monotonic id that is BOTH the React key and the item's path
+ * index (so its core is minted once, at `contacts.{id}`, and never re-pathed).
+ *
+ * That stability is the whole game: the cached core is a stable `core` prop, so
+ * `NodeRenderer`'s `memo` bails. Appending re-renders only `ArrayRoot` and mounts
+ * the one new item; removing unmounts exactly the dropped item — every survivor
+ * keeps its identity and its uncontrolled input value, with zero re-renders.
+ *
+ * Ids are never reused, so paths can become non-contiguous (e.g. after removing
+ * the first of two, the survivor stays `contacts.1`). Reindexing instead would
+ * re-path the survivors, and the path-keyed child fold would remount them —
+ * losing the very values we are protecting. Dense, 0-based submission is a
+ * submit-time concern, tracked separately, not a reason to churn identity here.
+ */
+function ArrayRoot({ node }: { node: EArray }): ReactNode {
+  const { label, description, addButton } = node.parts
+  const seedCount = Object.keys(node.children).length
+  // Monotonic id source (also the path index). Seeded past the initial items and
+  // only advanced inside handlers (event-time, never during render).
+  const nextId = useRef(seedCount)
+  const [slots, setSlots] = useState<ArraySlot[]>(() =>
+    Array.from({ length: seedCount }, (_, i) => ({ id: i, core: node.getItem(i) }))
+  )
+  const add = useCallback(() => {
+    const id = nextId.current++
+    setSlots((s) => [...s, { id, core: node.getItem(id) }])
+  }, [node])
+  // Drop by id: stable keys + stable paths mean React keeps every survivor's DOM
+  // (and value) untouched — only the removed item unmounts. Stable identity also
+  // lets `ArrayItemActions` bind a referentially-stable handler per item.
+  const removeById = useCallback((id: number) => {
+    setSlots((s) => s.filter((slot) => slot.id !== id))
+  }, [])
+  const addActions = useMemo<ArrayActions>(() => ({ add }), [add])
+
+  return (
+    <fieldset className="jsf-array">
+      {label && <label.Default />}
+      {description && <description.Default />}
+      <div className="jsf-array-items">
+        {slots.map((slot) => (
+          <ArrayItemActions key={slot.id} id={slot.id} remove={removeById}>
+            {node.renderItem(slot.core)}
+          </ArrayItemActions>
+        ))}
+      </div>
+      <ArrayActionsContext.Provider value={addActions}>
+        <addButton.Default />
+      </ArrayActionsContext.Provider>
+    </fieldset>
+  )
+}
+
+/** Compose an array: delegate to the stateful `ArrayRoot` (manages its items). */
+function DefaultArrayRoot({ node }: { node: EArray; children: ReactNode }): ReactNode {
+  return <ArrayRoot node={node} />
+}
+
+/** Compose one array item: its content + the remove control. */
+function DefaultArrayItemRoot({
+  node,
+  children,
+}: {
+  node: EArrayItem
+  children: ReactNode
+}): ReactNode {
+  return (
+    <div className="jsf-array-item">
+      {children}
+      <node.parts.removeButton.Default />
+    </div>
+  )
+}
+
 const combine: ReactAdapter['combine'] = ({ children }) => (
   <>
     {children.map((c) => (
@@ -176,6 +338,16 @@ export const defaultAdapter: ReactAdapter = {
     root: DefaultGroupRoot,
     label: DefaultGroupLabel,
     description: DefaultDescription,
+  },
+  array: {
+    root: DefaultArrayRoot,
+    label: DefaultArrayLabel,
+    description: DefaultDescription,
+    addButton: DefaultAddButton,
+  },
+  arrayItem: {
+    root: DefaultArrayItemRoot,
+    removeButton: DefaultRemoveButton,
   },
   combine,
 }
@@ -226,6 +398,29 @@ export const diagnosticAdapter: ReactAdapter = {
     label: (data) => <NotImplemented kind="label" data={data} />,
     description: (data) => <NotImplemented kind="description" data={data} />,
   },
+  array: {
+    root: ({ node, children }) => (
+      <div className="jsf-not-implemented" data-jsf-not-implemented="array.root">
+        <NotImplemented kind="array" data={{ path: node.path }} />
+        {children}
+      </div>
+    ),
+    label: (data) => <NotImplemented kind="label" data={data} />,
+    description: (data) => <NotImplemented kind="description" data={data} />,
+    addButton: (data) => <NotImplemented kind="addButton" data={data} />,
+  },
+  arrayItem: {
+    root: ({ node, children }) => (
+      <div
+        className="jsf-not-implemented"
+        data-jsf-not-implemented="arrayItem.root"
+      >
+        <NotImplemented kind="arrayItem" data={{ path: node.path }} />
+        {children}
+      </div>
+    ),
+    removeButton: (data) => <NotImplemented kind="removeButton" data={data} />,
+  },
   combine,
 }
 
@@ -253,9 +448,30 @@ const defaultResolver: RenderNode = (node) => <node.Default />
  * Renders the form's *content only* — wrap it in your own `<form>` + submit.
  */
 export function createRenderer(adapter: ReactPartialAdapter) {
-  const engine = createContinuation<ReactNode>(
-    mergeAdapter(diagnosticAdapter, adapter)
-  )
+  const merged = mergeAdapter(diagnosticAdapter, adapter)
+
+  // Tie the knot: the engine renders each child through `renderChild`, which
+  // emits this memoized per-node component; the component calls back into the
+  // engine to resolve its own node. Identity is stable — a module-stable
+  // component type, a `path` key (applied by `combine`), and a referentially
+  // stable `core` prop (the tree is memoized upstream) — so `React.memo` bails
+  // out and a state change re-renders only the nodes that actually changed,
+  // leaving uncontrolled inputs (and their typed values) mounted in place.
+  function NodeRendererImpl({
+    core,
+    resolver,
+  }: {
+    core: AnyNode
+    resolver: RenderNode
+  }): ReactNode {
+    return engine.resolve(core, resolver)
+  }
+  const NodeRenderer = memo(NodeRendererImpl)
+
+  const engine: Continuation<ReactNode> = createContinuation<ReactNode>(merged, {
+    renderChild: (core, resolver) => <NodeRenderer core={core} resolver={resolver} />,
+  })
+
   return function SchemaFields({
     form,
     renderNode,
@@ -266,7 +482,15 @@ export function createRenderer(adapter: ReactPartialAdapter) {
       () => engine.enrich(form, resolver) as EGroup,
       [form, resolver]
     )
-    return <>{children ? children(root) : engine.resolve(form, resolver)}</>
+    return (
+      <>
+        {children ? (
+          children(root)
+        ) : (
+          <NodeRenderer core={form} resolver={resolver} />
+        )}
+      </>
+    )
   }
 }
 

@@ -7,6 +7,8 @@ node_modules/
 coverage/
 *.lcov
 .nyc_output
+# vitest browser-mode failure screenshots (regenerated on every RED run)
+**/__screenshots__/
 
 # Build outputs
 dist/

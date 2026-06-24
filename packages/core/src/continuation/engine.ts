@@ -36,6 +36,8 @@ import type {
   InputFieldParts,
   SelectFieldParts,
   GroupParts,
+  ArrayParts,
+  ArrayItemParts,
 } from '../parser/nodeTypes'
 
 // ---------------------------------------------------------------------------
@@ -82,7 +84,16 @@ type EContainerOf<N extends ContainerNode, R> = Omit<N, 'parts' | 'children'> & 
   }): R
 }
 export type EGroup<R> = EContainerOf<GroupNode, R>
-export type EArray<R> = EContainerOf<ArrayNode, R>
+export type EArray<R> = EContainerOf<ArrayNode, R> & {
+  /**
+   * Render a caller-owned item core through the active resolver — the seam a
+   * stateful adapter (React) uses to mount/keep items under its own identity.
+   * Pair with `getItem(index)` (Core) to mint an item core; the adapter caches
+   * that core so re-renders keep DOM identity (and uncontrolled values) in
+   * place. The string oracle never calls this (arrays are static there).
+   */
+  renderItem(item: ArrayItemNode): R
+}
 export type EArrayItem<R> = EContainerOf<ArrayItemNode, R>
 
 export type ENode<R> = EField<R> | EGroup<R> | EArray<R> | EArrayItem<R>
@@ -95,12 +106,17 @@ export type Resolver<R> = (node: ENode<R>) => R
 //
 // A *compound per node kind* renderer set (ADR 013): each kind has a `root`
 // (composition renderer) plus its parts. Parts are per-node-context — a field's
-// `label` is a `<label>`, a group's `label` is a `<legend>` — so they live under
-// their kind, not in one global namespace. Override an entry by reference
-// (`{ ...defaultAdapter, field: { ...defaultAdapter.field, label: MyLabel } }`);
+// `label` is a `<label>`, a group's/array's `label` is a `<legend>`; an array's
+// `addButton` and an arrayItem's `removeButton` are the add/remove controls — so
+// they live under their kind, not in one global namespace. Override an entry by
+// reference (`{ ...defaultAdapter, field: { ...defaultAdapter.field, label } }`);
 // `combine` is plumbing, not content (no "diagnostic" form), so it sits beside
-// the kinds. Arrays/arrayItems are structural pass-through for now (interactivity
-// is deferred — see bead bi4); they have no entry and fold through `combine`.
+// the kinds. `array`/`arrayItem` `root`s receive their already-rendered
+// `children` (the items / the item's content) and compose the add/remove
+// controls from their parts, exactly like `group.root` — uniform composition.
+// Interactivity is per-adapter, not part of this contract: the engine and the
+// renderer set produce *markup*; a stateful adapter (React) wires add/remove
+// while the string oracle renders the same controls inert (ADR 008/013).
 // ---------------------------------------------------------------------------
 
 /** A child's result paired with a stable key (React needs keys; others ignore). */
@@ -130,6 +146,18 @@ export interface GroupPartRenderers<R> {
   description(data: NonNullable<GroupParts['description']>): R
 }
 
+/** Renderers for an array's parts: captions + the add control. */
+export interface ArrayPartRenderers<R> {
+  label(data: NonNullable<ArrayParts['label']>): R
+  description(data: NonNullable<ArrayParts['description']>): R
+  addButton(data: ArrayParts['addButton']): R
+}
+
+/** Renderers for an array item's parts: the remove control. */
+export interface ArrayItemPartRenderers<R> {
+  removeButton(data: ArrayItemParts['removeButton']): R
+}
+
 /**
  * The only `R`-specific surface a renderer supplies. `root` composes a node from
  * its parts (honoring per-call `overrides`); the part renderers produce each
@@ -146,6 +174,14 @@ export interface RendererAdapter<R> {
     /** Compose a non-root group's default, given already-rendered `children`. */
     root(props: { node: EGroup<R>; children: R }): R
   }
+  array: ArrayPartRenderers<R> & {
+    /** Compose an array's default: caption + already-rendered `items` + add. */
+    root(props: { node: EArray<R>; children: R }): R
+  }
+  arrayItem: ArrayItemPartRenderers<R> & {
+    /** Compose an item's default: its already-rendered `children` + remove. */
+    root(props: { node: EArrayItem<R>; children: R }): R
+  }
   /** Combine child results into one `R` (React: keyed fragment; vanilla: join). */
   combine(props: { children: ChildResult<R>[] }): R
 }
@@ -158,6 +194,8 @@ export interface RendererAdapter<R> {
 export interface PartialAdapter<R> {
   field?: Partial<RendererAdapter<R>['field']>
   group?: Partial<RendererAdapter<R>['group']>
+  array?: Partial<RendererAdapter<R>['array']>
+  arrayItem?: Partial<RendererAdapter<R>['arrayItem']>
   combine?: RendererAdapter<R>['combine']
 }
 
@@ -173,6 +211,8 @@ export function mergeAdapter<R>(
   return {
     field: { ...base.field, ...over.field },
     group: { ...base.group, ...over.group },
+    array: { ...base.array, ...over.array },
+    arrayItem: { ...base.arrayItem, ...over.arrayItem },
     combine: over.combine ?? base.combine,
   }
 }
@@ -184,6 +224,20 @@ export interface Continuation<R> {
   resolve(core: AnyNode, resolver: Resolver<R>): R
 }
 
+/**
+ * Engine-level strategy knobs (distinct from the content `RendererAdapter`).
+ *
+ * `renderChild` is the recursion-strategy seam: how the fold renders *one* child
+ * node. The default is the eager fold (`resolve` the child inline) — exactly
+ * what the string oracle wants. A lazy adapter (React) overrides it to emit a
+ * memoized per-node component that calls back into `resolve`, so a state change
+ * re-renders only the nodes that changed and uncontrolled DOM keeps its
+ * identity. Output must match the eager fold — conformance is a markup contract.
+ */
+export interface ContinuationOptions<R> {
+  renderChild?(core: AnyNode, resolver: Resolver<R>): R
+}
+
 // ---------------------------------------------------------------------------
 // Engine
 // ---------------------------------------------------------------------------
@@ -193,16 +247,19 @@ function lastSegment(path: string): string {
   return dot === -1 ? path : path.slice(dot + 1)
 }
 
-/** The kinds that own renderer entries; arrays/arrayItems pass through. */
-type PartKind = 'field' | 'group'
+/** The kinds that own renderer entries — one per concrete node kind. */
+type PartKind = 'field' | 'group' | 'array' | 'arrayItem'
 function partKind(core: AnyNode): PartKind | null {
   if (core.isField) return 'field'
   if (core.isGroup) return 'group'
+  if (core.isArray) return 'array'
+  if (core.isArrayItem) return 'arrayItem'
   return null
 }
 
 export function createContinuation<R>(
-  adapter: RendererAdapter<R>
+  adapter: RendererAdapter<R>,
+  options: ContinuationOptions<R> = {}
 ): Continuation<R> {
   type Overrides = PartOverrideMap<R>
   type AnyPartRenderer = (data: unknown) => R
@@ -234,11 +291,16 @@ export function createContinuation<R>(
     return out
   }
 
+  /** Render one child — lazily (adapter-supplied) or eagerly (default fold). */
+  function renderChild(core: AnyNode, resolver: Resolver<R>): R {
+    return options.renderChild ? options.renderChild(core, resolver) : resolve(core, resolver)
+  }
+
   function renderChildren(core: ContainerNode, resolver: Resolver<R>): R {
     return adapter.combine({
       children: core.children.map((c) => ({
         key: c.path,
-        node: resolve(c, resolver),
+        node: renderChild(c, resolver),
       })),
     })
   }
@@ -262,8 +324,17 @@ export function createContinuation<R>(
         children: renderChildren(core, resolver),
       })
     }
-    // array | arrayItem — structural pass-through (interactivity deferred).
-    return renderChildren(core, resolver)
+    if (core.isArray) {
+      return adapter.array.root({
+        node: enrich(core, resolver) as EArray<R>,
+        children: renderChildren(core, resolver),
+      })
+    }
+    // arrayItem — compose the item's content + its remove control.
+    return adapter.arrayItem.root({
+      node: enrich(core, resolver) as EArrayItem<R>,
+      children: renderChildren(core, resolver),
+    })
   }
 
   function enrich(core: AnyNode, resolver: Resolver<R>): ENode<R> {
@@ -287,14 +358,21 @@ export function createContinuation<R>(
     }
     const Children = (): R => renderChildren(core, resolver)
 
-    return {
+    const enriched = {
       ...core,
       parts,
       children,
       child,
       Children,
       Default,
-    } as unknown as ENode<R>
+    }
+    if (core.isArray) {
+      return {
+        ...enriched,
+        renderItem: (item: ArrayItemNode): R => renderChild(item, resolver),
+      } as unknown as ENode<R>
+    }
+    return enriched as unknown as ENode<R>
   }
 
   function resolve(core: AnyNode, resolver: Resolver<R>): R {
