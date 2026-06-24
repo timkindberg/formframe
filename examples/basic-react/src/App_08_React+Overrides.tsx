@@ -98,23 +98,26 @@ export default function App() {
       <Section title="2. renderNode: hijack a subtree, swap parts, place-yourself, reorder">
         <SchemaFields
           form={form}
-          renderNode={(node) => {
+          renderNode={(node, { Default, Children }) => {
             // augment ONLY the email label (input/description stay default)
             if (
               node.isField &&
               node.widget === 'input' &&
               node.path === 'email'
             )
-              return node.Default({
-                parts: {
-                  label: (label) => (
-                    <span>
-                      {label.Default()}
-                      <InfoTooltip text="we never share this" />
-                    </span>
-                  ),
-                },
-              })
+              return (
+                <Default
+                  of={node}
+                  parts={{
+                    label: (label) => (
+                      <span>
+                        <Default of={label} />
+                        <InfoTooltip text="we never share this" />
+                      </span>
+                    ),
+                  }}
+                />
+              )
 
             // replace ONLY the street input from its part data
             if (
@@ -122,9 +125,12 @@ export default function App() {
               node.widget === 'input' &&
               node.path === 'address.street'
             )
-              return node.Default({
-                parts: { input: (input) => <FancyInput {...input.attrs} /> },
-              })
+              return (
+                <Default
+                  of={node}
+                  parts={{ input: (input) => <FancyInput {...input.attrs} /> }}
+                />
+              )
 
             // place the city's parts yourself, custom layout
             if (
@@ -134,10 +140,8 @@ export default function App() {
             ) {
               const { label, input } = node.parts
               return (
-                <div
-                  style={{ display: 'flex', gap: 8, alignItems: 'center' }}
-                >
-                  {input.Default()} {label.Default()}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Default of={input} /> <Default of={label} />
                 </div>
               )
             }
@@ -153,7 +157,7 @@ export default function App() {
                   }}
                 >
                   <h3 style={{ marginTop: 0 }}>Address (hijacked wrapper)</h3>
-                  {node.Children()}
+                  <Children of={node} />
                 </section>
               )
 
@@ -161,12 +165,12 @@ export default function App() {
             if (node.isGroup && node.path === 'address.location')
               return (
                 <div style={{ display: 'flex', gap: 12 }}>
-                  {node.children.longitude.Default()}
-                  {node.children.latitude.Default()}
+                  <Default of={node.children.longitude} />
+                  <Default of={node.children.latitude} />
                 </div>
               )
 
-            return node.Default()
+            return <Default of={node} />
           }}
         />
       </Section>
@@ -174,13 +178,13 @@ export default function App() {
       <Section title="3. Place-yourself at the ROOT (function children)">
         <form>
           <SchemaFields form={form}>
-            {(root) => (
+            {(root, { Default }) => (
               <>
                 <p style={{ color: '#666' }}>Custom top-level layout:</p>
-                {root.children.name.Default()}
-                {root.children.email.Default()}
+                <Default of={root.children.name} />
+                <Default of={root.children.email} />
                 <hr />
-                {root.children.address.Default()}
+                <Default of={root.children.address} />
                 <div style={{ marginTop: 12 }}>
                   <button type="submit">Submit</button>
                 </div>
@@ -193,67 +197,74 @@ export default function App() {
       <Section title="4. Recursion within recursion — root layout + a scoped renderNode subtree">
         <form>
           <SchemaFields form={form}>
-            {(root) => {
-            const theme = root.child('theme')
-            const address = root.children.address
-            return (
-              <>
-                <p style={{ color: '#666' }}>
-                  Hand-authored root; <code>theme</code> rendered dynamically by
-                  name; the <code>address</code> subtree carries its own scoped{' '}
-                  <code>renderNode</code>.
-                </p>
+            {(root, { Default }) => {
+              const theme = root.child('theme')
+              const address = root.children.address
+              return (
+                <>
+                  <p style={{ color: '#666' }}>
+                    Hand-authored root; <code>theme</code> rendered dynamically
+                    by name; the <code>address</code> subtree carries its own
+                    scoped <code>renderNode</code>.
+                  </p>
 
-                {/* static keyed children */}
-                {root.children.name.Default()}
-                {root.children.email.Default()}
+                  {/* static keyed children */}
+                  <Default of={root.children.name} />
+                  <Default of={root.children.email} />
 
-                {/* dynamic child by relative path */}
-                {theme && theme.Default()}
+                  {/* dynamic child by relative path */}
+                  <Default of={theme} />
 
-                {/* render address default, but inject a renderNode scoped to ITS subtree */}
-                {address.isGroup &&
-                  address.Default({
-                    renderNode: (node) => {
-                      // deep: tweak just the street label
-                      if (
-                        node.isField &&
-                        node.widget === 'input' &&
-                        node.path === 'address.street'
-                      )
-                        return node.Default({
-                          parts: {
-                            label: (label) => (
-                              <span>📍 {label.Default()}</span>
-                            ),
-                          },
-                        })
-                      // deeper: wrap the coordinates group and reorder its children
-                      if (node.isGroup && node.path === 'address.location')
-                        return (
-                          <div
-                            style={{
-                              background: '#eef6ff',
-                              padding: 8,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <strong>Coordinates</strong>
-                            <div style={{ display: 'flex', gap: 12 }}>
-                              {node.children.longitude.Default()}
-                              {node.children.latitude.Default()}
-                            </div>
-                          </div>
+                  {/* render address default, but inject a renderNode scoped to ITS subtree */}
+                  {address.isGroup && (
+                    <Default
+                      of={address}
+                      renderNode={(node, { Default }) => {
+                        // deep: tweak just the street label
+                        if (
+                          node.isField &&
+                          node.widget === 'input' &&
+                          node.path === 'address.street'
                         )
-                      return node.Default()
-                    },
-                  })}
+                          return (
+                            <Default
+                              of={node}
+                              parts={{
+                                label: (label) => (
+                                  <span>
+                                    📍 <Default of={label} />
+                                  </span>
+                                ),
+                              }}
+                            />
+                          )
+                        // deeper: wrap the coordinates group and reorder its children
+                        if (node.isGroup && node.path === 'address.location')
+                          return (
+                            <div
+                              style={{
+                                background: '#eef6ff',
+                                padding: 8,
+                                borderRadius: 6,
+                              }}
+                            >
+                              <strong>Coordinates</strong>
+                              <div style={{ display: 'flex', gap: 12 }}>
+                                <Default of={node.children.longitude} />
+                                <Default of={node.children.latitude} />
+                              </div>
+                            </div>
+                          )
+                        return <Default of={node} />
+                      }}
+                    />
+                  )}
 
-                <div style={{ marginTop: 12 }}>
-                  <button type="submit">Submit</button>
-                </div>
-              </>
-            )
+                  <div style={{ marginTop: 12 }}>
+                    <button type="submit">Submit</button>
+                  </div>
+                </>
+              )
             }}
           </SchemaFields>
         </form>

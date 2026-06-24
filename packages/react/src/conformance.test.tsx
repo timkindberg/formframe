@@ -62,14 +62,20 @@ type Tree = ReturnType<typeof jsonSchemaToTree>
 /** Vanilla oracle → canonical <form> (chrome-free content wrapped for compare). */
 function vanillaDom(tree: Tree, renderNode?: VanillaRenderNode): string {
   const html = renderToString(tree, renderNode ? { renderNode } : {})
-  const doc = new DOMParser().parseFromString(`<form>${html}</form>`, 'text/html')
+  const doc = new DOMParser().parseFromString(
+    `<form>${html}</form>`,
+    'text/html'
+  )
   const form = doc.querySelector('form')
   if (!form) throw new Error('vanilla output has no <form>')
   return canonical(form)
 }
 
 /** Live React → canonical <form> (chrome-free content wrapped for compare). */
-async function reactDom(tree: Tree, renderNode?: ReactRenderNode): Promise<string> {
+async function reactDom(
+  tree: Tree,
+  renderNode?: ReactRenderNode
+): Promise<string> {
   await render(
     <form>
       <SchemaFields form={tree} renderNode={renderNode} />
@@ -189,11 +195,13 @@ const overrideCases: OverrideCase[] = [
   {
     name: 'wrap each field in <section> (Default re-entry)',
     schema: overrideSchema,
-    react: (node) =>
+    react: (node, { Default }) =>
       node.isField ? (
-        <section data-jsf-wrap="field">{node.Default()}</section>
+        <section data-jsf-wrap="field">
+          <Default of={node} />
+        </section>
       ) : (
-        node.Default()
+        <Default of={node} />
       ),
     vanilla: (node) =>
       node.isField
@@ -203,16 +211,16 @@ const overrideCases: OverrideCase[] = [
   {
     name: 'place-yourself: hand-compose one field from parts',
     schema: overrideSchema,
-    react: (node) => {
+    react: (node, { Default }) => {
       if (node.isField && node.path === 'name' && node.widget === 'input') {
         return (
           <div className="hand">
-            {node.parts.label.Default()}
-            {node.parts.input.Default()}
+            <Default of={node.parts.label} />
+            <Default of={node.parts.input} />
           </div>
         )
       }
-      return node.Default()
+      return <Default of={node} />
     },
     vanilla: (node) => {
       if (node.isField && node.path === 'name' && node.widget === 'input') {

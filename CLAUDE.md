@@ -52,7 +52,7 @@ Tree traversal: Nodes have `walk(handlers)` for recursive traversal with `field`
 ### React Layer (`@jsonschema-form/react`)
 - `useSchemaForm(schema)` → Returns `{ form, SchemaFields }` where `SchemaFields` is a ready-to-render component (content only — you own the `<form>` + submit, ADR 013)
 - `SchemaFields` (batteries-included) / `createRenderer` (the public floor that takes a partial renderer set) / `defaultAdapter` + `diagnosticAdapter` (the two built-in renderer sets you spread over) — ADR 013
-- Customization is the recursive continuation primitive (ADR 010): `renderNode` to hijack a node, `node.Default`/`node.Children`/`node.child(path).Default` to re-enter the engine, `parts={{…}}` to override individual field parts. Fractal from `<SchemaFields>` down to a single part.
+- Customization is the recursive continuation primitive (ADR 010), re-entered via stable JSX components (ADR 017): `renderNode(node, { Default, Children })` to hijack a node, `<Default of={node}/>` / `<Children of={node}/>` / `<Default of={node.children.x}/>` to re-enter the engine, `<Default of={node} parts={{…}}/>` to override individual field parts (a part is itself a handle: `<Default of={part}/>`). The callables (`node.Default()`) remain the low-level primitive the components delegate to (ADR 016). Fractal from `<SchemaFields>` down to a single part.
 
 ## Issue Tracking
 

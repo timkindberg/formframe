@@ -34,7 +34,7 @@ See `CONTEXT.md` for the full glossary and `architecture_records/` for the decis
 
 ## Customizing: the continuation model
 
-Customization is one recursive primitive, available at any granularity, fractal from the whole form down to a single field part. The renderer walks the tree and calls `renderNode(node)` per node; you re-enter the engine with `node.Default`, `node.Children`, or a specific child, or override individual parts of a field with `parts={{ partName: (part) => <JSX/> }}`. At every node you have three moves: take the default whole, keep the default layout but swap a sub-piece, or place the sub-pieces yourself. You pay only for what you customize — the library renders the rest.
+Customization is one recursive primitive, available at any granularity, fractal from the whole form down to a single field part. The renderer walks the tree and calls `renderNode(node, { Default, Children })` per node; you re-enter the engine by mounting a handle — `<Default of={node} />`, `<Children of={node} />`, or a specific child `<Default of={node.children.x} />` — or override individual parts of a field with `<Default of={node} parts={{ partName: (part) => <JSX/> }} />`. At every node you have three moves: take the default whole, keep the default layout but swap a sub-piece, or place the sub-pieces yourself. You pay only for what you customize — the library renders the rest.
 
 This is the RJSF-killer: the hard 20% is JSX, not schema sprawl. Full detail lives in [ADR 010](./architecture_records/010_recursive_continuation_rendering.md).
 

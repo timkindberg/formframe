@@ -47,11 +47,11 @@ describe('SchemaFields', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        renderNode={(node) =>
+        renderNode={(node, { Default }) =>
           node.isField && node.path === 'name' ? (
             <p>custom-name</p>
           ) : (
-            node.Default()
+            <Default of={node} />
           )
         }
       />
@@ -69,45 +69,46 @@ describe('SchemaFields', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        renderNode={(node) => {
+        renderNode={(node, { Default }) => {
           // narrowing to the input variant exposes the `input` part override
           if (node.isField && node.widget === 'input' && node.path === 'name') {
-            return node.Default({
-              parts: {
-                input: (input) => (
-                  <input {...input.attrs} data-testid="fancy-input" />
-                ),
-              },
-            })
+            return (
+              <Default
+                of={node}
+                parts={{
+                  input: (input) => (
+                    <input {...input.attrs} data-testid="fancy-input" />
+                  ),
+                }}
+              />
+            )
           }
-          return node.Default()
+          return <Default of={node} />
         }}
       />
     )
 
     // overridden input is present, and the default label still renders
-    await expect
-      .element(screen.getByTestId('fancy-input'))
-      .toBeInTheDocument()
+    await expect.element(screen.getByTestId('fancy-input')).toBeInTheDocument()
     await expect.element(screen.getByText('Name')).toBeInTheDocument()
   })
 
-  it('place-yourself: compose field parts by hand via part.Default', async () => {
+  it('place-yourself: compose field parts by hand via <Default of={part}/>', async () => {
     const form = jsonSchemaToTree(schema)
     const screen = await render(
       <SchemaFields
         form={form}
-        renderNode={(node) => {
+        renderNode={(node, { Default }) => {
           if (node.isField && node.widget === 'input' && node.path === 'name') {
             const { label, input } = node.parts
             return (
               <div data-testid="hand-composed">
-                {input.Default()}
-                {label.Default()}
+                <Default of={input} />
+                <Default of={label} />
               </div>
             )
           }
-          return node.Default()
+          return <Default of={node} />
         }}
       />
     )
@@ -124,11 +125,11 @@ describe('SchemaFields', () => {
     const form = jsonSchemaToTree(schema)
     const screen = await render(
       <SchemaFields form={form}>
-        {(root) => (
+        {(root, { Default }) => (
           <>
-            {root.children.color.Default()}
+            <Default of={root.children.color} />
             <p>in-between</p>
-            {root.children.name.Default()}
+            <Default of={root.children.name} />
           </>
         )}
       </SchemaFields>
@@ -147,18 +148,20 @@ describe('SchemaFields', () => {
     const form = jsonSchemaToTree(schema)
     const screen = await render(
       <SchemaFields form={form}>
-        {(root) => {
+        {(root, { Default }) => {
           const address = root.children.address
-          return address.isGroup
-            ? address.Default({
-                renderNode: (node) =>
-                  node.isField && node.path === 'address.street' ? (
-                    <p>scoped-street</p>
-                  ) : (
-                    node.Default()
-                  ),
-              })
-            : null
+          return address.isGroup ? (
+            <Default
+              of={address}
+              renderNode={(node, { Default }) =>
+                node.isField && node.path === 'address.street' ? (
+                  <p>scoped-street</p>
+                ) : (
+                  <Default of={node} />
+                )
+              }
+            />
+          ) : null
         }}
       </SchemaFields>
     )

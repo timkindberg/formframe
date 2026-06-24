@@ -56,10 +56,10 @@ describe('render stability', () => {
   // The sharper case: a node that ACTUALLY re-renders (not a memo bail) must
   // still reconcile in place. A consumer that inlines `renderNode` hands a new
   // closure every parent render, so the resolver prop changes and every
-  // NodeRenderer re-renders — the realistic trigger. A correct tree (stable
-  // module-level component types, data via props) keeps the uncontrolled input
-  // mounted; the old `<node.Default/>` (a per-render closure mounted as a fresh
-  // component type) remounts it and discards the value.
+  // NodeRenderer re-renders — the realistic trigger. The component handle
+  // `<Default of={node} />` (a stable module-level type, data via the `of` prop)
+  // keeps the uncontrolled input mounted; mounting a per-render closure as a
+  // fresh component type would remount it and discard the value (ADR 016/017).
   it('an inlined renderNode (new identity each render) does not remount fields', async () => {
     const form = jsonSchemaToTree(schema)
 
@@ -71,7 +71,10 @@ describe('render stability', () => {
             bump {n}
           </button>
           {/* fresh closure every render → resolver prop changes → real re-render */}
-          <SchemaFields form={form} renderNode={(node) => node.Default()} />
+          <SchemaFields
+            form={form}
+            renderNode={(node, { Default }) => <Default of={node} />}
+          />
         </div>
       )
     }

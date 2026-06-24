@@ -71,19 +71,19 @@ Customization has two surfaces:
 
 ## Rendering & customization: the continuation model
 
-The React renderer is built on **one recursive primitive: the continuation** ([ADR 010](./architecture_records/010_recursive_continuation_rendering.md)). Recursion lives in the engine; the user re-enters it through a small set of components:
+The React renderer is built on **one recursive primitive: the continuation** ([ADR 010](./architecture_records/010_recursive_continuation_rendering.md)), re-entered through two stable JSX components ([ADR 017](./architecture_records/017_component_re_entry_layer.md)). Recursion lives in the engine; the user re-enters it by mounting a handle:
 
-- `renderNode(node)` — the per-node hook the renderer calls while walking the tree. Return custom JSX to hijack a node, or `<node.Default/>` to keep the default.
-- `node.Default` — render this node's default composition; descendants still pass through `renderNode`.
-- `node.Children` — render this node's child nodes through the resolver.
-- `node.child(path).Default` — render one specific child node.
-- `parts={{ partName: (part) => <JSX/> }}` on `node.Default` — override individual parts of a field; each part carries both its data and its own `.Default`, so "augment" and "replace" are the same signature.
+- `renderNode(node, { Default, Children })` — the per-node hook the renderer calls while walking the tree. Return custom JSX to hijack a node, or `<Default of={node} />` to keep the default. The helpers are injected (also importable).
+- `<Default of={node} />` — render this node's default composition; descendants still pass through `renderNode`.
+- `<Children of={node} />` — render this node's child nodes through the resolver.
+- `<Default of={node.children.x} />` — render one specific child node (any handle on `of`; `of={null/undefined}` renders nothing).
+- `<Default of={node} parts={{ partName: (part) => <JSX/> }} />` — override individual parts of a field; each part is itself a handle (`<Default of={part} />`), so "augment" and "replace" are the same signature.
 
 **Three moves at every node:** take the default whole; keep the default layout and swap sub-pieces; or place the sub-pieces yourself with custom JSX. This is progressive disclosure — work at the highest level (`<SchemaFields/>`, all defaults) and drop down precisely where you need control: swap a part, place the sub-pieces, or fall all the way to the raw `walk`.
 
-**Fully fractal** — `<SchemaFields/>` resolves the form tree to its defaults. `<SchemaFields>{(root) => …}</SchemaFields>` places yourself at the root, which is sugar for `renderNode` firing on the root. `SchemaFields` renders the form's *content only* — the chrome (the `<form>` element, submit, reset/cancel) is the consumer's, not a root part (ADR 013); the root's *children* are the top-level fields/groups. `renderNode` reappears, scoped, on any container's `node.Default` — nearest scope wins. A field bottoms node-recursion (it has parts, no child nodes); an atomic part bottoms part-recursion.
+**Fully fractal** — `<SchemaFields/>` resolves the form tree to its defaults. `<SchemaFields>{(root, { Default }) => …}</SchemaFields>` places yourself at the root, which is sugar for `renderNode` firing on the root. `SchemaFields` renders the form's *content only* — the chrome (the `<form>` element, submit, reset/cancel) is the consumer's, not a root part (ADR 013); the root's *children* are the top-level fields/groups. `renderNode` reappears, scoped, via `<Default of={container} renderNode={…} />` — nearest scope wins. A field bottoms node-recursion (it has parts, no child nodes); an atomic part bottoms part-recursion.
 
-`Default`/`Children` are the continuation's re-entry points, generic over the result type `R` and owned by Core's `createContinuation` (ADR 014); the React adapter instantiates them at `R = ReactNode`. Core's node stays headless data; enrichment wraps it with these handles at fold time.
+`Default`/`Children` are stable, module-level components that delegate to the node's own callable re-entry points — the callables are generic over the result type `R` and owned by Core's `createContinuation` (ADR 014), so the JSX layer (ADR 017) is React-only sugar with no remount (ADR 016). Core's node stays headless data; enrichment wraps it with these handles at fold time.
 
 A typed-factory skin (`<fields.address.street/>`, `.Default`-free, keyed and renderable) is planned on top of the same engine once shape inference lands — see ADR 010 for status.
 
