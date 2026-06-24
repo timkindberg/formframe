@@ -22,7 +22,7 @@ const examples = [
 ]
 
 function App() {
-  const [currentExample, setCurrentExample] = useState('08')
+  const [currentExample, setCurrentExample] = useState('07')
 
   const CurrentComponent =
     examples.find((ex) => ex.id === currentExample)?.component || App01

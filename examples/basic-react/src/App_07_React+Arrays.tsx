@@ -1,5 +1,12 @@
+import { useState } from 'react'
 import { useSchemaForm } from '@jsonschema-form/react'
 import type { JSONSchema } from '@jsonschema-form/core'
+
+// Dynamic arrays on the continuation engine (ADR 015). Two array shapes here:
+//   • multiselect — primitive arrays with enum/oneOf render as <select multiple>
+//   • dynamic add/remove — object & primitive arrays grow/shrink via the engine,
+//     and (the whole point) every existing item keeps its typed value across an
+//     add or remove: stable React keys mean React updates in place, never remounts.
 
 const schema: JSONSchema = {
   type: 'object',
@@ -9,11 +16,11 @@ const schema: JSONSchema = {
       title: 'Full Name',
       description: 'Enter your full name',
     },
-    // Multiselect - primitive array with enum
+    // Multiselect — primitive array with enum → <select multiple>
     skills: {
       type: 'array',
       title: 'Skills',
-      description: 'Select your technical skills (multiselect)',
+      description: 'Select your technical skills (hold Ctrl/Cmd for multiple)',
       minItems: 1,
       maxItems: 5,
       items: {
@@ -21,35 +28,18 @@ const schema: JSONSchema = {
         enum: ['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Go'],
       },
     },
-    // Multiselect - primitive array with oneOf
-    interests: {
-      type: 'array',
-      title: 'Interests',
-      description: 'Select your interests (multiselect with oneOf)',
-      items: {
-        oneOf: [
-          { const: 'web', title: 'Web Development' },
-          { const: 'mobile', title: 'Mobile Development' },
-          { const: 'ml', title: 'Machine Learning' },
-          { const: 'devops', title: 'DevOps' },
-          { const: 'design', title: 'UI/UX Design' },
-        ],
-      },
-    },
-    // Dynamic array - array of strings
+    // Dynamic array of strings → a text input per item, with add/remove
     hobbies: {
       type: 'array',
       title: 'Hobbies',
-      description: 'Add/remove hobbies dynamically',
-      items: {
-        type: 'string',
-      },
+      description: 'Add and remove hobbies; type into one, then add another',
+      items: { type: 'string', title: 'Hobby' },
     },
-    // Dynamic array - array of objects
+    // Dynamic array of objects → a sub-form per item, with add/remove
     addresses: {
       type: 'array',
       title: 'Addresses',
-      description: 'Add multiple addresses with add/remove buttons',
+      description: 'Add multiple addresses; removing one leaves the others typed',
       minItems: 1,
       items: {
         type: 'object',
@@ -74,60 +64,44 @@ const schema: JSONSchema = {
 
 function App() {
   const { form, SchemaFields } = useSchemaForm(schema)
-
-  const handleSubmit = (data: Record<string, unknown>) => {
-    console.log('Form submitted with array data:', data)
-    console.log('- Multiselect fields return arrays')
-    console.log(
-      '- Dynamic arrays unflatten from dot notation (addresses.0.street)'
-    )
-    console.log('- Sparse arrays are supported')
-  }
+  const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(null)
 
   return (
     <div>
-      <h1>JSON Schema Form - Array Support</h1>
+      <h1>Dynamic arrays (ADR 015)</h1>
+      <p style={{ color: '#555' }}>
+        Add/remove items folded by the continuation engine. The trick: each item
+        has a <strong>stable React key</strong>, so adding or removing a sibling
+        updates the list <em>in place</em> — every other item keeps its typed
+        value with no remount. Type into a few fields, then add and remove items
+        to see values survive.
+      </p>
 
-      <div
-        style={{
-          marginBottom: '2rem',
-          backgroundColor: '#f5f5f5',
-          padding: '1rem',
-          borderRadius: '4px',
-        }}
-      >
-        <h2 style={{ marginTop: 0, fontSize: '1.2rem' }}>Array Field Types</h2>
-        <ul style={{ marginBottom: 0 }}>
-          <li>
-            <strong>Multiselect</strong>: Primitive arrays (string[], number[])
-            with enum/oneOf → renders as <code>&lt;select multiple&gt;</code>
-          </li>
-          <li>
-            <strong>Dynamic Arrays</strong>: Complex arrays (objects, nested
-            types) → renders with add/remove buttons
-          </li>
-        </ul>
-      </div>
-
-      <form onSubmit={form.submit(handleSubmit)}>
+      <form onSubmit={form.submit(setSubmitted)}>
         <SchemaFields />
-        <button type="submit">Submit</button>
+        <button type="submit" style={{ marginTop: 16 }}>
+          Submit
+        </button>
       </form>
 
       <div
         style={{
           marginTop: '2rem',
           padding: '1rem',
-          backgroundColor: '#e3f2fd',
-          borderRadius: '4px',
+          backgroundColor: submitted ? '#e8f5e9' : '#f5f5f5',
+          borderRadius: 4,
         }}
       >
-        <h3 style={{ marginTop: 0 }}>Try it out:</h3>
-        <ul style={{ marginBottom: 0 }}>
-          <li>Select multiple skills (hold Ctrl/Cmd to select multiple)</li>
-          <li>Add/remove hobbies and addresses with the buttons</li>
-          <li>Submit to see the clean data structure in console</li>
-        </ul>
+        <h3 style={{ marginTop: 0 }}>Submitted data</h3>
+        {submitted ? (
+          <pre style={{ margin: 0, overflowX: 'auto' }}>
+            {JSON.stringify(submitted, null, 2)}
+          </pre>
+        ) : (
+          <p style={{ margin: 0, color: '#777' }}>
+            Submit the form to see the collected JSON.
+          </p>
+        )}
       </div>
     </div>
   )
