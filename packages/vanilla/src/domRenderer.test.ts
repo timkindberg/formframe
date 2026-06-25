@@ -11,25 +11,9 @@ import {
   serializeDomToOracleHtml,
 } from './domRenderer'
 
-const representativeSchema: JSONSchema = {
-  type: 'object',
-  properties: {
-    name: { type: 'string', title: 'Name' },
-    email: { type: 'string', format: 'email', title: 'Email' },
-    color: { type: 'string', title: 'Color', enum: ['red', 'green'] },
-    address: {
-      type: 'object',
-      title: 'Address',
-      properties: {
-        street: { type: 'string', title: 'Street' },
-      },
-    },
-  },
-  required: ['name'],
-}
-
-const paritySchemas: Record<string, JSONSchema> = {
-  representative: representativeSchema,
+// Same schema set as conformance.test.tsx axis 1 — default rendering across
+// widgets / containers (packages/react/src/conformance.test.tsx).
+const defaultSchemas: Record<string, JSONSchema> = {
   'flat fields + select': {
     type: 'object',
     properties: {
@@ -48,6 +32,22 @@ const paritySchemas: Record<string, JSONSchema> = {
       agree: { type: 'boolean', title: 'Agree' },
     },
     required: ['handle', 'email'],
+  },
+  'select + multiselect + description': {
+    type: 'object',
+    properties: {
+      size: {
+        type: 'string',
+        title: 'Size',
+        description: 'Pick one',
+        enum: ['s', 'm', 'l'],
+      },
+      tags: {
+        type: 'array',
+        title: 'Tags',
+        items: { enum: ['a', 'b', 'c'] },
+      },
+    },
   },
   'nested group': {
     type: 'object',
@@ -83,8 +83,25 @@ const paritySchemas: Record<string, JSONSchema> = {
   },
 }
 
+const schema: JSONSchema = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', title: 'Name' },
+    email: { type: 'string', format: 'email', title: 'Email' },
+    color: { type: 'string', title: 'Color', enum: ['red', 'green'] },
+    address: {
+      type: 'object',
+      title: 'Address',
+      properties: {
+        street: { type: 'string', title: 'Street' },
+      },
+    },
+  },
+  required: ['name'],
+}
+
 describe('renderToDom — DOM ≡ string oracle parity', () => {
-  for (const [name, schema] of Object.entries(paritySchemas)) {
+  for (const [name, schema] of Object.entries(defaultSchemas)) {
     it(`matches renderToString for "${name}"`, () => {
       const form = jsonSchemaToTree(schema)
       const expected = renderToString(form)
@@ -92,11 +109,25 @@ describe('renderToDom — DOM ≡ string oracle parity', () => {
       expect(actual).toBe(expected)
     })
   }
+
+  it('matches renderToString for a nameless nested group', () => {
+    const nameless = jsonSchemaToTree({
+      type: 'object',
+      properties: {
+        meta: {
+          type: 'object',
+          properties: { note: { type: 'string', title: 'Note' } },
+        },
+      },
+    })
+    expect(serializeDomToOracleHtml(renderToDom(nameless))).toBe(renderToString(nameless))
+  })
 })
 
-describe('renderToDom — real DOM nodes', () => {
-  it('returns a DocumentFragment of field elements for the default schema', () => {
-    const form = jsonSchemaToTree(representativeSchema)
+describe('createDomRenderer — the floor (ADR 013)', () => {
+  const form = jsonSchemaToTree(schema)
+
+  it('returns a DocumentFragment of field elements', () => {
     const root = renderToDom(form)
     expect(root.nodeType).toBe(Node.DOCUMENT_FRAGMENT_NODE)
     expect(root.childNodes.length).toBeGreaterThan(0)
@@ -105,8 +136,7 @@ describe('renderToDom — real DOM nodes', () => {
     expect(first.className).toBe('jsf-field')
   })
 
-  it('createDomRenderer(defaultDomAdapter) matches batteries renderToDom', () => {
-    const form = jsonSchemaToTree(representativeSchema)
+  it('createDomRenderer(defaultDomAdapter) equals the batteries renderToDom', () => {
     const render = createDomRenderer(defaultDomAdapter)
     expect(serializeDomToOracleHtml(render(form))).toBe(
       serializeDomToOracleHtml(renderToDom(form))
