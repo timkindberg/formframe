@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { createAjvValidator } from '../src'
-import { runValidatorContract } from './contract'
+import { contractSchema, runValidatorContract } from './contract'
 
 runValidatorContract({
   name: 'AJV',
-  create: (schema) => createAjvValidator(schema),
+  validate: createAjvValidator(contractSchema),
 })
 
 describe('createAjvValidator — AJV specifics', () => {

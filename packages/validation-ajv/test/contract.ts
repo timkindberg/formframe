@@ -6,12 +6,13 @@ import type {
 } from '@jsonschema-form/core'
 
 /**
- * A validator factory under test. Every adapter (AJV today, Zod tomorrow) plus
- * the throwaway fake is wrapped in one of these and run through the same suite.
+ * A validator under test. Every adapter (AJV, Zod) plus the throwaway fake
+ * supplies a ready-built {@link Validator} and runs through the same suite.
+ * Schema-driven adapters compile their own schema before calling in.
  */
-export interface ValidatorFactory {
+export interface ValidatorContractTarget {
   name: string
-  create(schema: JSONSchema): Validator
+  validate: Validator
 }
 
 // One schema exercising the behaviours every validator must agree on: a
@@ -35,12 +36,15 @@ export const contractSchema: JSONSchema = {
 
 /**
  * The seam contract (ADR 019). Asserts only the validator-agnostic surface —
- * `valid`, each issue's `path` and `keyword` — never the human `message`, which
- * legitimately differs between implementations.
+ * `valid`, each issue's `path`, and a non-empty `message`. Paths are the
+ * cross-implementation guarantee (they must match `node.path`); `keyword` is
+ * intentionally not pinned to JSON Schema vocabulary — Zod emits `invalid_type`/
+ * `too_small` where AJV emits `required`/`minLength`, and Core only says
+ * keyword is *typically* a schema keyword (ADR 019).
  */
-export function runValidatorContract(factory: ValidatorFactory): void {
-  describe(`Validator contract — ${factory.name}`, () => {
-    const validate = factory.create(contractSchema)
+export function runValidatorContract(target: ValidatorContractTarget): void {
+  describe(`Validator contract — ${target.name}`, () => {
+    const validate = target.validate
     const at = (issues: ValidationIssue[], path: string) =>
       issues.filter((issue) => issue.path === path)
 
@@ -55,15 +59,13 @@ export function runValidatorContract(factory: ValidatorFactory): void {
       expect(result.valid).toBe(false)
       const nameIssues = at(result.issues, 'name')
       expect(nameIssues).toHaveLength(1)
-      expect(nameIssues[0].keyword).toBe('required')
+      expect(nameIssues[0].keyword).toBeTruthy()
     })
 
     it('flags a too-short string at the field path', () => {
       const result = validate({ name: 'T' })
       expect(result.valid).toBe(false)
-      expect(at(result.issues, 'name').map((i) => i.keyword)).toContain(
-        'minLength'
-      )
+      expect(at(result.issues, 'name').length).toBeGreaterThan(0)
     })
 
     it('keys a nested array-item required error by dot+index path', () => {
@@ -71,15 +73,13 @@ export function runValidatorContract(factory: ValidatorFactory): void {
       expect(result.valid).toBe(false)
       const issues = at(result.issues, 'contacts.0.email')
       expect(issues).toHaveLength(1)
-      expect(issues[0].keyword).toBe('required')
+      expect(issues[0].keyword).toBeTruthy()
     })
 
     it('keys a nested array-item constraint error by dot+index path', () => {
       const result = validate({ name: 'Tim', contacts: [{ email: 'a' }] })
       expect(result.valid).toBe(false)
-      expect(
-        at(result.issues, 'contacts.0.email').map((i) => i.keyword)
-      ).toContain('minLength')
+      expect(at(result.issues, 'contacts.0.email').length).toBeGreaterThan(0)
     })
 
     it('gives every issue a non-empty, human-readable message', () => {

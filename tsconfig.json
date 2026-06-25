@@ -5,6 +5,7 @@
     { "path": "./packages/react" },
     { "path": "./packages/vanilla" },
     { "path": "./packages/validation-ajv" },
+    { "path": "./packages/validation-zod" },
     { "path": "./examples/basic-react" }
   ],
   "compilerOptions": {

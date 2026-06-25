@@ -1,7 +1,7 @@
 {
-  "name": "@jsonschema-form/validation-ajv",
+  "name": "@jsonschema-form/validation-zod",
   "version": "0.0.0",
-  "description": "AJV validation adapter for JSON Schema forms",
+  "description": "Zod validation adapter for JSON Schema forms",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
@@ -10,11 +10,6 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts",
       "require": "./src/index.ts"
-    },
-    "./test/contract": {
-      "types": "./test/contract.ts",
-      "import": "./test/contract.ts",
-      "require": "./test/contract.ts"
     }
   },
   "files": [
@@ -29,18 +24,19 @@
   "keywords": [
     "json-schema",
     "validation",
-    "ajv"
+    "zod"
   ],
   "author": "Tim Kindberg",
   "license": "MIT",
   "peerDependencies": {
     "@jsonschema-form/core": "*",
-    "ajv": "^8.0.0"
+    "zod": "^3 || ^4"
   },
   "devDependencies": {
     "@jsonschema-form/core": "*",
-    "ajv": "^8.17.1",
+    "@jsonschema-form/validation-ajv": "*",
     "typescript": "^5.3.3",
-    "vitest": "^4.0.9"
+    "vitest": "^4.0.9",
+    "zod": "^4.0.0"
   }
 }
