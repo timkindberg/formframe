@@ -1758,4 +1758,206 @@ describe('jsonSchemaToTree', () => {
       }
     })
   })
+
+  describe('$ref / $defs local resolution', () => {
+    it('produces the same tree as an inlined schema for $defs + $ref', () => {
+      const inlined: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', title: 'Full Name', minLength: 2 },
+          email: { type: 'string', format: 'email', title: 'Email' },
+        },
+        required: ['name'],
+      }
+
+      const withRefs = {
+        type: 'object',
+        properties: {
+          name: { $ref: '#/$defs/Name' },
+          email: { $ref: '#/$defs/Email' },
+        },
+        required: ['name'],
+        $defs: {
+          Name: { type: 'string', title: 'Full Name', minLength: 2 },
+          Email: { type: 'string', format: 'email', title: 'Email' },
+        },
+      } as JSONSchema
+
+      const inlinedTree = jsonSchemaToTree(inlined)
+      const refTree = jsonSchemaToTree(withRefs)
+
+      expect(refTree.toJSON()).toEqual(inlinedTree.toJSON())
+    })
+
+    it('supports legacy definitions', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          nickname: { $ref: '#/definitions/Nickname' },
+        },
+        definitions: {
+          Nickname: { type: 'string', title: 'Nickname' },
+        },
+      }
+
+      const form = jsonSchemaToTree(schema)
+      const field = form.getField('nickname') as InputFieldNode | undefined
+
+      expect(field?.parts.label.text).toBe('Nickname')
+      expect(field?.parts.input.attrs.type).toBe('text')
+    })
+
+    it('resolves $ref inside array items', () => {
+      const inlined: JSONSchema = {
+        type: 'object',
+        properties: {
+          tags: {
+            type: 'array',
+            title: 'Tags',
+            items: { type: 'string', enum: ['a', 'b', 'c'] },
+          },
+        },
+      }
+
+      const withRefs = {
+        type: 'object',
+        properties: {
+          tags: {
+            type: 'array',
+            title: 'Tags',
+            items: { $ref: '#/$defs/Tag' },
+          },
+        },
+        $defs: {
+          Tag: { type: 'string', enum: ['a', 'b', 'c'] },
+        },
+      } as JSONSchema
+
+      const inlinedTree = jsonSchemaToTree(inlined)
+      const refTree = jsonSchemaToTree(withRefs)
+
+      expect(refTree.toJSON()).toEqual(inlinedTree.toJSON())
+    })
+
+    it('resolves transitive nested refs', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          street: { $ref: '#/$defs/Street' },
+        },
+        $defs: {
+          Street: { $ref: '#/$defs/StreetName' },
+          StreetName: { type: 'string', title: 'Street', minLength: 1 },
+        },
+      } as JSONSchema
+
+      const form = jsonSchemaToTree(schema)
+      const field = form.getField('street')
+
+      expect(field?.parts.label.text).toBe('Street')
+      expect(field?.validation.minLength).toBe(1)
+    })
+
+    it('resolves refs to nested object schemas', () => {
+      const inlined: JSONSchema = {
+        type: 'object',
+        properties: {
+          address: {
+            type: 'object',
+            title: 'Address',
+            properties: {
+              street: { type: 'string' },
+              city: { type: 'string' },
+            },
+          },
+        },
+      }
+
+      const withRefs = {
+        type: 'object',
+        properties: {
+          address: { $ref: '#/$defs/Address' },
+        },
+        $defs: {
+          Address: {
+            type: 'object',
+            title: 'Address',
+            properties: {
+              street: { type: 'string' },
+              city: { type: 'string' },
+            },
+          },
+        },
+      } as JSONSchema
+
+      const inlinedTree = jsonSchemaToTree(inlined)
+      const refTree = jsonSchemaToTree(withRefs)
+
+      expect(refTree.toJSON()).toEqual(inlinedTree.toJSON())
+    })
+
+    it('shallow-merges $ref siblings over the resolved target', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          label: {
+            $ref: '#/$defs/BaseString',
+            title: 'Override Title',
+          },
+        },
+        $defs: {
+          BaseString: { type: 'string', title: 'Base Title' },
+        },
+      } as JSONSchema
+
+      const form = jsonSchemaToTree(schema)
+      const field = form.getField('label')
+
+      expect(field?.parts.label.text).toBe('Override Title')
+    })
+
+    it('throws on circular $ref chains without hanging', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          a: { $ref: '#/$defs/A' },
+        },
+        $defs: {
+          A: { $ref: '#/$defs/B' },
+          B: { $ref: '#/$defs/A' },
+        },
+      } as JSONSchema
+
+      expect(() => jsonSchemaToTree(schema)).toThrow(/Circular \$ref detected/)
+    })
+
+    it('throws on external $ref', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { $ref: 'https://example.com/schema.json#/definitions/Name' },
+        },
+      }
+
+      expect(() => jsonSchemaToTree(schema)).toThrow(
+        /External \$ref is not supported/
+      )
+    })
+
+    it('resolves refs via properties pointer', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', title: 'Name' },
+          alias: { $ref: '#/properties/name' },
+        },
+      }
+
+      const form = jsonSchemaToTree(schema)
+      const aliasField = form.getField('alias') as InputFieldNode | undefined
+
+      expect(aliasField?.parts.label.text).toBe('Name')
+      expect(aliasField?.parts.input.attrs.type).toBe('text')
+    })
+  })
 })
