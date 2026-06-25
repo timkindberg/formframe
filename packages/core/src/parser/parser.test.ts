@@ -1781,7 +1781,7 @@ describe('jsonSchemaToTree', () => {
           Name: { type: 'string', title: 'Full Name', minLength: 2 },
           Email: { type: 'string', format: 'email', title: 'Email' },
         },
-      } as JSONSchema
+      }
 
       const inlinedTree = jsonSchemaToTree(inlined)
       const refTree = jsonSchemaToTree(withRefs)
@@ -1831,7 +1831,7 @@ describe('jsonSchemaToTree', () => {
         $defs: {
           Tag: { type: 'string', enum: ['a', 'b', 'c'] },
         },
-      } as JSONSchema
+      }
 
       const inlinedTree = jsonSchemaToTree(inlined)
       const refTree = jsonSchemaToTree(withRefs)
@@ -1849,7 +1849,7 @@ describe('jsonSchemaToTree', () => {
           Street: { $ref: '#/$defs/StreetName' },
           StreetName: { type: 'string', title: 'Street', minLength: 1 },
         },
-      } as JSONSchema
+      }
 
       const form = jsonSchemaToTree(schema)
       const field = form.getField('street')
@@ -1888,7 +1888,7 @@ describe('jsonSchemaToTree', () => {
             },
           },
         },
-      } as JSONSchema
+      }
 
       const inlinedTree = jsonSchemaToTree(inlined)
       const refTree = jsonSchemaToTree(withRefs)
@@ -1908,7 +1908,7 @@ describe('jsonSchemaToTree', () => {
         $defs: {
           BaseString: { type: 'string', title: 'Base Title' },
         },
-      } as JSONSchema
+      }
 
       const form = jsonSchemaToTree(schema)
       const field = form.getField('label')
@@ -1926,7 +1926,7 @@ describe('jsonSchemaToTree', () => {
           A: { $ref: '#/$defs/B' },
           B: { $ref: '#/$defs/A' },
         },
-      } as JSONSchema
+      }
 
       expect(() => jsonSchemaToTree(schema)).toThrow(/Circular \$ref detected/)
     })
@@ -1958,6 +1958,34 @@ describe('jsonSchemaToTree', () => {
 
       expect(aliasField?.parts.label.text).toBe('Name')
       expect(aliasField?.parts.input.attrs.type).toBe('text')
+    })
+
+    it('resolves JSON Pointer escape sequences in $defs keys', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          note: { $ref: '#/$defs/a~1b~0c' },
+        },
+        $defs: {
+          'a/b~c': { type: 'string', title: 'Slash and tilde' },
+        },
+      }
+
+      const form = jsonSchemaToTree(schema)
+      const field = form.getField('note')
+
+      expect(field?.parts.label.text).toBe('Slash and tilde')
+    })
+
+    it('throws when a local $ref target is missing', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          missing: { $ref: '#/$defs/DoesNotExist' },
+        },
+      }
+
+      expect(() => jsonSchemaToTree(schema)).toThrow(/\$ref target not found/)
     })
   })
 })
