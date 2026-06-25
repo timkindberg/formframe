@@ -24,7 +24,11 @@ export {
   diagnosticAdapter,
   ValidationProvider,
   useFieldIssues,
+  useValidationIssues,
+  fieldControlId,
+  fieldErrorId,
 } from './renderer'
+export { ValidationSummary } from './ValidationSummary'
 export type {
   SchemaFieldsProps,
   RenderNode,

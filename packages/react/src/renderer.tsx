@@ -112,8 +112,22 @@ function DefaultDescription({ text }: { text: string }): ReactNode {
   return <small className="jsf-description">{text}</small>
 }
 
+/** When a field has issues, the root wraps its control in this provider. */
+interface FieldA11yState {
+  errorId: string
+}
+const FieldA11yContext = createContext<FieldA11yState | null>(null)
+
 function DefaultInput({ attrs }: { attrs: HtmlInputAttrs }): ReactNode {
-  return <input {...attrs} />
+  const a11y = useContext(FieldA11yContext)
+  return (
+    <input
+      {...attrs}
+      {...(a11y
+        ? { 'aria-invalid': true as const, 'aria-describedby': a11y.errorId }
+        : {})}
+    />
+  )
 }
 
 function DefaultSelect({
@@ -123,8 +137,14 @@ function DefaultSelect({
   attrs: HtmlSelectAttrs
   options: SelectOption[]
 }): ReactNode {
+  const a11y = useContext(FieldA11yContext)
   return (
-    <select {...attrs}>
+    <select
+      {...attrs}
+      {...(a11y
+        ? { 'aria-invalid': true as const, 'aria-describedby': a11y.errorId }
+        : {})}
+    >
       <option value="">-- select --</option>
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -179,13 +199,40 @@ export function useFieldIssues(path: string): ValidationIssue[] {
   return useContext(ValidationContext).get(path) ?? EMPTY_ISSUES
 }
 
+/** All current issues (flat) — for summaries and custom UX. */
+export function useValidationIssues(): ValidationIssue[] {
+  const byPath = useContext(ValidationContext)
+  return useMemo(() => {
+    const all: ValidationIssue[] = []
+    for (const issues of byPath.values()) {
+      all.push(...issues)
+    }
+    return all
+  }, [byPath])
+}
+
+/** Stable control `id` for a field path (matches Core's `attrs.id`). */
+export function fieldControlId(path: string): string {
+  return path
+}
+
+/** Stable error-list `id` for `aria-describedby` / summary anchor targets. */
+export function fieldErrorId(path: string): string {
+  return `${path}-errors`
+}
+
 /** A field's own issues, or nothing. Isolated consumer: re-renders on validation
  * without disturbing its sibling input (so typed values survive a failed submit). */
 function DefaultFieldErrors({ path }: { path: string }): ReactNode {
   const issues = useFieldIssues(path)
   if (issues.length === 0) return null
   return (
-    <ul className="jsf-field-errors" role="alert">
+    <ul
+      id={fieldErrorId(path)}
+      className="jsf-field-errors"
+      role="alert"
+      aria-live="polite"
+    >
       {issues.map((issue, i) => (
         <li key={i}>{issue.message}</li>
       ))}
@@ -215,11 +262,14 @@ function DefaultFieldRoot({
     node.widget === 'input'
       ? renderSlot(node.parts.input, 'input')
       : renderSlot(node.parts.select, 'select')
+  const issues = useFieldIssues(node.path)
+  const a11y =
+    issues.length > 0 ? { errorId: fieldErrorId(node.path) } : null
   return (
     <div className="jsf-field">
       {renderSlot(node.parts.label, 'label')}
       {renderSlot(node.parts.description, 'description')}
-      {control}
+      <FieldA11yContext.Provider value={a11y}>{control}</FieldA11yContext.Provider>
       <DefaultFieldErrors path={node.path} />
     </div>
   )
