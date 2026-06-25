@@ -20,13 +20,25 @@ runValidatorContract({
 })
 
 describe('createZodValidator — Zod specifics', () => {
-  it('maps a regex failure to keyword "invalid_format" at the field path', () => {
+  it('maps a regex failure to a keyword at the field path', () => {
     const validate = createZodValidator(
       z.object({ code: z.string().regex(/^[A-Z]+$/) })
     )
     const result = validate({ code: 'abc' })
     expect(result.valid).toBe(false)
     expect(result.issues.find((i) => i.path === 'code')?.keyword).toBeDefined()
+  })
+
+  it('maps Zod issue codes through as keywords', () => {
+    const minLength = createZodValidator(z.object({ name: z.string().min(2) }))
+    expect(minLength({ name: 'T' }).issues.find((i) => i.path === 'name')?.keyword).toBe(
+      'too_small'
+    )
+
+    const wrongType = createZodValidator(z.object({ name: z.string() }))
+    expect(wrongType({ name: 1 }).issues.find((i) => i.path === 'name')?.keyword).toBe(
+      'invalid_type'
+    )
   })
 
   it('collects all errors, not just the first', () => {
