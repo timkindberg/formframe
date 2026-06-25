@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": ["vitest/globals"]
+  },
+  "include": ["test/**/*", "src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
