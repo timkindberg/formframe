@@ -212,6 +212,10 @@ export function useValidationIssues(): ValidationIssue[] {
 }
 
 /** Stable control `id` for a field path (matches Core's `attrs.id`). */
+// Single source of truth for deriving a control's DOM id from its field path,
+// paired with `fieldErrorId`. Identity today because Core already uses the
+// dot-path as `attrs.id`; id-encoding for CSS-selector / URL-fragment-unsafe
+// paths (dots, slashes, array indices) will land here so it changes in one place.
 export function fieldControlId(path: string): string {
   return path
 }

@@ -25,14 +25,43 @@ const errors: ValidationIssue[] = [
   { path: 'zip', message: 'Zip must be 5 digits' },
 ]
 
+const nestedSchema: JSONSchema = {
+  type: 'object',
+  properties: {
+    address: {
+      type: 'object',
+      properties: {
+        street: { type: 'string', title: 'Street' },
+      },
+    },
+    contacts: {
+      type: 'array',
+      minItems: 1,
+      items: {
+        type: 'object',
+        properties: {
+          email: { type: 'string', title: 'Email' },
+        },
+      },
+    },
+  },
+}
+
+const nestedErrors: ValidationIssue[] = [
+  { path: 'address.street', message: 'Street is required' },
+  { path: 'contacts.0.email', message: 'Email is invalid' },
+]
+
 function FormWithValidation({
   issues,
   showSummary = false,
+  formSchema = schema,
 }: {
   issues: ValidationIssue[]
   showSummary?: boolean
+  formSchema?: JSONSchema
 }) {
-  const form = useMemo(() => jsonSchemaToTree(schema), [])
+  const form = useMemo(() => jsonSchemaToTree(formSchema), [formSchema])
   return (
     <ValidationProvider issues={issues}>
       {showSummary && <ValidationSummary />}
@@ -96,5 +125,35 @@ describe('validation a11y wiring', () => {
 
     expect(document.querySelector('.jsf-field-errors')).toBeNull()
     expect(document.querySelector('.jsf-validation-summary')).toBeNull()
+  })
+
+  it('nested paths: control id, aria-describedby, error id, and summary href align', async () => {
+    await render(
+      <FormWithValidation
+        issues={nestedErrors}
+        showSummary
+        formSchema={nestedSchema}
+      />
+    )
+
+    for (const { path, message } of nestedErrors) {
+      const control = document.getElementById(fieldControlId(path))
+      expect(control).not.toBeNull()
+      expect(control?.id).toBe(path)
+      expect(control?.getAttribute('aria-invalid')).toBe('true')
+      expect(control?.getAttribute('aria-describedby')).toBe(fieldErrorId(path))
+
+      const errorEl = document.getElementById(fieldErrorId(path))
+      expect(errorEl).not.toBeNull()
+      expect(errorEl?.id).toBe(fieldErrorId(path))
+      expect(control?.getAttribute('aria-describedby')).toBe(errorEl?.id)
+
+      const link = document.querySelector(
+        `a[href="#${fieldControlId(path)}"]`
+      )
+      expect(link).not.toBeNull()
+      expect(link?.textContent).toContain(path)
+      expect(link?.textContent).toContain(message)
+    }
   })
 })

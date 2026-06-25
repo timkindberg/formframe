@@ -6,7 +6,7 @@
 // returned `SchemaFields` surfaces each issue under its own field — no schema
 // annotations, no IR change, and the validator stays swappable (AJV → Zod).
 import { useMemo, useState } from 'react'
-import { useSchemaForm, ValidationProvider } from '@jsonschema-form/react'
+import { useSchemaForm, ValidationProvider, ValidationSummary } from '@jsonschema-form/react'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
 import type { JSONSchema } from '@jsonschema-form/core'
 
@@ -60,9 +60,16 @@ function App() {
         validator owns the UX (the schema also renders native{' '}
         <code>required</code>/<code>pattern</code> attrs, ADR 012).
       </p>
+      <p>
+        <code>&lt;ValidationSummary /&gt;</code> lists all errors with anchor
+        links to each field; fields automatically receive{' '}
+        <code>aria-invalid</code> and <code>aria-describedby</code> when they
+        have issues.
+      </p>
 
       <form noValidate onSubmit={submit(handleValid)}>
         <ValidationProvider issues={errors}>
+          <ValidationSummary />
           <SchemaFields />
         </ValidationProvider>
         <button type="submit">Submit</button>
