@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { createAjvValidator } from '../src'
-import { contractSchema, runValidatorContract } from './contract'
+import {
+  contractSchema,
+  runValidatorContract,
+} from '@jsonschema-form/validation-contract'
 
 runValidatorContract({
   name: 'AJV',

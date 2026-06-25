@@ -35,12 +35,12 @@ export const contractSchema: JSONSchema = {
 }
 
 /**
- * The seam contract (ADR 019). Asserts only the validator-agnostic surface —
- * `valid`, each issue's `path`, and a non-empty `message`. Paths are the
- * cross-implementation guarantee (they must match `node.path`); `keyword` is
- * intentionally not pinned to JSON Schema vocabulary — Zod emits `invalid_type`/
- * `too_small` where AJV emits `required`/`minLength`, and Core only says
- * keyword is *typically* a schema keyword (ADR 019).
+ * The seam contract (ADR 019 / ADR 020). Asserts only the validator-agnostic
+ * surface — `valid`, each issue's `path`, and a non-empty `message`. Paths are
+ * the cross-implementation guarantee (they must match `node.path`); `keyword`
+ * is intentionally not pinned to JSON Schema vocabulary — Zod emits
+ * `invalid_type`/`too_small` where AJV emits `required`/`minLength`, and Core
+ * only says keyword is *typically* a schema keyword (ADR 019).
  */
 export function runValidatorContract(target: ValidatorContractTarget): void {
   describe(`Validator contract — ${target.name}`, () => {

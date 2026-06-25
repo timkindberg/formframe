@@ -10,11 +10,6 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts",
       "require": "./src/index.ts"
-    },
-    "./test/contract": {
-      "types": "./test/contract.ts",
-      "import": "./test/contract.ts",
-      "require": "./test/contract.ts"
     }
   },
   "files": [
@@ -39,6 +34,7 @@
   },
   "devDependencies": {
     "@jsonschema-form/core": "*",
+    "@jsonschema-form/validation-contract": "*",
     "ajv": "^8.17.1",
     "typescript": "^5.3.3",
     "vitest": "^4.0.9"

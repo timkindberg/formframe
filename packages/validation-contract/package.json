@@ -1,7 +1,7 @@
 {
-  "name": "@jsonschema-form/validation-zod",
+  "name": "@jsonschema-form/validation-contract",
   "version": "0.0.0",
-  "description": "Zod validation adapter for JSON Schema forms",
+  "description": "Validator-agnostic contract suite for JSON Schema form validation adapters",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
@@ -17,26 +17,25 @@
   ],
   "scripts": {
     "build": "echo 'Build script not yet configured'",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest --watch",
     "clean": "rm -rf dist"
   },
   "keywords": [
     "json-schema",
     "validation",
-    "zod"
+    "contract",
+    "testing"
   ],
   "author": "Tim Kindberg",
   "license": "MIT",
   "peerDependencies": {
     "@jsonschema-form/core": "*",
-    "zod": "^3 || ^4"
+    "vitest": "^4.0.0"
   },
   "devDependencies": {
     "@jsonschema-form/core": "*",
-    "@jsonschema-form/validation-contract": "*",
     "typescript": "^5.3.3",
-    "vitest": "^4.0.9",
-    "zod": "^4.0.0"
+    "vitest": "^4.0.9"
   }
 }
