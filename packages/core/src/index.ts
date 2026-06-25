@@ -31,10 +31,17 @@ export type {
   GroupParts,
   ArrayParts,
   ArrayItemParts,
+  ValidationIssue,
+  ValidationResult,
+  Validator,
 } from './types'
 
 // Export main parser
 export { jsonSchemaToTree } from './parser/index'
+
+// Validation capability slot (ADR 019) — the neutral, side-loaded contract.
+// Adapters (e.g. @jsonschema-form/validation-ajv) implement `Validator`.
+export { groupIssuesByPath } from './validation'
 
 // Continuation engine (ADR 014) — the generic, front-end-agnostic fold that
 // React/vanilla/… renderers instantiate at their own result type `R`.

@@ -1,8 +1,17 @@
 /**
  * @jsonschema-form/validation-ajv
  *
- * AJV validation adapter for JSON Schema forms.
+ * AJV-backed implementation of the Core validation slot (ADR 019). Side-loaded:
+ * pass `createAjvValidator(schema)` wherever a `Validator` is accepted.
  */
 
-// Placeholder - to be implemented
-export const VERSION = '0.0.0'
+export { createAjvValidator } from './ajvValidator'
+export type { AjvValidatorOptions } from './ajvValidator'
+
+// Re-export the neutral contract for convenience, so consumers can type against
+// the slot without a separate import from Core.
+export type {
+  Validator,
+  ValidationIssue,
+  ValidationResult,
+} from '@jsonschema-form/core'

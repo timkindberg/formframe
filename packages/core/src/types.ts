@@ -28,3 +28,5 @@ export type {
   ArrayItemParts,
   WalkHandlers,
 } from './parser/nodeTypes'
+
+export type { ValidationIssue, ValidationResult, Validator } from './validation'
