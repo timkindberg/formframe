@@ -1,0 +1,94 @@
+// Live (validate-on-change) validation via the Validator seam (ADR 021).
+//
+// Wire `revalidate` to the consumer-owned `<form onChange>`; the hook reads
+// native FormData, runs the side-loaded validator, and updates the same
+// `errors` state — inputs stay uncontrolled, only error display re-renders.
+import { useMemo, useState } from 'react'
+import {
+  useSchemaForm,
+  ValidationProvider,
+  ValidationSummary,
+} from '@jsonschema-form/react'
+import { createAjvValidator } from '@jsonschema-form/validation-ajv'
+import type { JSONSchema } from '@jsonschema-form/core'
+
+const schema: JSONSchema = {
+  type: 'object',
+  required: ['username'],
+  properties: {
+    username: {
+      type: 'string',
+      title: 'Username',
+      description: 'At least 3 characters (validator reports; no native minLength attr).',
+      minLength: 3,
+    },
+    handle: {
+      type: 'string',
+      title: 'Handle',
+      description: 'Max 20 characters — the browser constrains via native maxLength.',
+      maxLength: 20,
+    },
+    zip: {
+      type: 'string',
+      title: 'Zip code',
+      description: 'Exactly five digits.',
+      pattern: '^[0-9]{5}$',
+    },
+  },
+}
+
+function App() {
+  const validator = useMemo(() => createAjvValidator(schema), [])
+  const { SchemaFields, submit, revalidate, errors } = useSchemaForm(schema, {
+    validator,
+  })
+  const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
+    null
+  )
+
+  return (
+    <div>
+      <h1>JSON Schema Form — Live Validation (ADR 021)</h1>
+      <p>
+        Attach <code>onChange={'{revalidate}'}</code> to your{' '}
+        <code>&lt;form&gt;</code>. Each change reads native FormData, runs the
+        side-loaded <code>Validator</code>, and updates per-field issues — no
+        controlled inputs, no form-state adapter.
+      </p>
+      <p>
+        <strong>Constrain vs report:</strong> where the schema maps to a native
+        HTML attribute (<code>maxLength</code>, <code>min</code>/<code>max</code>
+        , <code>step</code>, <code>pattern</code>), the browser live-constrains
+        input. Semantic rules without a native twin (e.g. <code>minLength</code>{' '}
+        on a plain text field) are live-reported by the validator only. Both
+        layers can apply to different fields in the same form.
+      </p>
+      <p>
+        Omit <code>onChange={'{revalidate}'}</code> and behaviour stays
+        submit-only (ADR 019). Async validation, debounce, and field-scoped
+        triggers are deferred.
+      </p>
+
+      <form
+        noValidate
+        onSubmit={submit((data) => setSubmitted(data))}
+        onChange={revalidate}
+      >
+        <ValidationProvider issues={errors}>
+          <ValidationSummary />
+          <SchemaFields />
+        </ValidationProvider>
+        <button type="submit">Submit</button>
+      </form>
+
+      {submitted && (
+        <>
+          <p style={{ color: 'green' }}>Submitted valid data:</p>
+          <pre>{JSON.stringify(submitted, null, 2)}</pre>
+        </>
+      )}
+    </div>
+  )
+}
+
+export default App

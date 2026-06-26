@@ -1,4 +1,11 @@
-import { useMemo, useState, useCallback, type FC, type ReactNode } from 'react'
+import {
+  useMemo,
+  useState,
+  useCallback,
+  type FC,
+  type FormEvent,
+  type ReactNode,
+} from 'react'
 import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type {
   JSONSchema,
@@ -40,20 +47,22 @@ export interface UseSchemaFormOptions {
  * `renderNode`/place-yourself children to the same continuation.
  *
  * Pass a `validator` (ADR 019) to get submit-time validation: `submit` runs it,
- * blocks your handler on failure, and exposes `errors`. To render each issue
- * under its field, wrap the fields in `<ValidationProvider issues={errors}>`
- * (kept explicit so you own where issues live — ADR 013).
+ * blocks your handler on failure, and exposes `errors`. Wire `onChange={revalidate}`
+ * for live validation (ADR 021) — same validator, same errors state, inputs stay
+ * uncontrolled. To render each issue under its field, wrap the fields in
+ * `<ValidationProvider issues={errors}>` (kept explicit so you own where issues
+ * live — ADR 013).
  *
  * `SchemaFields` renders the form's *content only* — wrap it in your own
  * `<form>` and submit (chrome is the consumer's, ADR 013):
  *
  * @example
  * ```tsx
- * const { SchemaFields, submit, errors } = useSchemaForm(schema, {
+ * const { SchemaFields, submit, revalidate, errors } = useSchemaForm(schema, {
  *   validator: createAjvValidator(schema),
  * })
  * return (
- *   <form noValidate onSubmit={submit(onValid)}>
+ *   <form noValidate onSubmit={submit(onValid)} onChange={revalidate}>
  *     <ValidationProvider issues={errors}>
  *       <SchemaFields />
  *     </ValidationProvider>
@@ -69,10 +78,22 @@ export function useSchemaForm(
   const { validator } = options
   const form = useMemo(() => jsonSchemaToTree(schema), [schema])
 
-  // Submit-time issues. Surfacing them re-renders only the per-field error
-  // consumers (via `ValidationProvider`'s Context), never the uncontrolled
-  // inputs (the memoized node renderer bails), so typed values survive.
+  // Validation issues (submit-time and/or live). Surfacing them re-renders only
+  // the per-field error consumers (via `ValidationProvider`'s Context), never
+  // the uncontrolled inputs (the memoized node renderer bails), so typed values
+  // survive.
   const [errors, setErrors] = useState<ValidationIssue[]>([])
+
+  const runValidator = useCallback(
+    (data: Record<string, unknown>) => {
+      const result = validator
+        ? validator(data)
+        : { valid: true, issues: [] as ValidationIssue[] }
+      setErrors(result.issues)
+      return result
+    },
+    [validator]
+  )
 
   /**
    * Build the form's submit handler. Reuses Core's `submit` to assemble the data
@@ -83,13 +104,26 @@ export function useSchemaForm(
   const submit = useCallback(
     (onValid?: (data: Record<string, unknown>) => void) =>
       form.submit((data) => {
-        const result = validator
-          ? validator(data)
-          : { valid: true, issues: [] as ValidationIssue[] }
-        setErrors(result.issues)
+        const result = runValidator(data)
         if (result.valid) onValid?.(data)
       }),
-    [form, validator]
+    [form, runValidator]
+  )
+
+  /**
+   * Validate on change — wire to the consumer's `<form onChange={revalidate}>`.
+   * Reads native FormData from the form (via Core's submit assembler), runs the
+   * side-loaded validator, and updates `errors`. Opt-in: omit it and behaviour
+   * stays submit-only (ADR 021).
+   */
+  const revalidate = useCallback(
+    (e: FormEvent<HTMLFormElement>) => {
+      if (!validator) return
+      form.submit((data) => {
+        runValidator(data)
+      })({ preventDefault: () => {}, currentTarget: e.currentTarget })
+    },
+    [form, validator, runValidator]
   )
 
   // Memoized on `form` for a stable component type — the consumer's
@@ -107,5 +141,5 @@ export function useSchemaForm(
     }
   }, [form])
 
-  return { form, SchemaFields, submit, errors }
+  return { form, SchemaFields, submit, revalidate, errors }
 }
