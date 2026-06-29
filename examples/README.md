@@ -29,8 +29,9 @@ npm run dev
 
 ## Adding More Examples
 
-As we build out more layers, we'll add:
-- `with-react-hook-form` - Integration with React Hook Form
-- `with-tailwind` - Using the Tailwind UI layer
-- `with-validation` - Plugging in AJV validation
+Future examples will include **reference recipes** you copy into your own app — not published packages (see [ADR 024](../architecture_records/024_adapters_are_patterns_not_packages.md)):
+
+- `with-react-hook-form` — React Hook Form form-state adapter recipe
+- `with-tailwind` — Tailwind presentation adapter recipe
+- `with-validation` — AJV/Zod validation wiring (validation adapters *are* maintained packages; the example shows how to plug them in)
 
