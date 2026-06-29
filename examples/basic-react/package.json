@@ -8,11 +8,13 @@
     "build": "tsc && vite build"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
     "@jsonschema-form/core": "*",
     "@jsonschema-form/react": "*",
     "@jsonschema-form/validation-ajv": "*",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.80.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

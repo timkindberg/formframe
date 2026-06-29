@@ -10,6 +10,7 @@ import App07 from './App_07_React+Arrays'
 import App08 from './App_08_React+Overrides'
 import App09 from './App_09_React+Validation'
 import App10 from './App_10_React+SchemaRefs'
+import App12 from './App_12_React+ReactHookForm'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -23,10 +24,11 @@ const examples = [
   { id: '08', name: 'React + Overrides (ADR 010)', component: App08 },
   { id: '09', name: 'React + Validation (ADR 019)', component: App09 },
   { id: '10', name: 'React + Schema $ref/$defs', component: App10 },
+  { id: '12', name: 'React + React Hook Form (recipe)', component: App12 },
 ]
 
 function App() {
-  const [currentExample, setCurrentExample] = useState('07')
+  const [currentExample, setCurrentExample] = useState('12')
 
   const CurrentComponent =
     examples.find((ex) => ex.id === currentExample)?.component || App01
