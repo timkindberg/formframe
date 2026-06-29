@@ -54,6 +54,29 @@ describe('createAjvValidator — AJV specifics', () => {
     expect(validate({ age: '-1' }).valid).toBe(false)
   })
 
+  it('enforces standard formats (email) by default via ajv-formats', () => {
+    const validate = createAjvValidator({
+      type: 'object',
+      properties: { email: { type: 'string', format: 'email' } },
+    })
+    // AJV v8 ignores `format` unless ajv-formats is registered — this must fail.
+    const result = validate({ email: 'notanemail' })
+    expect(result.valid).toBe(false)
+    expect(result.issues.find((i) => i.path === 'email')?.keyword).toBe('format')
+    expect(validate({ email: 'a@b.com' }).valid).toBe(true)
+  })
+
+  it('leaves format unhandled when { formats: false }', () => {
+    const validate = createAjvValidator(
+      {
+        type: 'object',
+        properties: { email: { type: 'string', format: 'email' } },
+      },
+      { formats: false }
+    )
+    expect(validate({ email: 'notanemail' }).valid).toBe(true)
+  })
+
   it('carries AJV-authored messages through unchanged', () => {
     const validate = createAjvValidator({
       type: 'object',

@@ -1,4 +1,5 @@
 import Ajv, { type ErrorObject, type Options as AjvOptions } from 'ajv'
+import addFormats from 'ajv-formats'
 import type {
   JSONSchema,
   Validator,
@@ -12,6 +13,12 @@ export interface AjvValidatorOptions {
    * or a stricter mode if your schemas warrant it.
    */
   ajv?: AjvOptions
+  /**
+   * Register the standard `ajv-formats` vocabulary (`email`, `uri`, `date`, …).
+   * Defaults to `true`; set `false` to leave `format` unhandled or register your
+   * own formats via {@link AjvValidatorOptions.ajv}.
+   */
+  formats?: boolean
 }
 
 /**
@@ -25,6 +32,11 @@ export interface AjvValidatorOptions {
  * `coerceTypes: true` — native FormData is all strings, so a `number`/`integer`/
  * `boolean` field would otherwise spuriously fail its type check. Coercion
  * normalizes the validated object in place; override via `options.ajv`.
+ *
+ * The standard `ajv-formats` vocabulary (`email`, `uri`, `date`, `uuid`, …) is
+ * registered by default — AJV v8 ignores `format` otherwise, so an
+ * `{ format: 'email' }` field would silently never fail. Skip it with
+ * `options.formats: false` if you register your own.
  */
 export function createAjvValidator(
   schema: JSONSchema,
@@ -36,6 +48,7 @@ export function createAjvValidator(
     coerceTypes: true,
     ...options.ajv,
   })
+  if (options.formats !== false) addFormats(ajv)
   const validate = ajv.compile(schema as object)
 
   return (data: unknown) => {
