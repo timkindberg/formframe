@@ -35,10 +35,9 @@ npm run dev -w examples/basic-react   # Start example app on localhost
 ### Monorepo Structure
 - `packages/core` - Headless form-tree IR, zero dependencies, no framework coupling
 - `packages/react` - React adapter with hooks, default templates, and the continuation renderer
-- `packages/validation-ajv` - AJV validation adapter (placeholder)
-- `packages/react-hook-form` - React Hook Form integration (placeholder)
-- `packages/ui-tailwind` - Tailwind UI components (placeholder)
+- `packages/validation-ajv` / `packages/validation-zod` - Validation adapters (maintained packages)
 - `examples/basic-react` - Example app demonstrating various usage patterns
+- UI/form-lib adapters (Tailwind, RHF, etc.) are reference recipes in `examples/`, not packages (ADR 024)
 
 ### Core Layer (`@jsonschema-form/core`)
 Core is **stateless** — it only compiles a schema into the form-tree structure. Key exports:

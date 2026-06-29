@@ -49,10 +49,10 @@ Designing every swap seam up front tends to produce speculative, wrong abstracti
 
 - `packages/core` — headless foundation: the form-tree IR, the JSON Schema front-end, the recursive fold
 - `packages/react` — React framework-binding adapter (hooks, default templates, the continuation renderer)
-- `packages/validation-ajv` — AJV validation adapter
-- `packages/react-hook-form` — React Hook Form form-state adapter
-- `packages/ui-tailwind` — Tailwind presentation adapter
+- `packages/validation-ajv` / `packages/validation-zod` — validation adapters (Standard-Schema-shaped; maintained packages)
 - `examples/basic-react` — example app exercising the library end to end
+
+UI-framework adapters (Tailwind, Chakra, etc.) and form-library adapters (React Hook Form, TanStack Form) are **not** maintained packages — they ship as **reference recipes** in `examples/` that you copy into your own app. See [ADR 024](./architecture_records/024_adapters_are_patterns_not_packages.md).
 
 ## Key decisions
 
