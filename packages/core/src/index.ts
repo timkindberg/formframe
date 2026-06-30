@@ -41,6 +41,9 @@ export type {
 // Export main parser
 export { jsonSchemaToTree } from './parser/index'
 
+// JSON Pointer ↔ tree dot-path helpers (ADR 018) — shared with validation adapters.
+export { jsonPointerToPath, joinPath } from './jsonPointer'
+
 // Validation capability slot (ADR 019) — the neutral, side-loaded contract.
 // Adapters (e.g. @jsonschema-form/validation-ajv) implement `Validator`.
 export { groupIssuesByPath } from './validation'
