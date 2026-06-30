@@ -72,26 +72,41 @@ as our `StandardSchemaV1` remains structurally identical to `@standard-schema/sp
 
 ### Why adapt, not adopt
 
-Replacing `Validator` *with* `StandardSchemaV1` is tempting (one contract, instant
-interop) but **not forced** (ADR 008) and would cost more than it pays right now:
+The honest reason is **one architectural fact, not a list of conveniences**: this
+library is addressed by a **dot-string path**, and that choice is load-bearing.
+`issue.path` is deliberately the *same string* as `node.path` (`contacts.0.email`) —
+how the parser, continuation engine, array repathing, the reactive `IssueStore`
+keys, `ValidationSummary` anchors, and relative `getField` queries all locate a
+field — and, most importantly, it is what makes the typed `FieldPath<S>`
+autocomplete possible, because that path is a TypeScript template-literal type
+(`contacts.${number}.email`). Standard Schema addresses issues by a **segment
+array** (`['contacts', 0, 'email']`), which a template-literal type cannot express.
 
-- **Keyword loss.** Standard issues are `{ message, path }` only. Our renderer and
-  message-customization story lean on `keyword` (and `jsonschema-form-1oz` is about
-  *normalizing* that vocabulary, not deleting it). Adopting the spec wholesale
-  throws it away for everyone; adapting lets the lossy hop happen only when someone
-  actually crosses the boundary.
-- **Sync simplicity.** Our seam is synchronous by decision (ADR 019); the reactive
-  store and native submit both rely on it. Standard's `validate` may be async, so
-  adoption drags a `Promise` into the hot path. `fromStandardSchema` instead throws
-  on a Promise — async stays a separate, deliberate seam evolution.
-- **Ergonomics.** A bare function is a nicer internal currency than an object you
-  reach into via a `~standard` key on every call.
-- **Blast radius.** `valid`/`issues`/`data` are read by Core's submit path, the
-  reactive `IssueStore`, the contract suite, and both adapters. Adapting touches
-  none of them; adopting rewrites all of them for no new capability.
-
-The boundary is the right seam: the cost of translation is paid once, by whoever
+These are two different addressing models, so a translation between them is
+**unavoidable somewhere**. Adopting Standard wholesale does not delete that
+translation — it pushes it inward, forcing either every internal path-consumer to
+speak arrays, or `node.path` itself to become an array (which guts the `FieldPath`
+typing that is a headline feature). Keeping a thin `ValidationIssue { path: string }`
+localizes the translation to one place — the boundary — which is exactly what
+`toStandardSchema`/`fromStandardSchema` are. The cost is paid once, by whoever
 crosses into the foreign ecosystem, not by every internal consumer.
+
+The reasons one might *expect* to matter here mostly don't, and it's worth being
+explicit so this isn't read as more than it is:
+
+- **Keyword is *not* the reason.** `keyword` is barely consumed (one cosmetic read
+  in the RHF example) and, crucially, Standard issues are structurally extensible —
+  an adopted contract could still carry `{ message, path, keyword }`. Keyword
+  neither blocks adoption nor argues for adapting.
+- **Sync-vs-async is orthogonal.** Whether we adapt or adopt, we type our own use as
+  synchronous and throw on a returned `Promise` (what `fromStandardSchema` does).
+- **Blast radius is cost, not principle.** Rewriting the internal readers would be
+  work, but for a pre-1.0 library that is not a design argument; the addressing
+  model is.
+
+And adoption's real payoff is **not** forfeited by staying thin: `fromStandardSchema`
+already makes any Standard-Schema library a `Validator` with no per-library package,
+so "Zod just works" is available either way (see Consequences).
 
 ### Mappings the adapters own
 
@@ -124,10 +139,21 @@ crosses into the foreign ecosystem, not by every internal consumer.
 
 ## Alternatives Considered
 
-- **Adopt Standard Schema as the `Validator` contract (replace).** Rejected for now
-  — see "Why adapt, not adopt." Revisit if/when async lands and keyword is either
-  formalized as a vendor extension or dropped; the adapters make that migration
-  incremental rather than a big-bang.
+- **Adopt Standard Schema as the `Validator` contract (replace).** Rejected for now,
+  on the addressing-model argument above: our spine is the dot-string `node.path` /
+  `issue.path` that powers the typed `FieldPath<S>`, and Standard's segment-array
+  path cannot be a template-literal type. Adopting would force a translation inward
+  or push `node.path` to arrays, weakening a headline feature — for interop we
+  already get from `fromStandardSchema`. *Not* rejected for keyword/sync/blast-radius
+  (those don't decide it). Revisit if the typed-path story is ever reworked or async
+  lands; the adapters make that migration incremental rather than a big-bang.
+- **Fuse `~standard` onto the validator itself (a callable that is also a
+  `StandardSchemaV1`).** Deferred. It would let consumers skip the
+  `toStandardSchema(...)` wrapper (`standardSchemaResolver(validator)` directly), but
+  it forces *every* validator — including hand-written ones and test fakes — to carry
+  `~standard`, making the contract heavier for implementers, against the thin-contract
+  decision. Keep `toStandardSchema` as the opt-in bridge; revisit only if the wrapper
+  proves annoying in real recipes.
 - **Rename `result.data` → `value` now.** Unnecessary (see Consequences). The
   boundary adapter is the seam that needs the spec's name, and it has it.
 - **Put the adapters in a new `@jsonschema-form/standard-schema` package.** Rejected
