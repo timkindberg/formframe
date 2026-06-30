@@ -1,3 +1,4 @@
+import { decodeJsonPointerSegment } from '../jsonPointer'
 import type { JSONSchemaObject } from './utils'
 
 /**
@@ -91,10 +92,6 @@ function resolveSchemaWithoutRef(
   }
 
   return changed ? result : schema
-}
-
-function decodeJsonPointerSegment(segment: string): string {
-  return segment.replace(/~1/g, '/').replace(/~0/g, '~')
 }
 
 function resolveJsonPointer(

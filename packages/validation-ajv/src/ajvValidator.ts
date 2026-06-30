@@ -6,6 +6,7 @@ import type {
   ValidationIssue,
   InferData,
 } from '@jsonschema-form/core'
+import { joinPath, jsonPointerToPath } from '@jsonschema-form/core'
 
 export interface AjvValidatorOptions {
   /**
@@ -104,7 +105,7 @@ function cloneJsonish(value: unknown): unknown {
 
 /** Map one AJV error to a neutral issue, landing it on the offending field. */
 function toIssue(error: ErrorObject): ValidationIssue {
-  const base = pointerToPath(error.instancePath)
+  const base = jsonPointerToPath(error.instancePath)
 
   // `required` (and `dependentRequired`) report the *parent* object's path; the
   // offending key lives in `params.missingProperty`. Append it so the issue lands
@@ -113,7 +114,7 @@ function toIssue(error: ErrorObject): ValidationIssue {
   const path =
     (error.keyword === 'required' || error.keyword === 'dependentRequired') &&
     typeof missing === 'string'
-      ? join(base, missing)
+      ? joinPath(base, missing)
       : base
 
   return {
@@ -123,16 +124,3 @@ function toIssue(error: ErrorObject): ValidationIssue {
   }
 }
 
-/** RFC 6901 JSON Pointer (`/contacts/0/email`) → tree dot-path (`contacts.0.email`). */
-function pointerToPath(pointer: string): string {
-  if (!pointer) return ''
-  return pointer
-    .slice(1)
-    .split('/')
-    .map((segment) => segment.replace(/~1/g, '/').replace(/~0/g, '~'))
-    .join('.')
-}
-
-function join(base: string, segment: string): string {
-  return base ? `${base}.${segment}` : segment
-}
