@@ -40,11 +40,15 @@ export interface AjvValidatorOptions {
  * `options.formats: false` if you register your own.
  *
  * Per the {@link Validator} purity invariant (ADR 025) the input is **never
- * mutated**: AJV's `coerceTypes` would otherwise rewrite the caller's object in
- * place, so each call validates a `structuredClone`. The coerced clone is
- * returned as `result.data` — that is where typed values (e.g. `"18"` → `18`)
- * are surfaced, not via a side effect. When the schema is a literal, `result.data`
- * is typed via {@link InferData}; otherwise it widens to `unknown`.
+ * mutated**. AJV rewrites its input in place when a mutating mode is on
+ * (`coerceTypes` — our default — plus `useDefaults`/`removeAdditional`), so we
+ * validate a copy in that case and hand the coerced copy back as `result.data`
+ * (where typed values like `"18"` → `18` are surfaced, not via a side effect).
+ * When no mutating mode is active we validate the input directly and omit `data`
+ * (nothing was transformed) — no clone cost at all. The copy is a plain deep
+ * clone, several times cheaper than `structuredClone` on JSON-shaped form data
+ * (see `bench/clonePerf.mjs`). When the schema is a literal, `result.data` is
+ * typed via {@link InferData}; otherwise it widens to `unknown`.
  */
 export function createAjvValidator<const S extends JSONSchema>(
   schema: S,
@@ -59,15 +63,43 @@ export function createAjvValidator<const S extends JSONSchema>(
   if (options.formats !== false) addFormats(ajv)
   const validate = ajv.compile(schema as object)
 
+  // Does this AJV config mutate its input? Only then must we protect the caller
+  // with a copy (ADR 025). Skipping the clone when nothing mutates removes the
+  // dominant per-validate cost on the reactive hot path (clone >> validate).
+  const ajvOpts = options.ajv ?? {}
+  const mutates =
+    (ajvOpts.coerceTypes ?? true) !== false ||
+    Boolean(ajvOpts.useDefaults) ||
+    Boolean(ajvOpts.removeAdditional)
+
   return (data: unknown) => {
-    // Clone first: `coerceTypes` mutates in place, and a Validator must not touch
-    // the caller's object (ADR 025). AJV coerces the clone; we hand it back as
-    // `data` so callers get typed values without the mutation footgun.
-    const coerced = structuredClone(data)
+    if (!mutates) {
+      const valid = validate(data) === true
+      const issues = valid ? [] : (validate.errors ?? []).map(toIssue)
+      return { valid, issues }
+    }
+    const coerced = cloneJsonish(data)
     const valid = validate(coerced) === true
     const issues = valid ? [] : (validate.errors ?? []).map(toIssue)
     return { valid, issues, data: coerced as InferData<S> }
   }
+}
+
+/**
+ * Deep-clone JSON-shaped form data (plain objects, arrays, primitives). Form data
+ * assembled from inputs contains no `Map`/`Set`/`Date`/class instances, so this
+ * is sufficient and markedly cheaper than `structuredClone` for the shape.
+ */
+function cloneJsonish(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(cloneJsonish)
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      out[key] = cloneJsonish((value as Record<string, unknown>)[key])
+    }
+    return out
+  }
+  return value
 }
 
 /** Map one AJV error to a neutral issue, landing it on the offending field. */

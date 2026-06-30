@@ -131,11 +131,16 @@ in scope; this makes "validators don't mutate" impossible to regress silently.
   `result.data` without reaching into a specific validator's behaviour. The
   native submit path *may* later submit `result.data` to deliver typed values
   instead of raw `FormData` strings (follow-up, not required here).
-- **AJV adapter:** clones input, runs coercion on the clone, returns it as
-  `result.data`. One extra shallow structured-clone per validate. Validation is
-  already the heavy operation and is moving to field-scoped frequency
-  (`jsonschema-form-m3v`), so the cost is immaterial and bounded to the adapter
-  that opted into coercion.
+- **AJV adapter:** validates a copy (so `coerceTypes` can't touch the caller) and
+  returns the coerced copy as `result.data`. The copy is *not* free — benchmarked
+  (`bench/clonePerf.mjs`), it is the **dominant** per-validate cost, 2–10× the AJV
+  validation it wraps. Two mitigations keep it honest: (1) the copy is a plain
+  JSON-shaped deep clone, not `structuredClone` (3–13× cheaper on this shape since
+  form data has no Map/Set/Date/cycles); (2) it is **skipped entirely** when AJV
+  is in no mutating mode (`coerceTypes`/`useDefaults`/`removeAdditional` all off),
+  in which case `data` is omitted because nothing was transformed. In absolute
+  terms the cost is sub-millisecond and dwarfed by a React render; field-scoped
+  revalidation (`jsonschema-form-m3v`) shrinks it further by validating subtrees.
 - **Zod adapter:** add `data: result.data` to the success branch. Otherwise
   unchanged — it already satisfies purity.
 - **Core:** one optional field added to an existing interface; still pure types

@@ -51,6 +51,7 @@ export default tseslint.config(
       '**/build/**',
       '**/*.config.*',
       '**/tmp/**',
+      '**/bench/**',
     ],
   }
 )

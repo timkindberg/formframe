@@ -68,6 +68,20 @@ describe('createAjvValidator — AJV specifics', () => {
     expect(result.data).not.toBe(input)
   })
 
+  it('skips the protective clone when AJV is non-mutating (coerceTypes off)', () => {
+    const validate = createAjvValidator(
+      { type: 'object', properties: { age: { type: 'number', minimum: 0 } } },
+      { ajv: { coerceTypes: false } }
+    )
+    const input = { age: 25 }
+    const result = validate(input)
+    expect(result.valid).toBe(true)
+    // nothing is transformed, so no `data` is returned (and no clone was made)...
+    expect(result.data).toBeUndefined()
+    // ...and the input is untouched regardless.
+    expect(input).toEqual({ age: 25 })
+  })
+
   it('enforces standard formats (email) by default via ajv-formats', () => {
     const validate = createAjvValidator({
       type: 'object',
