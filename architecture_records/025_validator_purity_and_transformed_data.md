@@ -1,7 +1,7 @@
 # ADR 025: The Validator is Pure and Returns Transformed Data
 
 **Date:** 2026-06-29
-**Status:** Proposed
+**Status:** Accepted
 **Deciders:** Tim Kindberg
 
 ## Context
