@@ -168,6 +168,25 @@ in scope; this makes "validators don't mutate" impossible to regress silently.
   `jsonschema-form-r1p`. `data` matches this contract's existing input vocabulary
   ("the form's assembled data"); the `data`↔`value` rename is trivial and belongs
   with the Standard-Schema alignment that motivates it.
+- **Ask AJV to coerce immutably (no clone)** — researched, not possible. AJV
+  mutates in place *by design* when `coerceTypes`/`useDefaults`/`removeAdditional`
+  are on, and offers no non-mutating mode; the maintainer declined adding one
+  (issues #549/#559) because returning transformed data as a separate object
+  needs a general deep clone, which JS cannot do safely for arbitrary data, and
+  because AJV's coercion is deliberately *reversible* for compound schemas
+  (`anyOf`/`oneOf`) by rewriting in place. The maintainer's recommended workaround
+  *is* clone-before-validate — exactly our approach, optimized to a cheap
+  JSON-shaped clone that is skipped when no mutating option is active. (A
+  copy-on-write `Proxy` was considered to clone only coerced branches, but AJV
+  reads each property many times during validation, so trapping every get would
+  likely cost more than the clone it saves.)
+- **Coerce in our own front-end instead of via AJV** — possible future direction,
+  not now. We own a typed IR (`InferData`, field `widget`/`type`), so we *could*
+  build a freshly-typed object ourselves and run AJV with `coerceTypes: false`
+  (pure, no clone). Rejected for this slice: it reimplements AJV's nuanced,
+  reversibility-aware coercion rules and risks subtle divergence, and it only
+  helps the AJV adapter. Worth revisiting if clone cost ever shows up in a real
+  profile after field-scoped revalidation (`jsonschema-form-m3v`).
 
 ---
 
