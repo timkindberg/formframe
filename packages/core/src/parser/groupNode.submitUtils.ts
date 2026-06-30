@@ -1,4 +1,28 @@
 /**
+ * Omits FormData entries whose native value is the empty string, treating an
+ * unfilled field as absent. Preserves empty strings at numeric array indices
+ * (e.g. hobbies.0) where empty vs absent differ (ADR 018 sparse arrays).
+ */
+export function omitEmptyFormValues(
+  flat: Record<string, unknown>
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+
+  for (const [key, value] of Object.entries(flat)) {
+    if (value === '') {
+      const lastSegment = key.split('.').pop() ?? key
+      if (/^\d+$/.test(lastSegment)) {
+        result[key] = value
+      }
+      continue
+    }
+    result[key] = value
+  }
+
+  return result
+}
+
+/**
  * Transforms checkbox "on" values to boolean true
  */
 export function transformCheckboxes(

@@ -53,8 +53,9 @@ describe('submit-time validation (ADR 019)', () => {
 
     await screen.getByRole('button', { name: /submit/i }).click()
 
-    // username (minLength) and zip (pattern) both fail on an empty form
-    await expect.poll(() => errorEls().length).toBe(2)
+    // Empty required username is omitted → `required` fails. Empty optional zip
+    // is omitted too → valid (no spurious pattern error on absence).
+    await expect.poll(() => errorEls().length).toBe(1)
     expect(onValid).not.toHaveBeenCalled()
   })
 
@@ -63,7 +64,9 @@ describe('submit-time validation (ADR 019)', () => {
     const screen = await render(<Harness onValid={onValid} />)
 
     const username = screen.getByRole('textbox', { name: 'Username' })
-    await username.fill('alice') // valid length; zip still empty → submit fails
+    const zip = screen.getByRole('textbox', { name: 'Zip' })
+    await username.fill('alice') // valid length
+    await zip.fill('12') // invalid pattern → submit fails
     await screen.getByRole('button', { name: /submit/i }).click()
 
     await expect.poll(() => errorEls().length).toBeGreaterThan(0)
@@ -77,9 +80,9 @@ describe('submit-time validation (ADR 019)', () => {
     const onValid = vi.fn()
     const screen = await render(<Harness onValid={onValid} />)
 
-    // first submit fails and shows errors…
+    // first submit fails (required username)…
     await screen.getByRole('button', { name: /submit/i }).click()
-    await expect.poll(() => errorEls().length).toBe(2)
+    await expect.poll(() => errorEls().length).toBe(1)
 
     // …fix both fields, then submit again
     await screen.getByRole('textbox', { name: 'Username' }).fill('alice')

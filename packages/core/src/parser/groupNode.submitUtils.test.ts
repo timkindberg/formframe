@@ -1,5 +1,53 @@
 import { describe, it, expect } from 'vitest'
-import { transformCheckboxes, unflatten } from './groupNode.submitUtils'
+import {
+  omitEmptyFormValues,
+  transformCheckboxes,
+  unflatten,
+} from './groupNode.submitUtils'
+
+describe('omitEmptyFormValues', () => {
+  it('omits top-level empty string fields (unfilled native inputs)', () => {
+    const input = {
+      name: '',
+      email: 'a@b.com',
+    }
+
+    expect(omitEmptyFormValues(input)).toEqual({
+      email: 'a@b.com',
+    })
+  })
+
+  it('omits nested empty string fields', () => {
+    const input = {
+      'address.street': '',
+      'address.city': 'Springfield',
+    }
+
+    expect(omitEmptyFormValues(input)).toEqual({
+      'address.city': 'Springfield',
+    })
+  })
+
+  it('preserves empty strings at numeric array indices', () => {
+    const input = {
+      'hobbies.0': '',
+      'hobbies.1': 'coding',
+    }
+
+    expect(omitEmptyFormValues(input)).toEqual(input)
+  })
+
+  it('omits empty strings in nested object fields inside arrays', () => {
+    const input = {
+      'addresses.0.street': '',
+      'addresses.0.city': 'Springfield',
+    }
+
+    expect(omitEmptyFormValues(input)).toEqual({
+      'addresses.0.city': 'Springfield',
+    })
+  })
+})
 
 describe('transformCheckboxes', () => {
   it('transforms "on" values to true', () => {

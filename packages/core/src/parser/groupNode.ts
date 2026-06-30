@@ -1,7 +1,7 @@
 import type { JSONSchema } from 'json-schema-typed/draft-07'
 import { createArrayNode } from './arrayNode'
 import { createFieldNode } from './fieldNode'
-import { transformCheckboxes, unflatten } from './groupNode.submitUtils'
+import { transformCheckboxes, omitEmptyFormValues, unflatten } from './groupNode.submitUtils'
 import { type JSONSchemaObject, serializeNode, walkNode } from './utils'
 import type {
   AnyNode,
@@ -184,15 +184,19 @@ export function createGroupNode(
           }
         }
 
+        // Unfilled native inputs submit as '' — treat as absent so required
+        // validation fails on missing keys, not on type/format of empty string.
+        const withoutEmpty = omitEmptyFormValues(flat)
+
         // Ensure array fields are always arrays, even with single values
         for (const arrayPath of arrayFieldPaths) {
-          if (arrayPath in flat && !Array.isArray(flat[arrayPath])) {
-            flat[arrayPath] = [flat[arrayPath]]
+          if (arrayPath in withoutEmpty && !Array.isArray(withoutEmpty[arrayPath])) {
+            withoutEmpty[arrayPath] = [withoutEmpty[arrayPath]]
           }
         }
 
         // Transform: checkbox "on" -> true
-        const transformed = transformCheckboxes(flat)
+        const transformed = transformCheckboxes(withoutEmpty)
 
         // Unflatten: "address.street" -> { address: { street: ... } }
         const nested = unflatten(transformed)

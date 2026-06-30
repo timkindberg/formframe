@@ -1453,6 +1453,143 @@ describe('jsonSchemaToTree', () => {
       })
     })
 
+    it('omits empty string fields so required validation can fail on absence', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string' },
+          nickname: { type: 'string' },
+        },
+      }
+
+      const form = jsonSchemaToTree(schema)
+      let submittedData: Record<string, unknown> | null = null
+      const handleSubmit = form.submit((data) => {
+        submittedData = data
+      })
+
+      const mockFormData = new Map([
+        ['name', ''],
+        ['nickname', ''],
+      ])
+      const mockEvent = {
+        preventDefault: () => {},
+        currentTarget: {
+          entries: () => mockFormData.entries(),
+        } as unknown as HTMLFormElement,
+      }
+
+      const originalFormData = globalThis.FormData
+      globalThis.FormData = class MockFormData {
+        entries() {
+          return mockFormData.entries()
+        }
+      } as unknown as typeof FormData
+
+      handleSubmit(
+        mockEvent as {
+          preventDefault(): void
+          currentTarget: EventTarget | null
+        }
+      )
+
+      globalThis.FormData = originalFormData
+
+      expect(submittedData).toEqual({})
+    })
+
+    it('preserves filled required string fields unchanged', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string' },
+        },
+      }
+
+      const form = jsonSchemaToTree(schema)
+      let submittedData: Record<string, unknown> | null = null
+      const handleSubmit = form.submit((data) => {
+        submittedData = data
+      })
+
+      const mockFormData = new Map([['name', 'Jane']])
+      const mockEvent = {
+        preventDefault: () => {},
+        currentTarget: {
+          entries: () => mockFormData.entries(),
+        } as unknown as HTMLFormElement,
+      }
+
+      const originalFormData = globalThis.FormData
+      globalThis.FormData = class MockFormData {
+        entries() {
+          return mockFormData.entries()
+        }
+      } as unknown as typeof FormData
+
+      handleSubmit(
+        mockEvent as {
+          preventDefault(): void
+          currentTarget: EventTarget | null
+        }
+      )
+
+      globalThis.FormData = originalFormData
+
+      expect(submittedData).toEqual({ name: 'Jane' })
+    })
+
+    it('preserves empty string elements in dynamic arrays', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          hobbies: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+      }
+
+      const form = jsonSchemaToTree(schema)
+      let submittedData: Record<string, unknown> | null = null
+      const handleSubmit = form.submit((data) => {
+        submittedData = data
+      })
+
+      const mockFormData = new Map([
+        ['hobbies.0', ''],
+        ['hobbies.1', 'coding'],
+      ])
+      const mockEvent = {
+        preventDefault: () => {},
+        currentTarget: {
+          entries: () => mockFormData.entries(),
+        } as unknown as HTMLFormElement,
+      }
+
+      const originalFormData = globalThis.FormData
+      globalThis.FormData = class MockFormData {
+        entries() {
+          return mockFormData.entries()
+        }
+      } as unknown as typeof FormData
+
+      handleSubmit(
+        mockEvent as {
+          preventDefault(): void
+          currentTarget: EventTarget | null
+        }
+      )
+
+      globalThis.FormData = originalFormData
+
+      expect(submittedData).toEqual({
+        hobbies: ['', 'coding'],
+      })
+    })
+
     it('ensures dynamic array fields return arrays', () => {
       const schema: JSONSchema = {
         type: 'object',
