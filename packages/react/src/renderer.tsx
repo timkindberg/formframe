@@ -302,6 +302,29 @@ export function useFieldErrorDisplay(path: string): boolean {
   )
 }
 
+/**
+ * The form-level display policy (ADR 027) for aggregates like `ValidationSummary`
+ * that decide visibility once for the whole form rather than per field: the chosen
+ * `mode` plus whether a submit has been attempted. Subscribes to ONLY the single
+ * `submitted` flag — never the per-path touched slices — so it stays fan-out-free
+ * and hook-safe (no per-path hook loops), re-rendering just once when submit flips.
+ * No provider → `{ mode: 'always', submitted: false }`, i.e. no gating, mirroring
+ * `useFieldErrorDisplay`.
+ */
+export function useDisplayPolicy(): {
+  mode: ShowErrorsWhen
+  submitted: boolean
+} {
+  const policy = useContext(DisplayPolicyContext)
+  const getSubmitted = policy ? () => policy.store.isSubmitted() : () => false
+  const submitted = useSyncExternalStore(
+    policy ? policy.store.subscribe : NEVER_SUBSCRIBE,
+    getSubmitted,
+    getSubmitted
+  )
+  return { mode: policy ? policy.mode : 'always', submitted }
+}
+
 /** Stable control `id` for a field path (matches Core's `attrs.id`). */
 // Single source of truth for deriving a control's DOM id from its field path,
 // paired with `fieldErrorId`. Identity today because Core already uses the

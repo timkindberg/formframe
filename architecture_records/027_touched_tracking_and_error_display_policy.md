@@ -125,6 +125,29 @@ normal path) or `showErrorsWhen="always"` to report unconditionally.
   display policy. `dirty` / `reset` / `watch` / async / cross-field remain the
   form-library adapter's job; this ADR does not grow into a form-state engine.
 
+### `ValidationSummary` follows the policy too
+
+`ValidationSummary` is a **form-level aggregate** (its docstring calls it a
+"submit-time error summary"), so it obeys the same display policy as the inline
+per-field errors — otherwise the new `'touched'` default would leak every error
+through the summary the instant a validator produced it while each field stayed
+quiet, an incoherent split. It reads the policy through a small `useDisplayPolicy()`
+hook (mode + `submitted`) and subscribes to **only the single `submitted` flag**,
+never the per-path touched slices: an aggregate has no one path, and a per-path
+hook loop would be neither hook-safe nor fan-out-free. The rule:
+
+- `'always'` → visible whenever issues exist (unchanged; the opt-out consumers
+  who pass `showErrorsWhen="always"` keep exactly today's behaviour).
+- `'touched'` / `'submit'` → visible only once `submitted` is set — the
+  reveal-all moment. Before submit the inline field errors carry the load; the
+  summary appears on the submit attempt.
+- No policy provider → treated as `'always'` (no gating), mirroring
+  `useFieldErrorDisplay`.
+
+This is why `App_09` (submit-time validation, default `'touched'`) feeds
+`ValidationProvider` a `submitted` flag: the summary now surfaces on submit
+rather than immediately.
+
 ## Alternatives Considered
 
 - **Fold "when to display" into "when to validate"** (RHF's `mode`) — rejected:

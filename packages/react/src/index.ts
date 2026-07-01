@@ -25,6 +25,7 @@ export {
   ValidationProvider,
   useFieldIssues,
   useFieldErrorDisplay,
+  useDisplayPolicy,
   useValidationIssues,
   fieldControlId,
   fieldErrorId,

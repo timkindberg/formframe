@@ -159,3 +159,51 @@ describe('validation a11y wiring', () => {
     }
   })
 })
+
+// ADR 027: the summary is a form-level aggregate, so it follows the display
+// policy off a single flag (mode + submitted) rather than per-field touched —
+// under 'always' it reports immediately; under 'touched'/'submit' it stays quiet
+// until the submit attempt reveals everything, matching the inline field gate.
+describe('ValidationSummary display policy (ADR 027)', () => {
+  it("'always': shows as soon as issues exist, no submit needed", async () => {
+    await render(
+      <ValidationProvider issues={errors} showErrorsWhen="always">
+        <ValidationSummary />
+      </ValidationProvider>
+    )
+
+    const summary = document.querySelector('.jsf-validation-summary')
+    expect(summary).not.toBeNull()
+    expect(summary?.querySelectorAll('a').length).toBe(2)
+  })
+
+  it("'touched': hidden until submit even when fields are touched, then shows all", async () => {
+    // Touching fields reveals *their inline* errors, but not the whole-form
+    // summary — only a submit attempt does that.
+    const touched = new Set(['username', 'zip'])
+    const screen = await render(
+      <ValidationProvider
+        issues={errors}
+        touched={touched}
+        showErrorsWhen="touched"
+      >
+        <ValidationSummary />
+      </ValidationProvider>
+    )
+    expect(document.querySelector('.jsf-validation-summary')).toBeNull()
+
+    await screen.rerender(
+      <ValidationProvider
+        issues={errors}
+        touched={touched}
+        showErrorsWhen="touched"
+        submitted
+      >
+        <ValidationSummary />
+      </ValidationProvider>
+    )
+    const summary = document.querySelector('.jsf-validation-summary')
+    expect(summary).not.toBeNull()
+    expect(summary?.querySelectorAll('a').length).toBe(2)
+  })
+})
