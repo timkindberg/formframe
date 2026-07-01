@@ -3,6 +3,7 @@ import {
   useState,
   useCallback,
   type FC,
+  type FocusEvent,
   type FormEvent,
   type ReactNode,
 } from 'react'
@@ -54,17 +55,26 @@ export interface UseSchemaFormOptions {
  * `<ValidationProvider issues={errors}>` (kept explicit so you own where issues
  * live — ADR 013).
  *
+ * For React-Hook-Form-style **touched-gated errors** (ADR 027), wire
+ * `onBlur={handleBlur}` and pass `touched`/`submitted` plus
+ * `showErrorsWhen="touched"` to the provider: a field's error stays quiet until
+ * it blurs, and submit reveals all. Default is `'always'` (unchanged).
+ *
  * `SchemaFields` renders the form's *content only* — wrap it in your own
  * `<form>` and submit (chrome is the consumer's, ADR 013):
  *
  * @example
  * ```tsx
- * const { SchemaFields, submit, revalidate, errors } = useSchemaForm(schema, {
- *   validator: createAjvValidator(schema),
- * })
+ * const { SchemaFields, submit, revalidate, errors, handleBlur, touched, submitted } =
+ *   useSchemaForm(schema, { validator: createAjvValidator(schema) })
  * return (
- *   <form noValidate onSubmit={submit(onValid)} onInput={revalidate}>
- *     <ValidationProvider issues={errors}>
+ *   <form noValidate onSubmit={submit(onValid)} onInput={revalidate} onBlur={handleBlur}>
+ *     <ValidationProvider
+ *       issues={errors}
+ *       touched={touched}
+ *       submitted={submitted}
+ *       showErrorsWhen="touched"
+ *     >
  *       <SchemaFields />
  *     </ValidationProvider>
  *     <button type="submit">Submit</button>
@@ -79,10 +89,28 @@ export function useSchemaForm(
   const { validator } = options
   const form = useMemo(() => jsonSchemaToTree(schema), [schema])
 
-  // Validation issues (submit-time and/or live). Updating `errors` re-renders
-  // every `useFieldIssues` consumer (O(fields) React work per pass) but the
-  // memoized field renderer bails, so uncontrolled inputs keep typed values.
+  // Validation issues (submit-time and/or live). Mirrored into the per-path
+  // issue store by `ValidationProvider` (ADR 023), so a pass re-renders only the
+  // fields whose issues changed; uncontrolled inputs keep typed values.
   const [errors, setErrors] = useState<ValidationIssue[]>([])
+
+  // Error-display state (ADR 027) — which fields have been touched (focus→blur)
+  // and whether a submit has been attempted. Feeds `ValidationProvider`'s
+  // touched/submitted props; the default `showErrorsWhen='always'` ignores them.
+  const [touched, setTouched] = useState<ReadonlySet<string>>(() => new Set())
+  const [submitted, setSubmitted] = useState(false)
+
+  /**
+   * Mark a field touched on blur — wire once at the form: `<form onBlur={...}>`.
+   * `focusout` bubbles, so this one handler catches every field; `event.target`
+   * is the blurred control and its `name` is the field's dot-path. Idempotent:
+   * re-blurring a touched field keeps the same Set reference (no re-render).
+   */
+  const handleBlur = useCallback((event: FocusEvent<HTMLFormElement>) => {
+    const name = (event.target as { name?: string }).name
+    if (!name) return
+    setTouched((prev) => (prev.has(name) ? prev : new Set(prev).add(name)))
+  }, [])
 
   const runValidator = useCallback(
     (data: Record<string, unknown>) => {
@@ -102,11 +130,18 @@ export function useSchemaForm(
    * pass-through. Returns a DOM submit handler — `<form onSubmit={submit(fn)}>`.
    */
   const submit = useCallback(
-    (onValid?: (data: Record<string, unknown>) => void) =>
-      form.submit((data) => {
+    (onValid?: (data: Record<string, unknown>) => void) => {
+      const run = form.submit((data) => {
         const result = runValidator(data)
         if (result.valid) onValid?.(data)
-      }),
+      })
+      return (event: FormEvent<HTMLFormElement>) => {
+        // A submit attempt reveals all errors under the 'touched'/'submit'
+        // display policies (ADR 027), matching React Hook Form.
+        setSubmitted(true)
+        run(event)
+      }
+    },
     [form, runValidator]
   )
 
@@ -143,5 +178,14 @@ export function useSchemaForm(
     }
   }, [form])
 
-  return { form, SchemaFields, submit, revalidate, errors }
+  return {
+    form,
+    SchemaFields,
+    submit,
+    revalidate,
+    errors,
+    handleBlur,
+    touched,
+    submitted,
+  }
 }

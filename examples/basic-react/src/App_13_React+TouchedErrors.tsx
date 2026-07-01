@@ -1,0 +1,120 @@
+// Touched-gated error display (ADR 027) — React-Hook-Form-style "quiet until
+// touched".
+//
+// The SAME live validator (ADR 021) runs on every keystroke; `showErrorsWhen`
+// only decides *when each field reveals* the error it already has. Toggle the
+// policy below to feel the difference:
+//   • always  — report the moment the validator produces an issue (pre-027)
+//   • touched — stay quiet until the field blurs; submit reveals all (RHF-like)
+//   • submit  — nothing until a submit attempt
+//
+// `useSchemaForm` owns the touched/submitted state. You wire one `onBlur` at the
+// form (focusout bubbles, so a single handler covers every field) and pass
+// `touched`/`submitted`/`showErrorsWhen` to `ValidationProvider`.
+import { useMemo, useState } from 'react'
+import {
+  useSchemaForm,
+  ValidationProvider,
+  type ShowErrorsWhen,
+} from '@jsonschema-form/react'
+import { createAjvValidator } from '@jsonschema-form/validation-ajv'
+import type { JSONSchema } from '@jsonschema-form/core'
+
+const schema: JSONSchema = {
+  type: 'object',
+  required: ['username', 'email'],
+  properties: {
+    username: {
+      type: 'string',
+      title: 'Username',
+      description: 'At least 3 characters.',
+      minLength: 3,
+    },
+    email: {
+      type: 'string',
+      title: 'Email',
+      description: 'Must be a valid email address.',
+      format: 'email',
+    },
+  },
+}
+
+const policies: ShowErrorsWhen[] = ['always', 'touched', 'submit']
+
+function App() {
+  const validator = useMemo(() => createAjvValidator(schema), [])
+  const {
+    SchemaFields,
+    submit,
+    revalidate,
+    errors,
+    handleBlur,
+    touched,
+    submitted,
+  } = useSchemaForm(schema, { validator })
+  const [mode, setMode] = useState<ShowErrorsWhen>('touched')
+  const [submittedData, setSubmittedData] = useState<Record<
+    string,
+    unknown
+  > | null>(null)
+
+  return (
+    <div>
+      <h1>JSON Schema Form — Touched-Gated Errors (ADR 027)</h1>
+      <p>
+        Live validation (ADR 021) runs on every keystroke regardless — this only
+        changes <em>when a field shows</em> the error it already has.{' '}
+        <code>showErrorsWhen</code> is orthogonal to <em>when you validate</em>:
+        you can validate live and still keep errors quiet until blur.
+      </p>
+
+      <fieldset style={{ marginBottom: '1rem' }}>
+        <legend>
+          <code>showErrorsWhen</code>
+        </legend>
+        {policies.map((p) => (
+          <label key={p} style={{ marginRight: '1.25rem' }}>
+            <input
+              type="radio"
+              name="policy"
+              checked={mode === p}
+              onChange={() => setMode(p)}
+            />{' '}
+            {p}
+          </label>
+        ))}
+      </fieldset>
+
+      <form
+        noValidate
+        onSubmit={submit((data) => setSubmittedData(data))}
+        onInput={revalidate}
+        onBlur={handleBlur}
+      >
+        <ValidationProvider
+          issues={errors}
+          touched={touched}
+          submitted={submitted}
+          showErrorsWhen={mode}
+        >
+          <SchemaFields />
+        </ValidationProvider>
+        <button type="submit">Submit</button>
+      </form>
+
+      <p style={{ color: '#666', fontSize: '0.85rem' }}>
+        Try <code>touched</code>: type an invalid value — no error yet — then tab
+        away to reveal it. Untouched fields stay quiet until you submit.
+      </p>
+
+      {submittedData && (
+        <>
+          <p style={{ color: 'green' }}>Submitted valid data:</p>
+          <pre>{JSON.stringify(submittedData, null, 2)}</pre>
+        </>
+      )}
+    </div>
+  )
+}
+
+export default App

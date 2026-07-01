@@ -17,6 +17,8 @@ import {
   createRenderer,
   defaultAdapter,
   ValidationProvider,
+  fieldControlId,
+  fieldErrorId,
   type ReactPartialAdapter,
 } from './renderer'
 import { useSchemaForm } from './useSchemaForm'
@@ -265,6 +267,80 @@ describe('validation render-count contract (ADR 023)', () => {
     expect(counts['field.root:note'] ?? 0).toBe(0)
     expect(counts['field.input:note'] ?? 0).toBe(0)
     // the changed field did re-render (to surface its error + aria wiring)
+    expect(counts['field.root:username'] ?? 0).toBeGreaterThan(0)
+  })
+})
+
+// The touched-gating fan-out contract (ADR 027): the same "no preventable
+// re-render" rule applied to the *display* dimension. Both fields carry an issue
+// (both hidden under 'touched'); blurring ONE must reveal only that field's error
+// and re-render only that field — the untouched sibling, whose display decision
+// did not flip, must stay at zero. This proves the touched store (a boolean
+// per-path snapshot) does not fan out any more than the issue store did.
+const touchedGateSchema: JSONSchema = {
+  type: 'object',
+  required: ['username', 'zip'],
+  properties: {
+    username: { type: 'string', title: 'Username', minLength: 3 },
+    zip: { type: 'string', title: 'Zip', pattern: '^[0-9]{5}$' },
+  },
+}
+
+function dispatchInput(input: HTMLInputElement, value: string) {
+  input.value = value
+  input.dispatchEvent(new InputEvent('input', { bubbles: true }))
+}
+
+function TouchedCountingHarness({
+  Counting,
+}: {
+  Counting: ReturnType<typeof createRenderer>
+}) {
+  const validator = useMemo(() => createAjvValidator(touchedGateSchema), [])
+  const { form, revalidate, errors, handleBlur, touched, submitted } =
+    useSchemaForm(touchedGateSchema, { validator })
+  return (
+    <form noValidate onInput={revalidate} onBlur={handleBlur}>
+      <ValidationProvider
+        issues={errors}
+        touched={touched}
+        submitted={submitted}
+        showErrorsWhen="touched"
+      >
+        <Counting form={form} />
+      </ValidationProvider>
+    </form>
+  )
+}
+
+describe('touched-gating render-count contract (ADR 027)', () => {
+  it('blurring a field reveals only its own error, not an untouched sibling with an issue', async () => {
+    const counts: Counts = {}
+    const Counting = createRenderer(countingAdapter(counts))
+    await render(<TouchedCountingHarness Counting={Counting} />)
+
+    // One keystroke in username runs the whole-form validator, so BOTH username
+    // (minLength) and the empty required zip gain issues — both hidden (untouched).
+    const username = document.getElementById(
+      fieldControlId('username')
+    ) as HTMLInputElement
+    username.focus()
+    dispatchInput(username, 'a')
+    await new Promise((r) => setTimeout(r, 30))
+    expect(document.querySelectorAll('.jsf-field-errors').length).toBe(0)
+
+    reset(counts)
+    // Blur username → it becomes touched and reveals its error.
+    username.blur()
+    await expect
+      .poll(() => document.getElementById(fieldErrorId('username')))
+      .not.toBeNull()
+
+    // zip also has an issue but was never touched → its display decision is
+    // unchanged (still hidden), so it must not have re-rendered at all.
+    expect(counts['field.root:zip'] ?? 0).toBe(0)
+    expect(counts['field.input:zip'] ?? 0).toBe(0)
+    // the blurred field re-rendered to surface its error + aria wiring.
     expect(counts['field.root:username'] ?? 0).toBeGreaterThan(0)
   })
 })

@@ -1,0 +1,41 @@
+// Error-display policy (ADR 027) — the pure decision of *when* a field's errors
+// are shown, kept separate from *when* validation runs (ADR 021's `revalidate`).
+//
+// This is deliberately a total, framework-agnostic function of
+// `(mode, { touched, submitted })`. It has no React, no DOM, no store — the
+// per-path touched state and the `submitted` flag are supplied by the caller
+// (see `touchedStore.ts` + `ValidationProvider`), so the policy itself stays a
+// trivially-testable pure function. Kept in `@jsonschema-form/react` (not Core)
+// until a second front-end earns the shared shape (ADR 008).
+
+/**
+ * When a field's validation errors become visible.
+ *
+ * - `'always'` — as soon as the validator produces them (pre-ADR-027 behaviour,
+ *   and the default so existing consumers are unchanged).
+ * - `'touched'` — only after the field is touched (focus→blur), plus everything
+ *   once the form is submitted (React Hook Form's default UX).
+ * - `'submit'` — only after a submit attempt.
+ */
+export type ShowErrorsWhen = 'always' | 'touched' | 'submit'
+
+/** The default policy: report immediately (backward-compatible). */
+export const DEFAULT_SHOW_ERRORS_WHEN: ShowErrorsWhen = 'always'
+
+/**
+ * Whether one field's errors should be displayed, given the policy and the
+ * field's touched state + whether the form has been submitted. Pure and total.
+ */
+export function shouldDisplayFieldErrors(
+  mode: ShowErrorsWhen,
+  state: { touched: boolean; submitted: boolean }
+): boolean {
+  switch (mode) {
+    case 'always':
+      return true
+    case 'touched':
+      return state.touched || state.submitted
+    case 'submit':
+      return state.submitted
+  }
+}

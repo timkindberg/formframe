@@ -1,0 +1,110 @@
+// Touched-gated error display (ADR 027).
+//
+// Orthogonal to *when* validation runs (ADR 021): here the validator produces
+// issues live, but a field's error stays hidden until the field is touched
+// (focus→blur), and a submit attempt reveals everything — React Hook Form's
+// default UX. `useSchemaForm` owns touched/submitted; `showErrorsWhen` on the
+// provider picks the policy. Default `'always'` is unchanged (covered elsewhere).
+
+import { useMemo } from 'react'
+import { describe, it, expect } from 'vitest'
+import { render } from 'vitest-browser-react'
+import type { JSONSchema } from '@jsonschema-form/core'
+import { createAjvValidator } from '@jsonschema-form/validation-ajv'
+import { useSchemaForm } from './useSchemaForm'
+import { ValidationProvider, fieldControlId, fieldErrorId } from './renderer'
+import type { ShowErrorsWhen } from './displayPolicy'
+
+const schema: JSONSchema = {
+  type: 'object',
+  required: ['username', 'zip'],
+  properties: {
+    username: { type: 'string', title: 'Username', minLength: 3 },
+    zip: { type: 'string', title: 'Zip', pattern: '^[0-9]{5}$' },
+  },
+}
+
+function Harness({ mode }: { mode: ShowErrorsWhen }) {
+  const validator = useMemo(() => createAjvValidator(schema), [])
+  const { SchemaFields, submit, revalidate, errors, handleBlur, touched, submitted } =
+    useSchemaForm(schema, { validator })
+  return (
+    <form
+      noValidate
+      onSubmit={submit(() => {})}
+      onInput={revalidate}
+      onBlur={handleBlur}
+    >
+      <ValidationProvider
+        issues={errors}
+        touched={touched}
+        submitted={submitted}
+        showErrorsWhen={mode}
+      >
+        <SchemaFields />
+      </ValidationProvider>
+      <button type="submit">Submit</button>
+    </form>
+  )
+}
+
+/** Simulate a keystroke: update value and bubble a native `input` event. */
+function dispatchInput(input: HTMLInputElement, value: string) {
+  input.value = value
+  input.dispatchEvent(new InputEvent('input', { bubbles: true }))
+}
+
+const control = (path: string) =>
+  document.getElementById(fieldControlId(path)) as HTMLInputElement
+const errorEls = () => document.querySelectorAll('.jsf-field-errors')
+
+describe('touched-gated error display (ADR 027)', () => {
+  it("'touched': keeps a live error hidden until the field blurs, then shows it", async () => {
+    await render(<Harness mode="touched" />)
+
+    const username = control('username')
+    username.focus()
+    dispatchInput(username, 'a') // invalid (minLength 3): issue is produced live
+
+    // …but not displayed — the field has not been touched yet.
+    await new Promise((r) => setTimeout(r, 30))
+    expect(document.getElementById(fieldErrorId('username'))).toBeNull()
+
+    // blurring the field marks it touched → its error is revealed.
+    username.blur()
+    await expect
+      .poll(() => document.getElementById(fieldErrorId('username')))
+      .not.toBeNull()
+  })
+
+  it("'touched': a submit attempt reveals errors on untouched fields too", async () => {
+    await render(<Harness mode="touched" />)
+
+    // One keystroke in username runs the whole-form validator, so BOTH username
+    // (minLength) and the empty required zip gain issues — both hidden (untouched).
+    const username = control('username')
+    username.focus()
+    dispatchInput(username, 'a')
+    await new Promise((r) => setTimeout(r, 30))
+    expect(errorEls().length).toBe(0)
+
+    // A submit attempt reveals all — including the never-touched zip. Driven via
+    // requestSubmit (not a button click) so a revealed error shifting the button
+    // can't make the click miss.
+    const form = document.querySelector('form') as HTMLFormElement
+    form.requestSubmit()
+    await expect.poll(() => errorEls().length).toBe(2)
+  })
+
+  it("'always' (default policy) shows a live error immediately, no touch needed", async () => {
+    await render(<Harness mode="always" />)
+
+    const username = control('username')
+    username.focus()
+    dispatchInput(username, 'a')
+
+    await expect
+      .poll(() => document.getElementById(fieldErrorId('username')))
+      .not.toBeNull()
+  })
+})
