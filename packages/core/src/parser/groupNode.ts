@@ -1,11 +1,17 @@
 import type { JSONSchema } from 'json-schema-typed/draft-07'
 import { createArrayNode } from './arrayNode'
 import { createFieldNode } from './fieldNode'
-import { transformCheckboxes, omitEmptyFormValues, unflatten } from './groupNode.submitUtils'
+import {
+  transformCheckboxes,
+  omitEmptyFormValues,
+  unflatten,
+  forceArrayFields,
+  normalizeArrayFieldPath,
+} from './groupNode.submitUtils'
 import { type JSONSchemaObject, serializeNode, walkNode } from './utils'
 import type {
   AnyNode,
-  ArrayItemNode,
+  ArrayNode,
   FieldNode,
   GroupNode,
   GroupParts,
@@ -148,26 +154,22 @@ export function createGroupNode(
 
         const formData = new FormData(target)
 
-        // Identify all array fields (multiselect and dynamic arrays)
-        const arrayFieldPaths = new Set<string>()
-        this.walk<void>({
+        // Signatures of every array-valued leaf field (multiselect), keyed by
+        // normalized path so one signature covers all item instances. A
+        // representative item (getItem(0)) is walked so nested array leaves are
+        // found even when the array has no compiled items (minItems: 0).
+        const arrayFieldSignatures = new Set<string>()
+        const collectHandlers: WalkHandlers<void> = {
           field(fieldNode: FieldNode) {
-            // Multiselect fields should always return arrays
             if (fieldNode.widget === 'multiselect') {
-              arrayFieldPaths.add(fieldNode.path)
+              arrayFieldSignatures.add(normalizeArrayFieldPath(fieldNode.path))
             }
           },
-          arrayItem(itemNode: ArrayItemNode) {
-            // Dynamic array items - their parent array path should be tracked
-            // Extract array path from item path (e.g., "hobbies.0" -> "hobbies")
-            const itemPath = itemNode.path
-            const lastDotIndex = itemPath.lastIndexOf('.')
-            if (lastDotIndex !== -1) {
-              const arrayPath = itemPath.substring(0, lastDotIndex)
-              arrayFieldPaths.add(arrayPath)
-            }
+          array(arrayNode: ArrayNode) {
+            arrayNode.getItem(0).walk<void>(collectHandlers)
           },
-        })
+        }
+        this.walk<void>(collectHandlers)
 
         // Collect all values, handling multiselect (multiple entries with same name)
         const flat: Record<string, unknown> = {}
@@ -188,15 +190,11 @@ export function createGroupNode(
         // validation fails on missing keys, not on type/format of empty string.
         const withoutEmpty = omitEmptyFormValues(flat)
 
-        // Ensure array fields are always arrays, even with single values
-        for (const arrayPath of arrayFieldPaths) {
-          if (arrayPath in withoutEmpty && !Array.isArray(withoutEmpty[arrayPath])) {
-            withoutEmpty[arrayPath] = [withoutEmpty[arrayPath]]
-          }
-        }
+        // Ensure array fields are always arrays, even with a single value.
+        const withArrays = forceArrayFields(withoutEmpty, arrayFieldSignatures)
 
         // Transform: checkbox "on" -> true
-        const transformed = transformCheckboxes(withoutEmpty)
+        const transformed = transformCheckboxes(withArrays)
 
         // Unflatten: "address.street" -> { address: { street: ... } }
         const nested = unflatten(transformed)

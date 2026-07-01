@@ -1642,6 +1642,151 @@ describe('jsonSchemaToTree', () => {
         hobbies: ['reading', 'coding'], // Should be array
       })
     })
+
+    // Runs form.submit() against a mocked FormData backed by [key, value] pairs
+    // (a multimap, so duplicate keys survive — matching real FormData).
+    function submitWith(
+      schema: JSONSchema,
+      pairs: Array<[string, string]>
+    ): Record<string, unknown> {
+      const form = jsonSchemaToTree(schema)
+      let submitted: Record<string, unknown> = {}
+      const handleSubmit = form.submit((data) => {
+        submitted = data
+      })
+      const originalFormData = globalThis.FormData
+      globalThis.FormData = class MockFormData {
+        entries() {
+          return pairs.values()
+        }
+      } as unknown as typeof FormData
+      handleSubmit({
+        preventDefault() {},
+        currentTarget: {} as EventTarget,
+      })
+      globalThis.FormData = originalFormData
+      return submitted
+    }
+
+    it('wraps a multiselect nested in an array item (single selection)', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          contacts: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              properties: {
+                skills: {
+                  type: 'array',
+                  items: { type: 'string', enum: ['a', 'b'] },
+                },
+              },
+            },
+          },
+        },
+      }
+
+      expect(submitWith(schema, [['contacts.0.skills', 'a']])).toEqual({
+        contacts: [{ skills: ['a'] }],
+      })
+    })
+
+    it('wraps a nested multiselect for a runtime item beyond minItems', () => {
+      // minItems: 0 means the compiled tree has no items, yet a runtime-added
+      // item's single selection must still submit as an array. Signatures are
+      // derived from the item schema (getItem), so any index matches.
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          contacts: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                skills: {
+                  type: 'array',
+                  items: { type: 'string', enum: ['a', 'b'] },
+                },
+              },
+            },
+          },
+        },
+      }
+
+      expect(
+        submitWith(schema, [
+          ['contacts.0.name', 'x'],
+          ['contacts.1.skills', 'a'],
+        ])
+      ).toEqual({
+        contacts: [{ name: 'x' }, { skills: ['a'] }],
+      })
+    })
+
+    it('leaves scalar fields and nested objects unchanged', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          address: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+          },
+        },
+      }
+
+      expect(
+        submitWith(schema, [
+          ['name', 'John'],
+          ['address.city', 'Springfield'],
+        ])
+      ).toEqual({
+        name: 'John',
+        address: { city: 'Springfield' },
+      })
+    })
+
+    it('does not turn dynamic-array object scalars into arrays', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          people: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+            },
+          },
+        },
+      }
+
+      expect(submitWith(schema, [['people.0.name', 'Bob']])).toEqual({
+        people: [{ name: 'Bob' }],
+      })
+    })
+
+    it('keeps ADR 018 dense arrays dense (single survivor is a 1-element array)', () => {
+      // After removing the first of two dynamic items, the survivor re-paths to
+      // index 0 (dense). Submission must be a contiguous 1-element array.
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          contacts: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+            },
+          },
+        },
+      }
+
+      expect(submitWith(schema, [['contacts.0.name', 'Bob']])).toEqual({
+        contacts: [{ name: 'Bob' }],
+      })
+    })
   })
 
   describe('array fields - multiselect', () => {

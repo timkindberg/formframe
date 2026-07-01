@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
+  forceArrayFields,
+  normalizeArrayFieldPath,
   omitEmptyFormValues,
   transformCheckboxes,
   unflatten,
@@ -46,6 +48,71 @@ describe('omitEmptyFormValues', () => {
     expect(omitEmptyFormValues(input)).toEqual({
       'addresses.0.city': 'Springfield',
     })
+  })
+})
+
+describe('normalizeArrayFieldPath', () => {
+  it('replaces numeric segments with a wildcard', () => {
+    expect(normalizeArrayFieldPath('contacts.0.skills')).toBe(
+      'contacts.*.skills'
+    )
+    expect(normalizeArrayFieldPath('contacts.12.skills')).toBe(
+      'contacts.*.skills'
+    )
+  })
+
+  it('leaves non-numeric paths unchanged', () => {
+    expect(normalizeArrayFieldPath('skills')).toBe('skills')
+    expect(normalizeArrayFieldPath('profile.skills')).toBe('profile.skills')
+  })
+})
+
+describe('forceArrayFields', () => {
+  it('wraps a single value of a known array field in a 1-element array', () => {
+    const signatures = new Set(['skills'])
+    expect(forceArrayFields({ skills: 'JavaScript' }, signatures)).toEqual({
+      skills: ['JavaScript'],
+    })
+  })
+
+  it('leaves already-array values untouched', () => {
+    const signatures = new Set(['skills'])
+    expect(
+      forceArrayFields({ skills: ['JavaScript', 'TypeScript'] }, signatures)
+    ).toEqual({ skills: ['JavaScript', 'TypeScript'] })
+  })
+
+  it('does not wrap scalar fields that are not array fields', () => {
+    const signatures = new Set(['skills'])
+    expect(
+      forceArrayFields({ name: 'John', skills: 'JavaScript' }, signatures)
+    ).toEqual({ name: 'John', skills: ['JavaScript'] })
+  })
+
+  it('matches array-item instances by normalized signature (any index)', () => {
+    const signatures = new Set(['contacts.*.skills'])
+    expect(
+      forceArrayFields(
+        { 'contacts.0.skills': 'a', 'contacts.1.skills': 'b' },
+        signatures
+      )
+    ).toEqual({ 'contacts.0.skills': ['a'], 'contacts.1.skills': ['b'] })
+  })
+
+  it('does not add absent fields (zero selections stay omitted)', () => {
+    const signatures = new Set(['skills'])
+    expect(forceArrayFields({ name: 'John' }, signatures)).toEqual({
+      name: 'John',
+    })
+  })
+
+  it('leaves dynamic-array element paths untouched (only leaf array fields)', () => {
+    // `hobbies` is a dynamic string array: its elements are scalars assembled
+    // into an array by unflatten, not array-valued leaves themselves.
+    const signatures = new Set<string>()
+    expect(
+      forceArrayFields({ 'hobbies.0': 'reading', 'hobbies.1': 'coding' }, signatures)
+    ).toEqual({ 'hobbies.0': 'reading', 'hobbies.1': 'coding' })
   })
 })
 
