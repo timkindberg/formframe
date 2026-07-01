@@ -24,10 +24,17 @@ export {
   diagnosticAdapter,
   ValidationProvider,
   useFieldIssues,
+  useFieldErrorDisplay,
   useValidationIssues,
   fieldControlId,
   fieldErrorId,
 } from './renderer'
+// Error-display policy (ADR 027): touched-gated / submit-gated error visibility.
+export {
+  shouldDisplayFieldErrors,
+  DEFAULT_SHOW_ERRORS_WHEN,
+  type ShowErrorsWhen,
+} from './displayPolicy'
 export { ValidationSummary } from './ValidationSummary'
 export type {
   SchemaFieldsProps,

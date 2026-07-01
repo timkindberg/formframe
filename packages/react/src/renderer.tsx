@@ -44,6 +44,12 @@ import {
   type ReactNode,
 } from 'react'
 import { createIssueStore, EMPTY_ISSUES, type IssueStore } from './issueStore'
+import { createTouchedStore, type TouchedStore } from './touchedStore'
+import {
+  shouldDisplayFieldErrors,
+  DEFAULT_SHOW_ERRORS_WHEN,
+  type ShowErrorsWhen,
+} from './displayPolicy'
 import {
   createContinuation,
   mergeAdapter,
@@ -178,31 +184,65 @@ function DefaultGroupLabel({ text }: { text: string }): ReactNode {
 
 const ValidationStoreContext = createContext<IssueStore | null>(null)
 
+/** The touched store + chosen display policy (ADR 027) for the fields below.
+ * Null (no provider) means no gating — a field always shows whatever issues it
+ * has, exactly as before ADR 027. */
+interface DisplayPolicy {
+  store: TouchedStore
+  mode: ShowErrorsWhen
+}
+const DisplayPolicyContext = createContext<DisplayPolicy | null>(null)
+
+/** Stable empty touched set so an unset `touched` prop never triggers a notify. */
+const EMPTY_TOUCHED: ReadonlySet<string> = new Set()
+
 /**
- * Provide validation issues to the fields below (ADR 019/023). Holds one store
- * per provider instance and feeds it the latest `issues` after each render; the
- * store diffs per path and notifies, so only the fields whose issues changed
- * re-render — uncontrolled inputs stay mounted with their typed values.
+ * Provide validation issues to the fields below (ADR 019/023) and, optionally, a
+ * touched/submit-aware error *display* policy (ADR 027).
+ *
+ * `issues` is mirrored into the per-path issue store as before. `touched` (the
+ * set of blurred field paths), `submitted`, and `showErrorsWhen` drive *when*
+ * each field reveals its errors: the default `'always'` shows them as soon as
+ * they exist (unchanged behaviour), while `'touched'`/`'submit'` gate on this
+ * field's touched slice + the submit flag. `useSchemaForm` owns that state (see
+ * its `handleBlur`/`submit`). Both stores diff per path and notify, so a
+ * keystroke or a blur re-renders only the field it concerns.
  */
 export function ValidationProvider({
   issues,
+  touched = EMPTY_TOUCHED,
+  submitted = false,
+  showErrorsWhen = DEFAULT_SHOW_ERRORS_WHEN,
   children,
 }: {
   issues: ValidationIssue[]
+  touched?: ReadonlySet<string>
+  submitted?: boolean
+  showErrorsWhen?: ShowErrorsWhen
   children: ReactNode
 }): ReactNode {
-  // One store per provider instance — lazy-init via useState so it's created
+  // One store per provider instance — lazy-init via useState so each is created
   // once and stays referentially stable across renders (no ref-in-render).
   const [store] = useState(() => createIssueStore(issues))
-  // Push new issues into the store after commit (never during render). The store
-  // preserves array identity for unchanged paths, so this notifies only the
-  // fields that actually changed.
+  const [touchedStore] = useState(() => createTouchedStore(touched, submitted))
+  // Push new state into the stores after commit (never during render). Each
+  // store preserves per-path identity for unchanged paths, so this notifies only
+  // the fields that actually changed.
   useLayoutEffect(() => {
     store.setResult(issues)
   }, [store, issues])
+  useLayoutEffect(() => {
+    touchedStore.sync(touched, submitted)
+  }, [touchedStore, touched, submitted])
+  const policy = useMemo<DisplayPolicy>(
+    () => ({ store: touchedStore, mode: showErrorsWhen }),
+    [touchedStore, showErrorsWhen]
+  )
   return (
     <ValidationStoreContext.Provider value={store}>
-      {children}
+      <DisplayPolicyContext.Provider value={policy}>
+        {children}
+      </DisplayPolicyContext.Provider>
     </ValidationStoreContext.Provider>
   )
 }
@@ -235,6 +275,32 @@ export function useValidationIssues(): ValidationIssue[] {
   )
 }
 
+const alwaysShow = () => true
+
+/**
+ * Whether a field's errors should be *displayed* right now (ADR 027): the chosen
+ * policy applied to this field's touched slice + the submit flag. No provider or
+ * the default `'always'` policy → always `true` (issues show as soon as they
+ * exist). Under `'touched'`/`'submit'` it subscribes to only this path's touched
+ * state, so the field re-renders only when its own display decision flips (e.g.
+ * on its own blur, or once on submit) — never when a sibling is touched.
+ */
+export function useFieldErrorDisplay(path: string): boolean {
+  const policy = useContext(DisplayPolicyContext)
+  const getSnapshot = policy
+    ? () =>
+        shouldDisplayFieldErrors(policy.mode, {
+          touched: policy.store.getTouched(path),
+          submitted: policy.store.isSubmitted(),
+        })
+    : alwaysShow
+  return useSyncExternalStore(
+    policy ? policy.store.subscribe : NEVER_SUBSCRIBE,
+    getSnapshot,
+    getSnapshot
+  )
+}
+
 /** Stable control `id` for a field path (matches Core's `attrs.id`). */
 // Single source of truth for deriving a control's DOM id from its field path,
 // paired with `fieldErrorId`. Identity today because Core already uses the
@@ -253,7 +319,8 @@ export function fieldErrorId(path: string): string {
  * without disturbing its sibling input (so typed values survive a failed submit). */
 function DefaultFieldErrors({ path }: { path: string }): ReactNode {
   const issues = useFieldIssues(path)
-  if (issues.length === 0) return null
+  const show = useFieldErrorDisplay(path)
+  if (!show || issues.length === 0) return null
   return (
     <ul
       id={fieldErrorId(path)}
@@ -290,8 +357,9 @@ function DefaultFieldRoot({
       ? renderSlot(node.parts.input, 'input')
       : renderSlot(node.parts.select, 'select')
   const issues = useFieldIssues(node.path)
+  const show = useFieldErrorDisplay(node.path)
   const a11y =
-    issues.length > 0 ? { errorId: fieldErrorId(node.path) } : null
+    show && issues.length > 0 ? { errorId: fieldErrorId(node.path) } : null
   return (
     <div className="jsf-field">
       {renderSlot(node.parts.label, 'label')}
