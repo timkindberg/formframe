@@ -36,7 +36,12 @@ function Harness({ mode }: { mode?: ShowErrorsWhen }) {
       noValidate
       onSubmit={submit(() => {})}
       onInput={revalidate}
-      onBlur={handleBlur}
+      // Blur marks touched AND revalidates (ADR 027 pairing), so a field tabbed
+      // through without typing still gets its issue computed on blur.
+      onBlur={(e) => {
+        handleBlur(e)
+        revalidate(e)
+      }}
     >
       <ValidationProvider
         issues={errors}
@@ -77,6 +82,23 @@ describe('touched-gated error display (ADR 027)', () => {
     await expect
       .poll(() => document.getElementById(fieldErrorId('username')))
       .not.toBeNull()
+  })
+
+  it("'touched': blurring an empty required field (no typing) reveals its error", async () => {
+    // The exact confusion: tab into a required field, tab out without typing.
+    // Because blur revalidates, the issue is computed on blur and — the field
+    // now being touched — shown, without needing a keystroke elsewhere first.
+    await render(<Harness mode="touched" />)
+
+    const username = control('username')
+    username.focus()
+    username.blur() // never typed
+
+    await expect
+      .poll(() => document.getElementById(fieldErrorId('username')))
+      .not.toBeNull()
+    // a sibling the user never touched stays quiet
+    expect(document.getElementById(fieldErrorId('zip'))).toBeNull()
   })
 
   it("'touched': keeps a live error hidden until the field blurs, then shows it", async () => {

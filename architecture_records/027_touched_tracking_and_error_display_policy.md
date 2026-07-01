@@ -112,6 +112,15 @@ normal path) or `showErrorsWhen="always"` to report unconditionally.
 - **Orthogonal to validation timing.** `revalidate` (ADR 021) is unchanged; you
   can validate live and still display on touch. Display gating adds only a
   per-path touched subscription — no new whole-form work.
+- **Touched display reveals an issue that *exists*.** Because "when to validate"
+  and "when to display" are separate, the touched policy can only show an issue
+  the validator has already produced. So pair it with **validate-on-blur** —
+  `onBlur={(e) => { handleBlur(e); revalidate(e) }}` — otherwise a field the user
+  tabs through without typing is marked touched but has no computed issue, and its
+  error appears only once some later `revalidate` (e.g. the first keystroke in
+  another field) runs the whole-form validator. `revalidate` accepts any form
+  event carrying the form as `currentTarget`, so it attaches to `onBlur` as well
+  as `onInput`/`onChange`.
 - **Boundary held (ADR 011/024).** Native owns values + issues + **touched** +
   display policy. `dirty` / `reset` / `watch` / async / cross-field remain the
   form-library adapter's job; this ADR does not grow into a form-state engine.

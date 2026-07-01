@@ -90,7 +90,13 @@ function App() {
         noValidate
         onSubmit={submit((data) => setSubmittedData(data))}
         onInput={revalidate}
-        onBlur={handleBlur}
+        // Blur both marks the field touched AND revalidates, so tabbing through
+        // an empty required field surfaces its error on blur (not only after the
+        // first keystroke elsewhere). Display is still gated by `showErrorsWhen`.
+        onBlur={(e) => {
+          handleBlur(e)
+          revalidate(e)
+        }}
       >
         <ValidationProvider
           issues={errors}
@@ -105,7 +111,9 @@ function App() {
 
       <p style={{ color: '#666', fontSize: '0.85rem' }}>
         Try <code>touched</code>: type an invalid value — no error yet — then tab
-        away to reveal it. Untouched fields stay quiet until you submit.
+        away to reveal it. Because blur also revalidates, tabbing through an empty
+        required field surfaces its error on blur too. Untouched fields stay quiet
+        until you submit.
       </p>
 
       {submittedData && (

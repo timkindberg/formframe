@@ -6,6 +6,7 @@ import {
   type FocusEvent,
   type FormEvent,
   type ReactNode,
+  type SyntheticEvent,
 } from 'react'
 import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type {
@@ -57,9 +58,12 @@ export interface UseSchemaFormOptions {
  *
  * Error display is **touched-gated by default** (ADR 027, React-Hook-Form-style):
  * a field's error stays quiet until it blurs, and a submit attempt reveals all.
- * So wire `onBlur={handleBlur}` and pass `touched`/`submitted` to the provider
- * (below) — otherwise errors never appear. Pass `showErrorsWhen="always"` to opt
- * back into reporting the instant an issue exists.
+ * Pass `touched`/`submitted` to the provider (below) — otherwise errors never
+ * appear — and wire blur to **both** `handleBlur` (marks the field touched) and
+ * `revalidate` (runs the validator on blur). Validating on blur is what lets a
+ * required field the user tabbed through surface its error on blur, rather than
+ * only after the first keystroke somewhere else. Pass `showErrorsWhen="always"`
+ * to opt back into reporting the instant an issue exists.
  *
  * `SchemaFields` renders the form's *content only* — wrap it in your own
  * `<form>` and submit (chrome is the consumer's, ADR 013):
@@ -69,7 +73,12 @@ export interface UseSchemaFormOptions {
  * const { SchemaFields, submit, revalidate, errors, handleBlur, touched, submitted } =
  *   useSchemaForm(schema, { validator: createAjvValidator(schema) })
  * return (
- *   <form noValidate onSubmit={submit(onValid)} onInput={revalidate} onBlur={handleBlur}>
+ *   <form
+ *     noValidate
+ *     onSubmit={submit(onValid)}
+ *     onInput={revalidate}
+ *     onBlur={(e) => { handleBlur(e); revalidate(e) }}
+ *   >
  *     <ValidationProvider issues={errors} touched={touched} submitted={submitted}>
  *       <SchemaFields />
  *     </ValidationProvider>
@@ -142,15 +151,23 @@ export function useSchemaForm(
   )
 
   /**
-   * Live validation — wire to the consumer's form event handler. Reads native
-   * FormData from `event.currentTarget` (via Core's submit assembler), runs the
-   * side-loaded validator, and updates `errors`. Use `onInput={revalidate}` for
-   * per-keystroke feedback; `onChange={revalidate}` validates on blur for text
-   * fields (native `change` semantics). Opt-in: omit both and behaviour stays
-   * submit-only (ADR 021).
+   * Live validation — wire to any consumer form event that carries the form as
+   * `currentTarget`. Reads native FormData from `event.currentTarget` (via Core's
+   * submit assembler), runs the side-loaded validator, and updates `errors`.
+   *
+   * - `onInput={revalidate}` — per-keystroke feedback.
+   * - `onChange={revalidate}` — validate on blur *for changed* text fields
+   *   (native `change` semantics).
+   * - `onBlur={revalidate}` — validate on *every* blur (focusout), including a
+   *   field the user tabbed through without typing. Pair this with the `'touched'`
+   *   display policy (ADR 027) so a required field surfaces its error the moment
+   *   it blurs, not only after the first keystroke elsewhere. Since `handleBlur`
+   *   is also form-level, combine them: `onBlur={(e) => { handleBlur(e); revalidate(e) }}`.
+   *
+   * Opt-in: omit all and behaviour stays submit-only (ADR 021).
    */
   const revalidate = useCallback(
-    (e: FormEvent<HTMLFormElement>) => {
+    (e: SyntheticEvent<HTMLFormElement>) => {
       if (!validator) return
       form.submit((data) => {
         runValidator(data)
