@@ -1,7 +1,7 @@
 # ADR 029: Presentation as a Dedicated Stage over Neutral Facts
 
 **Date:** 2026-07-01
-**Status:** Proposed
+**Status:** Accepted (tracer bd `wsr` landed; dual period closed by bd `9pb`)
 **Deciders:** Tim Kindberg
 **Supersedes:** ADR 022 (Widget Selection as a Layered IR Slot)
 **Amends:** ADR 012 §3 (ownership of schema-derived HTML attributes)
@@ -193,11 +193,15 @@ second-class "raw" node with a different shape.
 `args` (generic per-widget config) is named to avoid collision with a select's
 `options` (its choices).
 
-## Migration (one PR, dual-period, commit-sequenced)
+## Migration (two PRs, dual-period, commit-sequenced)
 
-The parser temporarily emits *both* today's widget/parts *and* the new facts, so the
-gate stays green at every commit; `main` never carries the duplicated state because
-the old logic is deleted in the same PR's final commits:
+The dual period ran across **two** PRs rather than one (a deliberate re-scope: the
+`present()` seam was battle-tested on `main` before the parser's fallback was
+removed — the blast radius of touching every `jsonSchemaToTree → render` path was
+too large to bundle with the seam's introduction).
+
+**PR 1 — bd `wsr` (additive seam):** the parser emits *both* today's widget/parts
+*and* the new facts, so the gate stays green at every commit:
 
 1. Add `FieldFacts` (incl. `valueShape`) to field nodes **without** removing existing
    widget/parts.
@@ -206,8 +210,23 @@ the old logic is deleted in the same PR's final commits:
    `fieldNode.ts` and `createMultiselectFieldNode` in `arrayNode.ts`).
 3. Wire `useSchemaForm` → `present()`.
 4. Flip conformance to compare the **post-`present`** tree.
-5. Delete the parser's widget/parts logic; migrate/delete redundant parser unit
-   tests (they become integration tests — see below).
+
+**PR 2 — bd `9pb` (dual period closed):** delete the parser's widget/parts
+derivation. `createFieldNode`/`createMultiselectFieldNode` now build **only neutral
+facts** and delegate widget selection + parts to the Core catalog via
+`presentDefaultLeaf(facts)` (the shipped default rule + `deriveInputParts`/
+`deriveSelectParts`). `buildInputAttrs` and the parser's part-builders are gone, so
+the facts→parts logic lives in exactly one place (`present.ts`). `jsonSchemaToTree`'s
+return stays **fully-formed** (default-presented) — every direct consumer (the
+`@jsonschema-form/vanilla` package, conformance, arrays/render-stability tests) is
+unchanged, and `useSchemaForm` still layers a consumer resolver on top identity-
+preservingly. The array→`multiselect` *collapse* remains a structural (facts)
+decision the parser owns; only the leaf's widget/parts derivation moved.
+
+Parser unit tests that assert widget/parts were **kept, not migrated**: they now
+exercise the parse → facts → default-present path end-to-end through the public
+`jsonSchemaToTree` entry point (a legitimate integration contract), so they stay
+green and meaningful without duplicating `present()`'s own unit tests.
 
 **Deferred to later tracers** (do not bundle): `bindRenders`/`extend` custom-widget
 DX, the unified `field.control` engine/adapter rewrite (§5 — the larger, riskier

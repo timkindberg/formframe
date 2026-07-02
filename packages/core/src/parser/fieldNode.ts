@@ -4,11 +4,10 @@ import {
   type JSONSchemaObject,
   type ValidationRules,
 } from './utils'
+import { presentDefaultLeaf } from '../present/present'
 import type {
   FieldFacts,
   FieldNode,
-  FieldPartsBase,
-  HtmlInputAttrs,
   InputFieldNode,
   SelectFieldNode,
   SelectOption,
@@ -24,34 +23,11 @@ export function createFieldNode(
 ): FieldNode {
   const validation = buildValidation(schema, required)
 
-  // Check for enum or oneOf pattern
-  // Add select part for enum or oneOf fields
+  // Neutral facts only (ADR 029): the parser reads front-end-specific keywords
+  // (enum/oneOf → neutral `choices`) but does NOT decide a widget or build parts.
   const hasEnum = Array.isArray(schema.enum) && schema.enum.length > 0
   const hasOneOf = Array.isArray(schema.oneOf) && schema.oneOf.length > 0
   const isSelect = hasEnum || hasOneOf
-
-  function buildContainerPart() {
-    return {
-      key: path,
-    }
-  }
-
-  function buildLabelPart() {
-    return {
-      text: schema.title || path || 'root',
-      attrs: {
-        for: path,
-      },
-      showRequired: required,
-    }
-  }
-
-  function buildDescriptionPart() {
-    if (!schema.description) return undefined
-    return {
-      text: schema.description,
-    }
-  }
 
   function buildSelectOptions(): SelectOption[] {
     let options: SelectOption[] = []
@@ -80,34 +56,21 @@ export function createFieldNode(
     return options
   }
 
-  const descriptionPart = buildDescriptionPart()
-  const commonParts: FieldPartsBase = descriptionPart
-    ? {
-        container: buildContainerPart(),
-        label: buildLabelPart(),
-        description: descriptionPart,
-      }
-    : {
-        container: buildContainerPart(),
-        label: buildLabelPart(),
-      }
-
-  // Build options once and share between `facts.choices` and the select part.
-  const options = isSelect ? buildSelectOptions() : undefined
+  const facts = buildFieldFacts({
+    path,
+    schema,
+    required,
+    valueShape: 'scalar',
+    constraints: validation,
+    choices: isSelect ? buildSelectOptions() : undefined,
+  })
 
   const nodeBase = {
     nodeType: 'field' as const,
     path,
     schema,
     validation,
-    facts: buildFieldFacts({
-      path,
-      schema,
-      required,
-      valueShape: 'scalar',
-      constraints: validation,
-      choices: options,
-    }),
+    facts,
 
     // Computed properties
     isRoot: path === '',
@@ -119,41 +82,26 @@ export function createFieldNode(
     isArrayItem: false as const,
   }
 
-  if (isSelect) {
-    const node: SelectFieldNode = {
+  // Widget + control parts come solely from the present stage's default rule and
+  // Core widget catalog (bd 9pb closed the dual period). `useSchemaForm` re-runs
+  // `present()` with any consumer resolver on top; a direct `jsonSchemaToTree`
+  // consumer still gets a fully-formed, default-presented tree.
+  const wp = presentDefaultLeaf(facts)
+  if (wp.widget === 'input') {
+    const node: InputFieldNode = {
       ...nodeBase,
-      widget: 'select',
-      parts: {
-        ...commonParts,
-        select: {
-          attrs: {
-            id: path,
-            name: path,
-            ...(required ? { required: true } : {}),
-          },
-          options: options ?? [],
-        },
-      },
+      widget: 'input',
+      parts: wp.parts,
       toJSON() {
         return serializeNode(this)
       },
     }
     return node
   }
-
-  const node: InputFieldNode = {
+  const node: SelectFieldNode = {
     ...nodeBase,
-    widget: 'input',
-    parts: {
-      ...commonParts,
-      input: {
-        attrs: {
-          id: path,
-          name: path,
-          ...buildInputAttrs(schema, validation),
-        },
-      },
-    },
+    widget: wp.widget,
+    parts: wp.parts,
     toJSON() {
       return serializeNode(this)
     },
@@ -215,52 +163,4 @@ function toPrimitive(
 ): 'string' | 'number' | 'integer' | 'boolean' {
   if (type === 'number' || type === 'integer' || type === 'boolean') return type
   return 'string'
-}
-
-// Build HTML input attributes from schema and validation
-export function buildInputAttrs(
-  schema: JSONSchemaObject,
-  validation: {
-    required: boolean
-    minLength?: number
-    maxLength?: number
-    minimum?: number
-    maximum?: number
-    pattern?: string
-  }
-): Omit<HtmlInputAttrs, 'id' | 'name'> {
-  const attrs: Omit<HtmlInputAttrs, 'id' | 'name'> = { type: 'text' }
-
-  // HTML input type
-  if (schema.type === 'string') {
-    if (schema.format === 'email') {
-      attrs.type = 'email'
-    }
-  } else if (schema.type === 'number' || schema.type === 'integer') {
-    attrs.type = 'number'
-  } else if (schema.type === 'boolean') {
-    attrs.type = 'checkbox'
-  }
-
-  // Add validation attributes
-  if (validation.required) {
-    attrs.required = true
-  }
-  if (validation.minLength !== undefined) {
-    attrs.minLength = validation.minLength
-  }
-  if (validation.maxLength !== undefined) {
-    attrs.maxLength = validation.maxLength
-  }
-  if (validation.minimum !== undefined) {
-    attrs.min = validation.minimum
-  }
-  if (validation.maximum !== undefined) {
-    attrs.max = validation.maximum
-  }
-  if (validation.pattern !== undefined) {
-    attrs.pattern = validation.pattern
-  }
-
-  return attrs
 }

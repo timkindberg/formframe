@@ -1,5 +1,6 @@
 import { buildFieldFacts, createFieldNode } from './fieldNode'
 import { createGroupNode } from './groupNode'
+import { deriveSelectParts } from '../present/present'
 import {
   buildValidation,
   type JSONSchemaObject,
@@ -263,7 +264,12 @@ function isPrimitiveArraySchema(itemsSchema: JSONSchemaObject): boolean {
 }
 
 /**
- * Creates a FieldNode with widget 'multiselect' for primitive arrays
+ * Creates a FieldNode with widget 'multiselect' for primitive arrays.
+ *
+ * The array→multiselect *collapse* is a structural (facts) decision the parser
+ * owns; the resulting leaf's widget + parts come solely from the present stage's
+ * Core catalog (ADR 029 / bd 9pb), so a `valueShape: 'array'` leaf with `choices`
+ * derives its `<select multiple>` parts via `deriveSelectParts`.
  */
 function createMultiselectFieldNode(
   path: string,
@@ -272,7 +278,7 @@ function createMultiselectFieldNode(
 ): SelectFieldNode {
   const itemsSchema = schema.items as JSONSchemaObject
 
-  // Build options from enum or oneOf
+  // Build options (neutral choices) from enum or oneOf
   let options: Array<{ value: string | number; label: string }> = []
 
   if (itemsSchema.enum) {
@@ -291,39 +297,21 @@ function createMultiselectFieldNode(
       }))
   }
 
-  // Construct FieldNode directly - return same shape as createFieldNode
-  const parts = {
-    container: { key: path },
-    label: {
-      text: schema.title || path,
-      attrs: { for: path },
-      showRequired: required,
-    },
-    description: schema.description ? { text: schema.description } : undefined,
-    select: {
-      attrs: {
-        id: path,
-        name: path,
-        multiple: true as const,
-        ...(required ? { required: true as const } : {}),
-      },
-      options,
-    },
-  }
+  const facts = buildFieldFacts({
+    path,
+    schema,
+    required,
+    valueShape: 'array',
+    constraints: buildValidation(schema, required),
+    choices: options,
+  })
 
   const node: SelectFieldNode = {
     nodeType: 'field',
     path,
     schema,
     widget: 'multiselect',
-    facts: buildFieldFacts({
-      path,
-      schema,
-      required,
-      valueShape: 'array',
-      constraints: buildValidation(schema, required),
-      choices: options,
-    }),
+    facts,
     validation: {
       required,
       minLength:
@@ -333,7 +321,7 @@ function createMultiselectFieldNode(
     },
     isRoot: path === '',
     depth: path ? path.split('.').length : 0,
-    parts,
+    parts: deriveSelectParts(facts, true),
 
     isField: true,
     isGroup: false,

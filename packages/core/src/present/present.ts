@@ -114,6 +114,40 @@ export function deriveSelectParts(
   return { ...commonParts(f), select: { attrs, options: f.choices ?? [] } }
 }
 
+/** The widget + control parts a built-in archetype resolves to. Discriminated on
+ * `widget` so a caller can rebuild the exact `FieldNode` subtype without a cast. */
+type WidgetParts =
+  | { widget: 'input'; parts: InputFieldParts }
+  | { widget: 'select' | 'multiselect'; parts: SelectFieldParts }
+
+/**
+ * Map a resolved widget name to its Core-derived control parts. Returns
+ * `undefined` for a widget the built-in catalog doesn't know (custom/raw widgets
+ * are a later tracer — a no-op for now). Shared by `presentField` (the pass) and
+ * `presentDefaultLeaf` (the parser's leaf finalizer) so widget→parts derivation
+ * lives in exactly one place (ADR 029 §4).
+ */
+function widgetParts(f: FieldFacts, widget: string): WidgetParts | undefined {
+  if (widget === 'input') return { widget: 'input', parts: deriveInputParts(f) }
+  if (widget === 'select' || widget === 'multiselect')
+    return { widget, parts: deriveSelectParts(f, widget === 'multiselect') }
+  return undefined
+}
+
+/**
+ * Finalize a facts-only leaf via the shipped default rule — the parser calls this
+ * so `present()` (this module) is the SOLE source of widget selection AND parts
+ * derivation (bd 9pb closes the ADR 029 dual period). `jsonSchemaToTree`'s return
+ * stays fully-formed for direct renders; `useSchemaForm` re-runs `present()` with
+ * any consumer resolver layered on top, identity-preservingly.
+ */
+export function presentDefaultLeaf(f: FieldFacts): WidgetParts {
+  const p = defaultPresentation(f)
+  // `defaultPresentation` always yields input/select/multiselect for parser
+  // facts; the fallback guards a future default rule returning something unmapped.
+  return (p && widgetParts(f, p.widget)) ?? { widget: 'input', parts: deriveInputParts(f) }
+}
+
 // --- The pass -------------------------------------------------------------------
 
 function presentField(node: FieldNode, resolve: PresentationResolver): FieldNode {
@@ -121,23 +155,13 @@ function presentField(node: FieldNode, resolve: PresentationResolver): FieldNode
   if (!p) return node
   // Unchanged widget (and no args) → keep identity so the memo bail holds.
   if (p.widget === node.widget && !p.args) return node
-  if (p.widget === 'input') {
-    return {
-      ...node,
-      widget: 'input',
-      parts: deriveInputParts(node.facts),
-    } as InputFieldNode
-  }
-  if (p.widget === 'select' || p.widget === 'multiselect') {
-    return {
-      ...node,
-      widget: p.widget,
-      parts: deriveSelectParts(node.facts, p.widget === 'multiselect'),
-    } as SelectFieldNode
-  }
+  const wp = widgetParts(node.facts, p.widget)
   // Custom / raw widgets are deferred to a later tracer (ADR 029). Until the
   // catalog + control facet land, an unknown widget name is a no-op.
-  return node
+  if (!wp) return node
+  return wp.widget === 'input'
+    ? ({ ...node, widget: 'input', parts: wp.parts } as InputFieldNode)
+    : ({ ...node, widget: wp.widget, parts: wp.parts } as SelectFieldNode)
 }
 
 // Generic in the node type so callers get their exact node back (e.g. `present`
