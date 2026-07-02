@@ -1,5 +1,5 @@
 import type { JSONSchema } from 'json-schema-typed/draft-07'
-import type { AnyNode, ContainerNode } from './nodeTypes'
+import type { AnyNode, ContainerNode, WalkHandlers } from './nodeTypes'
 
 // JSONSchema can be a boolean in draft-07, but we only work with object schemas
 export type JSONSchemaObject = Exclude<JSONSchema, boolean>
@@ -64,20 +64,14 @@ export function serializeNode(node: AnyNode): object {
   }
 }
 
-// Walk handlers shape - uses unknown for maximum compatibility
-// Specific node types enforce their own WalkHandlers interface
-interface WalkHandlersShape<R> {
-  field?: (node: unknown, handlers: unknown) => R
-  group?: (node: unknown, handlers: unknown) => R
-  array?: (node: unknown, handlers: unknown) => R
-  arrayItem?: (node: unknown, handlers: unknown) => R
-}
-
-// Walk implementation with handler inheritance
+// Walk implementation with handler inheritance. Takes the public, per-node-typed
+// `WalkHandlers<R>` directly — the discriminated `child.nodeType` checks narrow
+// each child to the exact node its handler expects, so no `as any` bridging is
+// needed here or at the call sites (the node `walk()` methods just pass `this`).
 export function walkNode<R>(
   node: ContainerNode,
-  handlers?: WalkHandlersShape<R>,
-  inheritedHandlers?: WalkHandlersShape<R>
+  handlers?: WalkHandlers<R>,
+  inheritedHandlers?: WalkHandlers<R>
 ): R[] {
   // Use inherited handlers if no new ones provided
   const effectiveHandlers = inheritedHandlers || handlers
@@ -88,47 +82,27 @@ export function walkNode<R>(
   const results: R[] = []
 
   for (const child of node.children) {
-    if (child.nodeType === 'field' && effectiveHandlers.field) {
-      const result = effectiveHandlers.field(child, effectiveHandlers)
-      results.push(result)
+    if (child.nodeType === 'field') {
+      if (effectiveHandlers.field) {
+        results.push(effectiveHandlers.field(child, effectiveHandlers))
+      }
     } else if (child.nodeType === 'group') {
       if (effectiveHandlers.group) {
-        const result = effectiveHandlers.group(child, effectiveHandlers)
-        results.push(result)
+        results.push(effectiveHandlers.group(child, effectiveHandlers))
       } else {
-        results.push(
-          ...walkNode(
-            child as ContainerNode,
-            effectiveHandlers,
-            effectiveHandlers
-          )
-        )
+        results.push(...walkNode(child, effectiveHandlers, effectiveHandlers))
       }
     } else if (child.nodeType === 'array') {
       if (effectiveHandlers.array) {
-        const result = effectiveHandlers.array(child, effectiveHandlers)
-        results.push(result)
+        results.push(effectiveHandlers.array(child, effectiveHandlers))
       } else {
-        results.push(
-          ...walkNode(
-            child as ContainerNode,
-            effectiveHandlers,
-            effectiveHandlers
-          )
-        )
+        results.push(...walkNode(child, effectiveHandlers, effectiveHandlers))
       }
     } else if (child.nodeType === 'arrayItem') {
       if (effectiveHandlers.arrayItem) {
-        const result = effectiveHandlers.arrayItem(child, effectiveHandlers)
-        results.push(result)
+        results.push(effectiveHandlers.arrayItem(child, effectiveHandlers))
       } else {
-        results.push(
-          ...walkNode(
-            child as ContainerNode,
-            effectiveHandlers,
-            effectiveHandlers
-          )
-        )
+        results.push(...walkNode(child, effectiveHandlers, effectiveHandlers))
       }
     }
   }
