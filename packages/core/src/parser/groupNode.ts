@@ -84,12 +84,15 @@ export function createGroupNode(
     // Parts API
     parts,
 
+    // Read `this.children`/`this.path` (not the closure) so a rebuilt node from
+    // the present() pass (ADR 029) — a spread with new `children` — queries its
+    // own children, not the pre-present ones.
     getField(targetPath: string): FieldNode | undefined {
       // Search descendants relative to this group
       // If this group has path 'address', searching for 'street' finds 'address.street'
-      const fullPath = path ? `${path}.${targetPath}` : targetPath
+      const fullPath = this.path ? `${this.path}.${targetPath}` : targetPath
 
-      for (const child of children) {
+      for (const child of this.children) {
         if (child.nodeType === 'field' && child.path === fullPath) {
           return child
         } else if (child.nodeType === 'group') {
@@ -110,7 +113,7 @@ export function createGroupNode(
     getAllFields(): FieldNode[] {
       const fields: FieldNode[] = []
 
-      for (const child of children) {
+      for (const child of this.children) {
         if (child.nodeType === 'field') {
           fields.push(child)
         } else if (child.nodeType === 'group') {
@@ -123,7 +126,7 @@ export function createGroupNode(
 
     walk<R>(handlers?: WalkHandlers<R>): R[] {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return walkNode(groupNode, handlers as any)
+      return walkNode(this as any, handlers as any)
     },
 
     isField: false,

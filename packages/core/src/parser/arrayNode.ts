@@ -109,9 +109,11 @@ export function createArrayNode(
       return createArrayItemNode(path, index, itemSchemaObject, required)
     },
 
+    // Read `this.children` (not the closure) so a present()-rebuilt node (ADR
+    // 029) queries its own children.
     getField(targetPath: string): FieldNode | undefined {
       // Search through children
-      for (const child of children) {
+      for (const child of this.children) {
         if (child.nodeType === 'arrayItem') {
           const found = child.getField(targetPath)
           if (found) return found
@@ -122,7 +124,7 @@ export function createArrayNode(
 
     getAllFields(): FieldNode[] {
       const fields: FieldNode[] = []
-      for (const child of children) {
+      for (const child of this.children) {
         if (child.nodeType === 'arrayItem') {
           fields.push(...child.getAllFields())
         }
@@ -132,7 +134,7 @@ export function createArrayNode(
 
     walk<R>(handlers?: WalkHandlers<R>): R[] {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return walkNode(arrayNode, handlers as any)
+      return walkNode(this as any, handlers as any)
     },
 
     isField: false,
@@ -227,7 +229,7 @@ export function createArrayItemNode(
 
     walk<R>(handlers?: WalkHandlers<R>): R[] {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return walkNode(itemNode, handlers as any)
+      return walkNode(this as any, handlers as any)
     },
 
     isField: false,

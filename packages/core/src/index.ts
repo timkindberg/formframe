@@ -42,6 +42,18 @@ export type {
 // Export main parser
 export { jsonSchemaToTree } from './parser/index'
 
+// Presentation stage (ADR 029) — assigns a widget + derives control parts from
+// neutral FieldFacts via a source-agnostic layered resolver. Runs between parse
+// and render (wired by `useSchemaForm`).
+export {
+  present,
+  defaultPresentation,
+  layered,
+  deriveInputParts,
+  deriveSelectParts,
+} from './present/present'
+export type { Presentation, PresentationResolver } from './present/present'
+
 // JSON Pointer ↔ tree dot-path helpers (ADR 018) — shared with validation adapters.
 export { jsonPointerToPath, joinPath } from './jsonPointer'
 
