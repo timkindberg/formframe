@@ -1,4 +1,4 @@
-import { createFieldNode } from './fieldNode'
+import { buildFieldFacts, createFieldNode } from './fieldNode'
 import { createGroupNode } from './groupNode'
 import { type JSONSchemaObject, serializeNode, walkNode } from './utils'
 import type {
@@ -311,6 +311,7 @@ function createMultiselectFieldNode(
     path,
     schema,
     widget: 'multiselect',
+    facts: buildFieldFacts(path, schema, required, 'array', options),
     validation: {
       required,
       minLength:

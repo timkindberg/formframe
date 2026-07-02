@@ -12,6 +12,7 @@ export type {
   FieldNode,
   InputFieldNode,
   SelectFieldNode,
+  FieldFacts,
   FieldParts,
   InputFieldParts,
   SelectFieldParts,

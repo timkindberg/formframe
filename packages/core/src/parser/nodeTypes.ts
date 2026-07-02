@@ -17,6 +17,28 @@ export interface SelectOption {
   label: string
 }
 
+/**
+ * Neutral, front-end-agnostic facts about a leaf field (ADR 029). The parser
+ * produces these instead of deciding a widget; the `present()` stage reads them
+ * to assign a widget and derive control parts. `valueShape` is `'scalar' |
+ * 'array'` today — `'object'` (object-collapsing widgets) is deferred until such
+ * a widget earns it. `origin.schema` is the originating subschema (front-end-
+ * specific; only front-ends and consumer resolvers read it — ADR 029 §2).
+ */
+export interface FieldFacts {
+  path: string
+  label: string
+  description?: string
+  required: boolean
+  primitive: 'string' | 'number' | 'integer' | 'boolean'
+  valueShape: 'scalar' | 'array'
+  format?: string
+  choices?: SelectOption[]
+  constraints: ValidationRules
+  attrs: { id: string; name: string }
+  origin: { source: string; schema: JSONSchemaObject }
+}
+
 // Framework-neutral HTML attribute contracts, owned by Core (the IR) — they
 // model native, schema-derived attributes every renderer/UI-kit needs. NOT
 // React/DOM types (importing those would break Core's stubborn boundary).
@@ -99,6 +121,8 @@ interface ContainerMethods {
 
 interface FieldNodeBase extends NodeBase {
   nodeType: 'field'
+  /** Neutral facts the `present()` stage reads to assign a widget (ADR 029). */
+  facts: FieldFacts
   isField: true
   isGroup: false
   isArray: false
