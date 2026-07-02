@@ -43,7 +43,19 @@ export interface FieldFacts {
 // model native, schema-derived attributes every renderer/UI-kit needs. NOT
 // React/DOM types (importing those would break Core's stubborn boundary).
 // Adapters spread `{...attrs}` and add presentation on top. See ADR 012.
-export type HtmlInputType = 'text' | 'email' | 'number' | 'checkbox'
+export type HtmlInputType =
+  | 'text'
+  | 'email'
+  | 'number'
+  | 'checkbox'
+  | 'date'
+  | 'datetime-local'
+  | 'time'
+  | 'url'
+  | 'tel'
+  | 'color'
+  | 'range'
+  | 'file'
 
 export interface HtmlInputAttrs {
   id: string

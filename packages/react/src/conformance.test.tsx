@@ -164,6 +164,20 @@ const defaultSchemas: Record<string, JSONSchema> = {
     },
     required: ['email'],
   },
+  'format-driven input types': {
+    type: 'object',
+    properties: {
+      birthdate: { type: 'string', format: 'date', title: 'Birthdate' },
+      appointment: {
+        type: 'string',
+        format: 'date-time',
+        title: 'Appointment',
+      },
+      alarm: { type: 'string', format: 'time', title: 'Alarm' },
+      website: { type: 'string', format: 'url', title: 'Website' },
+      accent: { type: 'string', format: 'color', title: 'Accent' },
+    },
+  },
   'array of objects (minItems renders an item)': {
     type: 'object',
     properties: {

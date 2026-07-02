@@ -86,10 +86,35 @@ function commonParts(f: FieldFacts) {
 
 function inputAttrsFromFacts(f: FieldFacts): HtmlInputAttrs {
   const attrs: HtmlInputAttrs = { id: f.attrs.id, name: f.attrs.name, type: 'text' }
-  if (f.primitive === 'string' && f.format === 'email') attrs.type = 'email'
+  if (f.primitive === 'boolean') attrs.type = 'checkbox'
   else if (f.primitive === 'number' || f.primitive === 'integer')
     attrs.type = 'number'
-  else if (f.primitive === 'boolean') attrs.type = 'checkbox'
+  else if (f.primitive === 'string' && f.format) {
+    switch (f.format) {
+      case 'email':
+        attrs.type = 'email'
+        break
+      case 'date':
+        attrs.type = 'date'
+        break
+      case 'date-time':
+        attrs.type = 'datetime-local'
+        break
+      case 'time':
+        attrs.type = 'time'
+        break
+      case 'uri':
+      case 'url':
+        attrs.type = 'url'
+        break
+      case 'color':
+        attrs.type = 'color'
+        break
+      case 'tel':
+        attrs.type = 'tel'
+        break
+    }
+  }
   const c = f.constraints
   if (c.required) attrs.required = true
   if (c.minLength !== undefined) attrs.minLength = c.minLength

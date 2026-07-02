@@ -6,7 +6,7 @@ import {
   layered,
   type PresentationResolver,
 } from './present'
-import type { SelectFieldNode } from '../parser/nodeTypes'
+import type { InputFieldNode, SelectFieldNode } from '../parser/nodeTypes'
 
 const schema = {
   type: 'object',
@@ -51,6 +51,28 @@ describe('present (ADR 029)', () => {
     expect(after.getField('name')).toBe(before.getField('name'))
     expect(after.getField('color')).not.toBe(before.getField('color'))
   })
+
+  it.each([
+    ['date', 'date'],
+    ['date-time', 'datetime-local'],
+    ['time', 'time'],
+    ['url', 'url'],
+    ['uri', 'url'],
+    ['color', 'color'],
+    ['tel', 'tel'],
+    ['email', 'email'],
+  ] as const)(
+    'format %s → input attrs.type %s',
+    (format, expectedType) => {
+      const tree = jsonSchemaToTree({
+        type: 'object',
+        properties: { field: { type: 'string', format } },
+      })
+      const field = tree.getField('field') as InputFieldNode
+      expect(field.widget).toBe('input')
+      expect(field.parts.input.attrs.type).toBe(expectedType)
+    }
+  )
 
   it('submit walk (this-based) sees the overridden multiselect on the presented tree', () => {
     // The array-wrapping in submit() keys off `widget === 'multiselect'` found by
