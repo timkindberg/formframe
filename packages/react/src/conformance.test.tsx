@@ -26,13 +26,35 @@
 
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { jsonSchemaToTree } from '@jsonschema-form/core'
-import type { JSONSchema } from '@jsonschema-form/core'
+import {
+  jsonSchemaToTree,
+  present,
+  defaultPresentation,
+  layered,
+} from '@jsonschema-form/core'
+import type { JSONSchema, PresentationResolver } from '@jsonschema-form/core'
 import {
   renderToString,
   type RenderNode as VanillaRenderNode,
 } from '@jsonschema-form/vanilla'
 import { SchemaFields, type RenderNode as ReactRenderNode } from './renderer'
+
+/**
+ * The tree the adapters actually render is the *presented* tree (ADR 029), so
+ * conformance folds over `present(...)`, not the raw parse. With just the
+ * default rule this is identity-preserving (proving present(default) is a safe
+ * no-op across the whole widget/container matrix); with a consumer resolver it
+ * exercises the derivers through the render pipeline in both frameworks.
+ */
+function presented(
+  schema: JSONSchema,
+  resolver?: PresentationResolver
+): ReturnType<typeof jsonSchemaToTree> {
+  return present(
+    jsonSchemaToTree(schema),
+    resolver ? layered(defaultPresentation, resolver) : defaultPresentation
+  )
+}
 
 /** Canonical, framework-neutral serialization of a DOM subtree. */
 function canonical(el: Element): string {
@@ -163,7 +185,7 @@ const defaultSchemas: Record<string, JSONSchema> = {
 describe('conformance: default rendering — react DOM ≡ vanilla oracle', () => {
   for (const [name, schema] of Object.entries(defaultSchemas)) {
     it(`agrees on "${name}"`, async () => {
-      const tree = jsonSchemaToTree(schema)
+      const tree = presented(schema)
       const oracle = vanillaDom(tree)
       const react = await reactDom(tree)
       expect(react).toBe(oracle)
@@ -234,10 +256,33 @@ const overrideCases: OverrideCase[] = [
 describe('conformance: override rendering — react DOM ≡ vanilla oracle', () => {
   for (const { name, schema, react, vanilla } of overrideCases) {
     it(`agrees on "${name}"`, async () => {
-      const tree = jsonSchemaToTree(schema)
+      const tree = presented(schema)
       const oracle = vanillaDom(tree, vanilla)
       const reactOut = await reactDom(tree, react)
       expect(reactOut).toBe(oracle)
     })
   }
+})
+
+// ---------------------------------------------------------------------------
+// Axis 3 — presentation stage: a resolver-driven widget renders identically
+// ---------------------------------------------------------------------------
+
+describe('conformance: presentation stage — react DOM ≡ vanilla oracle', () => {
+  it('a resolver-forced multiselect (hint-less scalar enum) agrees in both adapters', async () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      properties: {
+        tags: { type: 'string', title: 'Tags', enum: ['a', 'b', 'c'] },
+      },
+    }
+    const toMultiselect: PresentationResolver = (f) =>
+      f.path === 'tags' ? { widget: 'multiselect' } : undefined
+    // The SAME presented tree feeds both adapters — present() is upstream of the
+    // fold, so the widget swap is a single decision both renderers inherit.
+    const tree = presented(schema, toMultiselect)
+    const oracle = vanillaDom(tree)
+    const react = await reactDom(tree)
+    expect(react).toBe(oracle)
+  })
 })
