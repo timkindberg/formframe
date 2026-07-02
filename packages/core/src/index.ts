@@ -14,6 +14,7 @@ export type {
   AnyNode,
   ContainerNode,
   FieldNode,
+  FieldFacts,
   InputFieldNode,
   SelectFieldNode,
   GroupNode,

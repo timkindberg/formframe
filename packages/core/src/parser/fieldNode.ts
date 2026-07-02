@@ -5,6 +5,7 @@ import {
   type ValidationRules,
 } from './utils'
 import type {
+  FieldFacts,
   FieldNode,
   FieldPartsBase,
   HtmlInputAttrs,
@@ -96,6 +97,13 @@ export function createFieldNode(
     path,
     schema,
     validation,
+    facts: buildFieldFacts(
+      path,
+      schema,
+      required,
+      'scalar',
+      isSelect ? buildSelectOptions() : undefined
+    ),
 
     // Computed properties
     isRoot: path === '',
@@ -155,6 +163,43 @@ export type {
   InputFieldNode,
   SelectFieldNode,
 } from './nodeTypes'
+
+/**
+ * Build the neutral {@link FieldFacts} for a leaf (ADR 029). Front-end-specific
+ * knowledge (reading `schema.*`) is confined here in the JSON Schema parser;
+ * `present()` and its derivers consume only the neutral facts. `choices` is
+ * supplied by the caller (select/multiselect); `valueShape` distinguishes a
+ * scalar leaf from an array-valued leaf (multiselect).
+ */
+export function buildFieldFacts(
+  path: string,
+  schema: JSONSchemaObject,
+  required: boolean,
+  valueShape: 'scalar' | 'array',
+  choices?: SelectOption[]
+): FieldFacts {
+  const facts: FieldFacts = {
+    path,
+    label: schema.title || path || 'root',
+    required,
+    primitive: toPrimitive(schema.type),
+    valueShape,
+    constraints: buildValidation(schema, required),
+    attrs: { id: path, name: path },
+    origin: { source: 'jsonschema', schema },
+  }
+  if (schema.description) facts.description = schema.description
+  if (typeof schema.format === 'string') facts.format = schema.format
+  if (choices) facts.choices = choices
+  return facts
+}
+
+function toPrimitive(
+  type: JSONSchemaObject['type']
+): 'string' | 'number' | 'integer' | 'boolean' {
+  if (type === 'number' || type === 'integer' || type === 'boolean') return type
+  return 'string'
+}
 
 // Build HTML input attributes from schema and validation
 export function buildInputAttrs(
