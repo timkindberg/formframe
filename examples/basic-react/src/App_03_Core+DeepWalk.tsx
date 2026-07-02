@@ -121,7 +121,7 @@ function App() {
               <fieldset
                 key={node.path}
                 style={{
-                  marginLeft: `${(depth - 1) * 1}rem`,
+                  marginLeft: `${depth - 1}rem`,
                   marginBottom: '1rem',
                   padding: '1rem',
                   border: `2px solid ${depth === 1 ? '#333' : '#999'}`,
