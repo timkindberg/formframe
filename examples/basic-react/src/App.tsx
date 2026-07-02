@@ -13,6 +13,7 @@ import App10 from './App_10_React+SchemaRefs'
 import App11 from './App_11_React+LiveValidation'
 import App12 from './App_12_React+ReactHookForm'
 import App13 from './App_13_React+TouchedErrors'
+import App14 from './App_14_React+WidgetCatalog'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -29,10 +30,11 @@ const examples = [
   { id: '11', name: 'React + Live Validation (ADR 021)', component: App11 },
   { id: '12', name: 'React + React Hook Form (recipe)', component: App12 },
   { id: '13', name: 'React + Touched-Gated Errors (ADR 027)', component: App13 },
+  { id: '14', name: 'React + Widget Catalog (bd 4j1)', component: App14 },
 ]
 
 function App() {
-  const [currentExample, setCurrentExample] = useState('12')
+  const [currentExample, setCurrentExample] = useState('14')
 
   const CurrentComponent =
     examples.find((ex) => ex.id === currentExample)?.component || App01
