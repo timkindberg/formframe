@@ -43,14 +43,15 @@ function Harness({
 
 describe('present() end-to-end (ADR 029)', () => {
   it('a consumer resolver turns a hint-less scalar enum into a <select multiple>', async () => {
-    await render(<Harness />)
-    const select = document.querySelector<HTMLSelectElement>(
-      'select[name="tags"]'
-    )
-    expect(select).not.toBeNull()
-    expect(select!.multiple).toBe(true)
+    const screen = await render(<Harness />)
+    // A <select multiple> exposes the ARIA `listbox` role (a single select is a
+    // `combobox`) — so the role alone proves the widget swap took effect.
+    const select = screen
+      .getByRole('listbox', { name: 'Tags' })
+      .element() as HTMLSelectElement
+    expect(select.multiple).toBe(true)
     // The three enum options survived the widget swap.
-    const values = Array.from(select!.options)
+    const values = Array.from(select.options)
       .map((o) => o.value)
       .filter(Boolean)
     expect(values).toEqual(['a', 'b', 'c'])
@@ -68,11 +69,12 @@ describe('present() end-to-end (ADR 029)', () => {
 
     // Select exactly one option. A scalar select would submit the string 'a';
     // because the presented widget is 'multiselect', submit's walk wraps it.
-    const select = document.querySelector<HTMLSelectElement>(
-      'select[name="tags"]'
-    )!
-    const optA = Array.from(select.options).find((o) => o.value === 'a')!
-    optA.selected = true
+    const select = screen
+      .getByRole('listbox', { name: 'Tags' })
+      .element() as HTMLSelectElement
+    const optA = Array.from(select.options).find((o) => o.value === 'a')
+    expect(optA).toBeDefined()
+    optA!.selected = true
 
     await screen.getByRole('button', { name: 'Submit' }).click()
 

@@ -140,10 +140,21 @@ function presentField(node: FieldNode, resolve: PresentationResolver): FieldNode
   return node
 }
 
-function presentNode(node: AnyNode, resolve: PresentationResolver): AnyNode {
-  if (node.isField) return presentField(node, resolve)
+// Generic in the node type so callers get their exact node back (e.g. `present`
+// returns a `GroupNode`, not a widened `AnyNode`). The `as TNode` casts are the
+// unavoidable cost of narrowing a generic by a discriminant / rebuilding via
+// spread — they are internal and structurally sound (a field stays a field; a
+// rebuilt container keeps its shape, only `children` changes).
+function presentNode<TNode extends AnyNode>(
+  node: TNode,
+  resolve: PresentationResolver
+): TNode {
+  // Widen to the union locally so the `isField` discriminant narrows soundly
+  // (control-flow narrowing on a bare type parameter can't reach `.children`).
+  const n: AnyNode = node
+  if (n.isField) return presentField(n, resolve) as TNode
   let changed = false
-  const next = node.children.map((child) => {
+  const next = n.children.map((child) => {
     const presented = presentNode(child, resolve)
     if (presented !== child) changed = true
     return presented
@@ -152,7 +163,7 @@ function presentNode(node: AnyNode, resolve: PresentationResolver): AnyNode {
   // A rebuilt container: same `this`-based methods (getField/walk/submit) now
   // read the new `children` (see groupNode/arrayNode). Structural sharing keeps
   // every unchanged subtree by reference.
-  return { ...node, children: next }
+  return { ...n, children: next } as TNode
 }
 
 /**
@@ -164,5 +175,5 @@ export function present(
   root: GroupNode,
   resolve: PresentationResolver
 ): GroupNode {
-  return presentNode(root, resolve) as GroupNode
+  return presentNode(root, resolve)
 }

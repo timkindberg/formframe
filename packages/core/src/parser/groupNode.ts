@@ -125,8 +125,7 @@ export function createGroupNode(
     },
 
     walk<R>(handlers?: WalkHandlers<R>): R[] {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return walkNode(this as any, handlers as any)
+      return walkNode(this, handlers)
     },
 
     isField: false,

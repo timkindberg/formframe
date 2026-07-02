@@ -92,18 +92,22 @@ export function createFieldNode(
         label: buildLabelPart(),
       }
 
+  // Build options once and share between `facts.choices` and the select part.
+  const options = isSelect ? buildSelectOptions() : undefined
+
   const nodeBase = {
     nodeType: 'field' as const,
     path,
     schema,
     validation,
-    facts: buildFieldFacts(
+    facts: buildFieldFacts({
       path,
       schema,
       required,
-      'scalar',
-      isSelect ? buildSelectOptions() : undefined
-    ),
+      valueShape: 'scalar',
+      constraints: validation,
+      choices: options,
+    }),
 
     // Computed properties
     isRoot: path === '',
@@ -127,7 +131,7 @@ export function createFieldNode(
             name: path,
             ...(required ? { required: true } : {}),
           },
-          options: buildSelectOptions(),
+          options: options ?? [],
         },
       },
       toJSON() {
@@ -164,27 +168,39 @@ export type {
   SelectFieldNode,
 } from './nodeTypes'
 
+/** Inputs for {@link buildFieldFacts}. `constraints` is passed in (not recomputed)
+ * so the parser's already-built `ValidationRules` is reused; `choices` is supplied
+ * by the caller (select/multiselect); `valueShape` distinguishes a scalar leaf
+ * from an array-valued leaf (multiselect). */
+export interface BuildFieldFactsInput {
+  path: string
+  schema: JSONSchemaObject
+  required: boolean
+  valueShape: 'scalar' | 'array'
+  constraints: ValidationRules
+  choices?: SelectOption[]
+}
+
 /**
  * Build the neutral {@link FieldFacts} for a leaf (ADR 029). Front-end-specific
  * knowledge (reading `schema.*`) is confined here in the JSON Schema parser;
- * `present()` and its derivers consume only the neutral facts. `choices` is
- * supplied by the caller (select/multiselect); `valueShape` distinguishes a
- * scalar leaf from an array-valued leaf (multiselect).
+ * `present()` and its derivers consume only the neutral facts.
  */
-export function buildFieldFacts(
-  path: string,
-  schema: JSONSchemaObject,
-  required: boolean,
-  valueShape: 'scalar' | 'array',
-  choices?: SelectOption[]
-): FieldFacts {
+export function buildFieldFacts({
+  path,
+  schema,
+  required,
+  valueShape,
+  constraints,
+  choices,
+}: BuildFieldFactsInput): FieldFacts {
   const facts: FieldFacts = {
     path,
     label: schema.title || path || 'root',
     required,
     primitive: toPrimitive(schema.type),
     valueShape,
-    constraints: buildValidation(schema, required),
+    constraints,
     attrs: { id: path, name: path },
     origin: { source: 'jsonschema', schema },
   }

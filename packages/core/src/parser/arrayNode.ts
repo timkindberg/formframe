@@ -1,6 +1,11 @@
 import { buildFieldFacts, createFieldNode } from './fieldNode'
 import { createGroupNode } from './groupNode'
-import { type JSONSchemaObject, serializeNode, walkNode } from './utils'
+import {
+  buildValidation,
+  type JSONSchemaObject,
+  serializeNode,
+  walkNode,
+} from './utils'
 import type {
   AnyNode,
   ArrayNode,
@@ -133,8 +138,7 @@ export function createArrayNode(
     },
 
     walk<R>(handlers?: WalkHandlers<R>): R[] {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return walkNode(this as any, handlers as any)
+      return walkNode(this, handlers)
     },
 
     isField: false,
@@ -228,8 +232,7 @@ export function createArrayItemNode(
     },
 
     walk<R>(handlers?: WalkHandlers<R>): R[] {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return walkNode(this as any, handlers as any)
+      return walkNode(this, handlers)
     },
 
     isField: false,
@@ -313,7 +316,14 @@ function createMultiselectFieldNode(
     path,
     schema,
     widget: 'multiselect',
-    facts: buildFieldFacts(path, schema, required, 'array', options),
+    facts: buildFieldFacts({
+      path,
+      schema,
+      required,
+      valueShape: 'array',
+      constraints: buildValidation(schema, required),
+      choices: options,
+    }),
     validation: {
       required,
       minLength:
