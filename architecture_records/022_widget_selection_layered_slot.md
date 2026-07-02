@@ -1,8 +1,15 @@
 # ADR 022: Widget Selection as a Layered IR Slot
 
 **Date:** 2026-06-25
-**Status:** Proposed
+**Status:** Superseded by [ADR 029](./029_presentation_stage_over_neutral_facts.md)
 **Deciders:** Tim Kindberg
+
+> **Superseded (2026-07-01).** This ADR kept widget assignment in the parser
+> (layers 1–3) and made in-schema annotation (`x-widget`) a *library-recognized
+> keyword*. ADR 029 reverses both: the parser produces neutral facts (no widget),
+> a dedicated `present()` stage assigns widgets via a source-agnostic resolver, and
+> the library recognizes **no** source format. Retained for the history of the
+> layered-precedence idea, which survives as resolver layering in ADR 029.
 
 ## Context
 
