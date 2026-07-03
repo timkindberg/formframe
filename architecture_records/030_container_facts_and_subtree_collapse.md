@@ -1,7 +1,7 @@
 # ADR 030: Container Facts — Generalizing the Neutral Waist so `present()` Can Collapse a Subtree into One Widget
 
 **Date:** 2026-07-02
-**Status:** Proposed (bd `fcj`)
+**Status:** Accepted (bd `fcj`) — approved 2026-07-03 after review (PR #28)
 **Deciders:** Tim Kindberg
 **Extends:** ADR 029 (§1 `FieldFacts` → a node-level `NodeFacts` waist; resolves the
 deferred `valueShape: 'object'` member of §1)
@@ -302,9 +302,11 @@ the async object-array multiselect lands with the §5 `control` rewrite (tracked
 
 ---
 
-*This ADR is **proposed**, not accepted: it crosses the stubborn Core facts boundary
-(`FieldFacts` → `NodeFacts`) and adds a capability (`valueShape: 'object'`, subtree
-collapse), so it is escalated for a decision before implementation (AGENTS.md tier 3).
+*This ADR crosses the stubborn Core facts boundary (`FieldFacts` → `NodeFacts`) and adds
+a capability (`valueShape: 'object'`, subtree collapse), so it was escalated for a
+decision before implementation (AGENTS.md tier 3) and **accepted after review** (PR #28).
 The accompanying `containerFacts.test.ts` pins today's behavior and records the target
-contract as `it.todo` executable-spec entries so the gate stays green while the design is
-reviewed.*
+contract as `it.todo` executable-spec entries so the gate stays green until each slice is
+implemented. Implementation follows the migration steps above; rendering of collapsed
+controls is gated on the ADR 029 §5 `field.control` slot. The present/render layer
+boundary this ADR surfaced (Consequences) is ratified separately in ADR 031.*
