@@ -128,7 +128,14 @@ export default function App() {
               return (
                 <Default
                   of={node}
-                  parts={{ input: (input) => <FancyInput {...input.attrs} /> }}
+                  parts={{
+                    control: (control) =>
+                      control.kind === 'input' ? (
+                        <FancyInput {...control.attrs} />
+                      ) : (
+                        <Default of={control} />
+                      ),
+                  }}
                 />
               )
 
@@ -138,10 +145,10 @@ export default function App() {
               node.widget === 'input' &&
               node.path === 'address.city'
             ) {
-              const { label, input } = node.parts
+              const { label, control } = node.parts
               return (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <Default of={input} /> <Default of={label} />
+                  <Default of={control} /> <Default of={label} />
                 </div>
               )
             }

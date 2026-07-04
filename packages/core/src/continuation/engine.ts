@@ -26,15 +26,12 @@
 import type {
   AnyNode,
   ContainerNode,
+  FieldControl,
   FieldNode,
   GroupNode,
   ArrayNode,
   ArrayItemNode,
-  InputFieldNode,
-  SelectFieldNode,
   FieldPartsBase,
-  InputFieldParts,
-  SelectFieldParts,
   GroupParts,
   ArrayParts,
   ArrayItemParts,
@@ -57,17 +54,14 @@ export type PartsOverrides<P, R> = {
 /**
  * Enriched field — a leaf: parts + `Default`, no children.
  *
- * Distributive over the widget-discriminated `FieldNode` union (ADR 012): each
- * variant's parts/overrides are keyed by *its own* parts, so narrowing on
- * `node.widget` reaches `input` (input widget) or `select` (select widgets).
+ * A single shape now (ADR 029 §5/§6, v60): the widget variation lives inside
+ * `parts.control` (discriminated on `control.kind`), so nothing that handles
+ * *nodes* narrows on widget — only the `field.control` renderer does.
  */
-type EFieldOf<N extends FieldNode, R> = Omit<N, 'parts'> & {
-  parts: EnrichedParts<N['parts'], R>
-  Default(opts?: { parts?: PartsOverrides<N['parts'], R> }): R
+export type EField<R> = Omit<FieldNode, 'parts'> & {
+  parts: EnrichedParts<FieldNode['parts'], R>
+  Default(opts?: { parts?: PartsOverrides<FieldNode['parts'], R> }): R
 }
-export type EInputField<R> = EFieldOf<InputFieldNode, R>
-export type ESelectField<R> = EFieldOf<SelectFieldNode, R>
-export type EField<R> = EInputField<R> | ESelectField<R>
 
 /** Enriched container — parts + children + re-entry points. */
 type EContainerOf<N extends ContainerNode, R> = Omit<N, 'parts' | 'children'> & {
@@ -132,12 +126,13 @@ export interface ChildResult<R> {
  */
 export type PartOverrideMap<R> = Record<string, (part: unknown) => R>
 
-/** Renderers for a field's parts, each typed by its own slice of the IR. */
+/** Renderers for a field's parts. The unified `control` slot (ADR 029 §5, v60)
+ * replaces the old per-widget `input`/`select`: one renderer that narrows on
+ * `control.kind` — so a new widget is a `kind` arm here, never an engine change. */
 export interface FieldPartRenderers<R> {
   label(data: FieldPartsBase['label']): R
   description(data: NonNullable<FieldPartsBase['description']>): R
-  input(data: InputFieldParts['input']): R
-  select(data: SelectFieldParts['select']): R
+  control(data: FieldControl): R
 }
 
 /** Renderers for a group's parts (captions). */

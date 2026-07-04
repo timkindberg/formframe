@@ -6,7 +6,6 @@ import {
   layered,
   type PresentationResolver,
 } from './present'
-import type { InputFieldNode, SelectFieldNode } from '../parser/nodeTypes'
 
 const schema = {
   type: 'object',
@@ -32,14 +31,13 @@ describe('present (ADR 029)', () => {
       jsonSchemaToTree(schema),
       layered(defaultPresentation, toMultiselect)
     )
-    const color = tree.getField('color') as SelectFieldNode
+    const color = tree.getField('color')!
     expect(color.widget).toBe('multiselect')
-    expect(color.parts.select.attrs.multiple).toBe(true)
-    expect(color.parts.select.options.map((o) => o.value)).toEqual([
-      'red',
-      'green',
-      'blue',
-    ])
+    const control = color.parts.control
+    expect(control.kind).toBe('select')
+    if (control.kind !== 'select') throw new Error('expected select control')
+    expect(control.attrs.multiple).toBe(true)
+    expect(control.options.map((o) => o.value)).toEqual(['red', 'green', 'blue'])
   })
 
   it('preserves node identity for unchanged fields (structural sharing)', () => {
@@ -68,11 +66,42 @@ describe('present (ADR 029)', () => {
         type: 'object',
         properties: { field: { type: 'string', format } },
       })
-      const field = tree.getField('field') as InputFieldNode
+      const field = tree.getField('field')!
       expect(field.widget).toBe('input')
-      expect(field.parts.input.attrs.type).toBe(expectedType)
+      const control = field.parts.control
+      if (control.kind !== 'input') throw new Error('expected input control')
+      expect(control.attrs.type).toBe(expectedType)
     }
   )
+
+  it('a resolver opt-in maps a string field to the textarea archetype (ADR 029 §5, v60)', () => {
+    // textarea has no default rule — it is resolver-opt-in — proving a new widget
+    // is a `control.kind` arm + a deriver, with no engine/node change.
+    const bioSchema = {
+      type: 'object',
+      properties: {
+        bio: { type: 'string', minLength: 10, maxLength: 500 },
+      },
+      required: ['bio'],
+    } as const
+    const toTextarea: PresentationResolver = (f) =>
+      f.path === 'bio' ? { widget: 'textarea' } : undefined
+    const tree = present(
+      jsonSchemaToTree(bioSchema),
+      layered(defaultPresentation, toTextarea)
+    )
+    const bio = tree.getField('bio')!
+    expect(bio.widget).toBe('textarea')
+    const control = bio.parts.control
+    if (control.kind !== 'textarea') throw new Error('expected textarea control')
+    expect(control.attrs).toEqual({
+      id: 'bio',
+      name: 'bio',
+      required: true,
+      minLength: 10,
+      maxLength: 500,
+    })
+  })
 
   it('submit walk (this-based) sees the overridden multiselect on the presented tree', () => {
     // The array-wrapping in submit() keys off `widget === 'multiselect'` found by

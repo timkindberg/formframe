@@ -116,30 +116,34 @@ function RHFField({
     ? { 'aria-invalid': true as const, 'aria-describedby': errorId }
     : {}
 
-  // One `register` call serves any field control. Number widgets map "" ->
-  // undefined so an empty optional number is absent (valid), not a type error;
-  // the validator still owns coercion of non-empty values.
+  // One `register` call serves any field control, dispatched on the unified
+  // control archetype (ADR 029 §5). Number widgets map "" -> undefined so an
+  // empty optional number is absent (valid), not a type error; the validator
+  // still owns coercion of non-empty values.
+  const ctl = node.parts.control
   const control =
-    node.widget === 'input' ? (
-      <input
-        {...node.parts.input.attrs}
-        {...register(
-          node.path,
-          node.parts.input.attrs.type === 'number'
-            ? { setValueAs: (v) => (v === '' ? undefined : v) }
-            : undefined
-        )}
-        {...a11y}
-      />
-    ) : (
-      <select {...node.parts.select.attrs} {...register(node.path)} {...a11y}>
+    ctl.kind === 'select' ? (
+      <select {...ctl.attrs} {...register(node.path)} {...a11y}>
         <option value="">-- select --</option>
-        {node.parts.select.options.map((o) => (
+        {ctl.options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>
         ))}
       </select>
+    ) : ctl.kind === 'textarea' ? (
+      <textarea {...ctl.attrs} {...register(node.path)} {...a11y} />
+    ) : (
+      <input
+        {...ctl.attrs}
+        {...register(
+          node.path,
+          ctl.attrs.type === 'number'
+            ? { setValueAs: (v) => (v === '' ? undefined : v) }
+            : undefined
+        )}
+        {...a11y}
+      />
     )
 
   return (

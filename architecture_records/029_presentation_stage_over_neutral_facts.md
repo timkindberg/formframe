@@ -1,7 +1,8 @@
 # ADR 029: Presentation as a Dedicated Stage over Neutral Facts
 
 **Date:** 2026-07-01
-**Status:** Accepted (tracer bd `wsr` landed; dual period closed by bd `9pb`)
+**Status:** Accepted (tracer bd `wsr` landed; dual period closed by bd `9pb`; §5
+control slot implemented by bd `v60`)
 **Deciders:** Tim Kindberg
 **Supersedes:** ADR 022 (Widget Selection as a Layered IR Slot)
 **Amends:** ADR 012 §3 (ownership of schema-derived HTML attributes)
@@ -175,10 +176,33 @@ facet (typed per widget; exotic widgets use a generic/`raw` facet). This keeps A
 overrides all target `control` regardless of widget. A custom widget is **not** a
 second-class "raw" node with a different shape.
 
+**Amended (bd `v60`, 2026-07-04) — landed shape.** The slot is `parts.control`, a
+discriminated union on `kind` where `kind` is the render **archetype** (the element to
+draw): `'input' | 'select' | 'textarea'`. `multiselect` is `kind: 'select'` +
+`attrs.multiple` (as `SelectFieldParts` already was). The engine's `FieldPartRenderers`
+collapses `input()` + `select()` into one `control(data: FieldControl)`; every adapter
+(React, vanilla string + DOM) narrows on `control.kind`. **`textarea` was added in the
+same change** as the proof that adding a widget no longer touches the engine
+interface or the node union — only a `kind` arm + an adapter branch + a deriver. No
+`raw`/generic facet yet — it lands when the custom-widget catalog earns it (ADR 008).
+Two fixes folded in: a11y wiring (`aria-invalid`/`aria-describedby`) is applied once in
+the unified control renderer instead of per-widget, and the empty `-- select --`
+placeholder option is omitted for `multiple` selects.
+
 ### 6. Typing: closed Core archetype union, branded custom widgets
 
 - Core keeps a **closed, fully-discriminated archetype union** for its built-ins
   (`input | select | multiselect`) so ADR 012 narrowing survives internally.
+
+  **Amended (bd `v60`) — where the archetype union lives.** The closed archetype
+  discrimination moved from the **node** (`FieldNode = InputFieldNode | SelectFieldNode`,
+  discriminated on `widget`) to the **control facet** (`FieldControl`, discriminated on
+  `kind`). `FieldNode` is now a **single** interface; `node.widget` is the resolved
+  widget *name* (`'input' | 'select' | 'multiselect' | 'textarea'` today, widening to
+  `string & Brand` when custom widgets land) and it **no longer gates parts access** —
+  only `control.kind` does, and only the adapter (the pixels boundary) reads it. This was
+  a clean break (no `parts.input`/`parts.select` aliases); all first-party consumers
+  (React, the vanilla string + DOM oracle, examples, tests) migrated in one change.
 - Custom widgets are `widget: string & Brand` + the generic control facet + a typed
   `args` bag. `args` is type-safe **only** for widgets present in the consumer's
   `const` catalog; runtime/DB resolvers correctly collapse to a loose

@@ -39,11 +39,10 @@ function countingAdapter(counts: Counts): ReactPartialAdapter {
       },
       label: d.field.label,
       description: d.field.description,
-      input: (data) => {
-        bump(`field.input:${data.attrs.name}`)
-        return d.field.input(data)
+      control: (data) => {
+        bump(`field.control:${data.attrs.name}`)
+        return d.field.control(data)
       },
-      select: d.field.select,
     },
     group: {
       root: (p) => {
@@ -120,7 +119,7 @@ describe('render-count contract', () => {
 
     // the pre-existing item (contacts.0) must not re-render any of its parts…
     expect(counts['field.root:contacts.0.name'] ?? 0).toBe(0)
-    expect(counts['field.input:contacts.0.name'] ?? 0).toBe(0)
+    expect(counts['field.control:contacts.0.name'] ?? 0).toBe(0)
     expect(counts['arrayItem.root:contacts.0'] ?? 0).toBe(0)
     // …including its Remove button: only the ONE new item's button renders.
     expect(counts['arrayItem.removeButton'] ?? 0).toBe(1)
@@ -148,7 +147,7 @@ describe('render-count contract', () => {
       .toBe(1)
 
     expect(counts['field.root:contacts.0.name'] ?? 0).toBe(0)
-    expect(counts['field.input:contacts.0.name'] ?? 0).toBe(0)
+    expect(counts['field.control:contacts.0.name'] ?? 0).toBe(0)
     expect(counts['arrayItem.root:contacts.0'] ?? 0).toBe(0)
     expect(counts['arrayItem.removeButton'] ?? 0).toBe(0)
   })
@@ -178,11 +177,11 @@ describe('render-count contract', () => {
 
     // the item BEFORE the gap is untouched (same position → memo bail)…
     expect(counts['field.root:contacts.0.name'] ?? 0).toBe(0)
-    expect(counts['field.input:contacts.0.name'] ?? 0).toBe(0)
+    expect(counts['field.control:contacts.0.name'] ?? 0).toBe(0)
     expect(counts['arrayItem.root:contacts.0'] ?? 0).toBe(0)
     // …the tail re-rendered at its new dense path contacts.1 (in place, no remount)
     expect(counts['arrayItem.root:contacts.1'] ?? 0).toBeGreaterThan(0)
-    expect(counts['field.input:contacts.1.name'] ?? 0).toBeGreaterThan(0)
+    expect(counts['field.control:contacts.1.name'] ?? 0).toBeGreaterThan(0)
   })
 
   // Guard for the NodeRenderer memo floor (ADR 015 / render-stability.test.tsx),
@@ -267,7 +266,7 @@ describe('validation render-count contract (ADR 023)', () => {
     // the sibling never had/has an issue → its snapshot is referentially stable,
     // so it must not have re-rendered at all (no Context fan-out)
     expect(counts['field.root:note'] ?? 0).toBe(0)
-    expect(counts['field.input:note'] ?? 0).toBe(0)
+    expect(counts['field.control:note'] ?? 0).toBe(0)
     // the changed field did re-render (to surface its error + aria wiring)
     expect(counts['field.root:username'] ?? 0).toBeGreaterThan(0)
   })
@@ -341,7 +340,7 @@ describe('touched-gating render-count contract (ADR 027)', () => {
     // zip also has an issue but was never touched → its display decision is
     // unchanged (still hidden), so it must not have re-rendered at all.
     expect(counts['field.root:zip'] ?? 0).toBe(0)
-    expect(counts['field.input:zip'] ?? 0).toBe(0)
+    expect(counts['field.control:zip'] ?? 0).toBe(0)
     // the blurred field re-rendered to surface its error + aria wiring.
     expect(counts['field.root:username'] ?? 0).toBeGreaterThan(0)
   })

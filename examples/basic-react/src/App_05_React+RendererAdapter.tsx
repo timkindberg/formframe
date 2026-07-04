@@ -31,12 +31,17 @@ const form = jsonSchemaToTree(schema)
 // 1. Nothing supplied — the whole tree renders diagnostic markers.
 const FieldsEmpty = createRenderer({})
 
-// 2. Supply just the field input — inputs light up; the rest stay markers.
+// 2. Supply just the field control for text inputs — inputs light up; the rest
+// (including selects) stay markers. One unified `control` slot (ADR 029 §5).
 const FieldsInput = createRenderer({
-  field: { input: ({ attrs }) => <input {...attrs} /> },
+  field: {
+    control: (control) =>
+      control.kind === 'input' ? <input {...control.attrs} /> : null,
+  },
 })
 
-// 3. Supply the field's parts + the group's caption — almost there.
+// 3. Supply the field's parts + the group's caption — almost there. The single
+// `control` renderer narrows on `control.kind` to cover every archetype.
 const FieldsMost = createRenderer({
   field: {
     label: ({ text, attrs, showRequired }) => (
@@ -45,17 +50,25 @@ const FieldsMost = createRenderer({
         {showRequired && <span aria-hidden> *</span>}
       </label>
     ),
-    input: ({ attrs }) => <input {...attrs} />,
-    select: ({ attrs, options }) => (
-      <select {...attrs}>
-        <option value="">-- select --</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    ),
+    control: (control) => {
+      switch (control.kind) {
+        case 'input':
+          return <input {...control.attrs} />
+        case 'textarea':
+          return <textarea {...control.attrs} />
+        case 'select':
+          return (
+            <select {...control.attrs}>
+              <option value="">-- select --</option>
+              {control.options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          )
+      }
+    },
   },
   group: { label: ({ text }) => <legend>{text}</legend> },
 })

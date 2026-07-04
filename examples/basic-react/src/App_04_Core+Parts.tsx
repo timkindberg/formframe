@@ -82,24 +82,30 @@ function App() {
                   </small>
                 )}
 
-                {node.widget === 'select' || node.widget === 'multiselect' ? (
+                {/* Dispatch on the unified control archetype (ADR 029 §5). */}
+                {node.parts.control.kind === 'select' ? (
                   <select
-                    {...node.parts.select.attrs}
+                    {...node.parts.control.attrs}
                     style={{ display: 'block', marginTop: '0.25rem' }}
                   >
                     <option value="">-- Select --</option>
-                    {node.parts.select.options.map((opt) => (
+                    {node.parts.control.options.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
                     ))}
                   </select>
-                ) : node.widget === 'input' ? (
-                  <input
-                    {...node.parts.input.attrs}
+                ) : node.parts.control.kind === 'textarea' ? (
+                  <textarea
+                    {...node.parts.control.attrs}
                     style={{ display: 'block', marginTop: '0.25rem' }}
                   />
-                ) : null}
+                ) : (
+                  <input
+                    {...node.parts.control.attrs}
+                    style={{ display: 'block', marginTop: '0.25rem' }}
+                  />
+                )}
               </div>
             )
           },
