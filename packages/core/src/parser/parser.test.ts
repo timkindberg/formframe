@@ -1,6 +1,21 @@
 import { describe, it, expect } from 'vitest'
 import { jsonSchemaToTree } from './index'
-import type { JSONSchema, GroupNode, InputFieldNode, SelectFieldNode } from '../types'
+import type { JSONSchema, GroupNode, FieldNode } from '../types'
+
+// The field control is a single discriminated slot now (ADR 029 §5, v60): narrow
+// on `control.kind` to reach archetype-specific attrs/options.
+function inputCtl(node: FieldNode | undefined) {
+  const c = node?.parts.control
+  if (c?.kind !== 'input')
+    throw new Error(`expected input control, got ${c?.kind ?? 'none'}`)
+  return c
+}
+function selectCtl(node: FieldNode | undefined) {
+  const c = node?.parts.control
+  if (c?.kind !== 'select')
+    throw new Error(`expected select control, got ${c?.kind ?? 'none'}`)
+  return c
+}
 
 describe('jsonSchemaToTree', () => {
   describe('basic object schemas', () => {
@@ -104,9 +119,9 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('name') as InputFieldNode | undefined
+      const field = form.getField('name')
 
-      expect(field?.parts.input.attrs.type).toBe('text')
+      expect(inputCtl(field).attrs.type).toBe('text')
     })
 
     it('generates email input type for email format', () => {
@@ -118,9 +133,9 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('email') as InputFieldNode | undefined
+      const field = form.getField('email')
 
-      expect(field?.parts.input.attrs.type).toBe('email')
+      expect(inputCtl(field).attrs.type).toBe('email')
     })
 
     it('generates number input type for numbers', () => {
@@ -132,9 +147,9 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('age') as InputFieldNode | undefined
+      const field = form.getField('age')
 
-      expect(field?.parts.input.attrs.type).toBe('number')
+      expect(inputCtl(field).attrs.type).toBe('number')
     })
 
     it('generates checkbox input type for booleans', () => {
@@ -146,9 +161,9 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('subscribe') as InputFieldNode | undefined
+      const field = form.getField('subscribe')
 
-      expect(field?.parts.input.attrs.type).toBe('checkbox')
+      expect(inputCtl(field).attrs.type).toBe('checkbox')
     })
 
     it('includes required attribute for required fields', () => {
@@ -161,9 +176,9 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('name') as InputFieldNode | undefined
+      const field = form.getField('name')
 
-      expect(field?.parts.input.attrs.required).toBe(true)
+      expect(inputCtl(field).attrs.required).toBe(true)
     })
 
     it('includes min/max attributes for number constraints', () => {
@@ -175,10 +190,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('age') as InputFieldNode | undefined
+      const field = form.getField('age')
 
-      expect(field?.parts.input.attrs.min).toBe(0)
-      expect(field?.parts.input.attrs.max).toBe(120)
+      expect(inputCtl(field).attrs.min).toBe(0)
+      expect(inputCtl(field).attrs.max).toBe(120)
     })
 
     it('includes minLength/maxLength for string constraints', () => {
@@ -190,10 +205,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('username') as InputFieldNode | undefined
+      const field = form.getField('username')
 
-      expect(field?.parts.input.attrs.minLength).toBe(3)
-      expect(field?.parts.input.attrs.maxLength).toBe(20)
+      expect(inputCtl(field).attrs.minLength).toBe(3)
+      expect(inputCtl(field).attrs.maxLength).toBe(20)
     })
 
     it('includes pattern attribute', () => {
@@ -205,9 +220,9 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('zipcode') as InputFieldNode | undefined
+      const field = form.getField('zipcode')
 
-      expect(field?.parts.input.attrs.pattern).toBe('^[0-9]{5}$')
+      expect(inputCtl(field).attrs.pattern).toBe('^[0-9]{5}$')
     })
   })
 
@@ -664,9 +679,10 @@ describe('jsonSchemaToTree', () => {
         }
 
         const form = jsonSchemaToTree(schema)
-        const field = form.getField('age') as InputFieldNode | undefined
+        const field = form.getField('age')
 
-        expect(field?.parts.input).toEqual({
+        expect(inputCtl(field)).toEqual({
+          kind: 'input',
           attrs: {
             id: 'age',
             name: 'age',
@@ -806,10 +822,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('size') as SelectFieldNode | undefined
+      const field = form.getField('size')
 
-      expect(field?.parts.select).toBeDefined()
-      expect(field?.parts.select.options).toEqual([
+      expect(selectCtl(field)).toBeDefined()
+      expect(selectCtl(field).options).toEqual([
         { value: 'small', label: 'small' },
         { value: 'medium', label: 'medium' },
         { value: 'large', label: 'large' },
@@ -831,9 +847,9 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('size') as SelectFieldNode | undefined
+      const field = form.getField('size')
 
-      expect(field?.parts.select.options).toEqual([
+      expect(selectCtl(field).options).toEqual([
         { value: 'sm', label: 'Small' },
         { value: 'md', label: 'Medium' },
         { value: 'lg', label: 'Large' },
@@ -855,10 +871,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('status') as SelectFieldNode | undefined
+      const field = form.getField('status')
 
       expect(field?.widget).toBe('select')
-      expect(field?.parts.select.options).toEqual([
+      expect(selectCtl(field).options).toEqual([
         { value: 'draft', label: 'draft' },
         { value: 'published', label: 'Published' },
         { value: 'archived', label: 'archived' },
@@ -878,10 +894,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('rating') as SelectFieldNode | undefined
+      const field = form.getField('rating')
 
       expect(field?.widget).toBe('select')
-      expect(field?.parts.select.options).toEqual([
+      expect(selectCtl(field).options).toEqual([
         { value: 1, label: '1' },
         { value: 2, label: '2' },
         { value: 3, label: '3' },
@@ -903,10 +919,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('country') as SelectFieldNode | undefined
+      const field = form.getField('country')
 
       expect(field?.validation.required).toBe(true)
-      expect(field?.parts.select.attrs.required).toBe(true)
+      expect(selectCtl(field).attrs.required).toBe(true)
       expect(field?.parts.label.showRequired).toBe(true)
     })
 
@@ -957,13 +973,13 @@ describe('jsonSchemaToTree', () => {
       const form = jsonSchemaToTree(schema)
       const methodField = form.getField(
         'shipping.method'
-      ) as SelectFieldNode | undefined
+      )
       const priorityField = form.getField('shipping.priority')
 
       expect(methodField?.widget).toBe('select')
       expect(methodField?.validation.required).toBe(true)
-      expect(methodField?.parts.select.options).toHaveLength(3)
-      expect(methodField?.parts.select.options[0].label).toBe(
+      expect(selectCtl(methodField).options).toHaveLength(3)
+      expect(selectCtl(methodField).options[0].label).toBe(
         'Standard (5-7 days)'
       )
       expect(priorityField?.widget).toBe('input')
@@ -983,9 +999,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('status') as SelectFieldNode | undefined
+      const field = form.getField('status')
 
-      expect(field?.parts.select).toEqual({
+      expect(selectCtl(field)).toEqual({
+        kind: 'select',
         attrs: {
           id: 'status',
           name: 'status',
@@ -1010,13 +1027,13 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('field') as InputFieldNode | undefined
+      const field = form.getField('field')
 
       expect(field?.widget).toBe('input')
-      expect('select' in (field?.parts ?? {})).toBe(false)
+      expect(field?.parts.control.kind).toBe('input')
     })
 
-    it('select widgets do not have input part', () => {
+    it('select widgets expose a single select control (ADR 029 §5, v60)', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
@@ -1028,14 +1045,16 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('color') as SelectFieldNode | undefined
+      const field = form.getField('color')
 
+      // Widget is the resolved name; the render archetype is `control.kind` — the
+      // only discriminant. There are no longer per-widget `input`/`select` keys.
       expect(field?.widget).toBe('select')
-      expect(field?.parts.select).toBeDefined()
-      expect('input' in (field?.parts ?? {})).toBe(false)
+      expect(field?.parts.control.kind).toBe('select')
+      expect(Object.keys(field?.parts ?? {})).not.toContain('input')
     })
 
-    it('input widgets do not have select part', () => {
+    it('input widgets expose a single input control (ADR 029 §5, v60)', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
@@ -1044,11 +1063,11 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('name') as InputFieldNode | undefined
+      const field = form.getField('name')
 
       expect(field?.widget).toBe('input')
-      expect(field?.parts.input).toBeDefined()
-      expect('select' in (field?.parts ?? {})).toBe(false)
+      expect(field?.parts.control.kind).toBe('input')
+      expect(Object.keys(field?.parts ?? {})).not.toContain('select')
     })
   })
 
@@ -1066,14 +1085,14 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('terms') as InputFieldNode | undefined
+      const field = form.getField('terms')
 
       expect(field?.nodeType).toBe('field')
       expect(field?.parts.label.text).toBe('Accept Terms')
       expect(field?.parts.description?.text).toBe(
         'I agree to the terms and conditions'
       )
-      expect(field?.parts.input.attrs.type).toBe('checkbox')
+      expect(inputCtl(field).attrs.type).toBe('checkbox')
     })
 
     it('handles required boolean fields', () => {
@@ -1086,10 +1105,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('terms') as InputFieldNode | undefined
+      const field = form.getField('terms')
 
       expect(field?.validation.required).toBe(true)
-      expect(field?.parts.input.attrs.required).toBe(true)
+      expect(inputCtl(field).attrs.required).toBe(true)
       expect(field?.parts.label.showRequired).toBe(true)
     })
 
@@ -1109,19 +1128,19 @@ describe('jsonSchemaToTree', () => {
 
       expect(allFields).toHaveLength(4)
       expect(
-        (form.getField('name') as InputFieldNode | undefined)?.parts.input
+        inputCtl(form.getField('name'))
           .attrs.type
       ).toBe('text')
       expect(
-        (form.getField('age') as InputFieldNode | undefined)?.parts.input.attrs
+        inputCtl(form.getField('age')).attrs
           .type
       ).toBe('number')
       expect(
-        (form.getField('subscribe') as InputFieldNode | undefined)?.parts.input
+        inputCtl(form.getField('subscribe'))
           .attrs.type
       ).toBe('checkbox')
       expect(
-        (form.getField('terms') as InputFieldNode | undefined)?.parts.input
+        inputCtl(form.getField('terms'))
           .attrs.type
       ).toBe('checkbox')
     })
@@ -1140,9 +1159,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('notifications') as InputFieldNode | undefined
+      const field = form.getField('notifications')
 
-      expect(field?.parts.input).toEqual({
+      expect(inputCtl(field)).toEqual({
+        kind: 'input',
         attrs: {
           id: 'notifications',
           name: 'notifications',
@@ -1186,14 +1206,14 @@ describe('jsonSchemaToTree', () => {
       const form = jsonSchemaToTree(schema)
       const emailField = form.getField(
         'preferences.emailNotifications'
-      ) as InputFieldNode | undefined
+      )
       const smsField = form.getField(
         'preferences.smsNotifications'
-      ) as InputFieldNode | undefined
+      )
 
-      expect(emailField?.parts.input.attrs.type).toBe('checkbox')
+      expect(inputCtl(emailField).attrs.type).toBe('checkbox')
       expect(emailField?.validation.required).toBe(true)
-      expect(smsField?.parts.input.attrs.type).toBe('checkbox')
+      expect(inputCtl(smsField).attrs.type).toBe('checkbox')
       expect(smsField?.validation.required).toBe(false)
     })
   })
@@ -1811,11 +1831,11 @@ describe('jsonSchemaToTree', () => {
       expect(skillsField?.nodeType).toBe('field')
       expect(skillsField?.isField).toBe(true)
       if (skillsField?.isField) {
-        const field = skillsField as SelectFieldNode
+        const field = skillsField
         expect(field.widget).toBe('multiselect')
-        expect(field.parts.select.attrs.multiple).toBe(true)
-        expect(field.parts.select.options).toHaveLength(3)
-        expect(field.parts.select.options[0]).toEqual({
+        expect(selectCtl(field).attrs.multiple).toBe(true)
+        expect(selectCtl(field).options).toHaveLength(3)
+        expect(selectCtl(field).options[0]).toEqual({
           value: 'JavaScript',
           label: 'JavaScript',
         })
@@ -1846,10 +1866,10 @@ describe('jsonSchemaToTree', () => {
       expect(colorsField?.nodeType).toBe('field')
       expect(colorsField?.isField).toBe(true)
       if (colorsField?.isField) {
-        const field = colorsField as SelectFieldNode
+        const field = colorsField
         expect(field.widget).toBe('multiselect')
-        expect(field.parts.select.options).toHaveLength(3)
-        expect(field.parts.select.options[0]).toEqual({
+        expect(selectCtl(field).options).toHaveLength(3)
+        expect(selectCtl(field).options[0]).toEqual({
           value: 'red',
           label: 'Red',
         })
@@ -2083,10 +2103,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const field = form.getField('nickname') as InputFieldNode | undefined
+      const field = form.getField('nickname')
 
       expect(field?.parts.label.text).toBe('Nickname')
-      expect(field?.parts.input.attrs.type).toBe('text')
+      expect(inputCtl(field).attrs.type).toBe('text')
     })
 
     it('resolves $ref inside array items', () => {
@@ -2236,10 +2256,10 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const aliasField = form.getField('alias') as InputFieldNode | undefined
+      const aliasField = form.getField('alias')
 
       expect(aliasField?.parts.label.text).toBe('Name')
-      expect(aliasField?.parts.input.attrs.type).toBe('text')
+      expect(inputCtl(aliasField).attrs.type).toBe('text')
     })
 
     it('resolves JSON Pointer escape sequences in $defs keys', () => {

@@ -207,6 +207,33 @@ describe('conformance: default rendering — react DOM ≡ vanilla oracle', () =
   }
 })
 
+// The `textarea` widget (ADR 029 §5, v60) is the proof that adding a widget is a
+// `control.kind` arm + a per-adapter branch — no engine or node change. It is
+// resolver-opt-in (no default rule picks it), so it's presented via a resolver
+// and then rendered by *both* adapters' defaults; parity holds by construction.
+describe('conformance: textarea widget (resolver opt-in) — react ≡ vanilla', () => {
+  const schema: JSONSchema = {
+    type: 'object',
+    properties: {
+      bio: { type: 'string', title: 'Bio', minLength: 10, maxLength: 500 },
+    },
+    required: ['bio'],
+  }
+  const toTextarea: PresentationResolver = (f) =>
+    f.path === 'bio' ? { widget: 'textarea' } : undefined
+
+  it('renders a <textarea> and agrees across frameworks', async () => {
+    const tree = presented(schema, toTextarea)
+    const oracle = vanillaDom(tree)
+    const react = await reactDom(tree)
+    expect(react).toBe(oracle)
+    // The archetype actually took effect (a textarea, not the default input).
+    expect(oracle).toContain('<textarea')
+    expect(oracle).toContain('maxlength="500"')
+    expect(oracle).not.toContain('<input')
+  })
+})
+
 // ---------------------------------------------------------------------------
 // Axis 2 — override rendering: paired resolvers expressing the same intent
 // ---------------------------------------------------------------------------
@@ -252,7 +279,7 @@ const overrideCases: OverrideCase[] = [
         return (
           <div className="hand">
             <Default of={node.parts.label} />
-            <Default of={node.parts.input} />
+            <Default of={node.parts.control} />
           </div>
         )
       }
@@ -260,7 +287,7 @@ const overrideCases: OverrideCase[] = [
     },
     vanilla: (node) => {
       if (node.isField && node.path === 'name' && node.widget === 'input') {
-        return `<div class="hand">${node.parts.label.Default()}${node.parts.input.Default()}</div>`
+        return `<div class="hand">${node.parts.label.Default()}${node.parts.control.Default()}</div>`
       }
       return node.Default()
     },

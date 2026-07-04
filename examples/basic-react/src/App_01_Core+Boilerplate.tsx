@@ -44,15 +44,9 @@ console.log('Email field:', form.getField('email'))
 console.log('Age field:', form.getField('age'))
 console.log('\n=== Field Attrs ===')
 const nameField = form.getField('name')
-console.log(
-  'Name field attrs:',
-  nameField?.widget === 'input' ? nameField.parts.input.attrs : undefined
-)
+console.log('Name field attrs:', nameField?.parts.control.attrs)
 const emailField = form.getField('email')
-console.log(
-  'Email field attrs:',
-  emailField?.widget === 'input' ? emailField.parts.input.attrs : undefined
-)
+console.log('Email field attrs:', emailField?.parts.control.attrs)
 console.log('\n=== JSON Export ===')
 console.log('JSON:', form.toJSON())
 
@@ -84,18 +78,21 @@ function App() {
                   <small>{node.parts.description.text}</small>
                 )}
 
-                {node.widget === 'select' ? (
-                  <select {...node.parts.select.attrs}>
+                {/* Dispatch on the unified control archetype (ADR 029 §5). */}
+                {node.parts.control.kind === 'select' ? (
+                  <select {...node.parts.control.attrs}>
                     <option value="">-- Select --</option>
-                    {node.parts.select.options.map((opt) => (
+                    {node.parts.control.options.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
                     ))}
                   </select>
-                ) : node.widget === 'input' ? (
-                  <input {...node.parts.input.attrs} />
-                ) : null}
+                ) : node.parts.control.kind === 'textarea' ? (
+                  <textarea {...node.parts.control.attrs} />
+                ) : (
+                  <input {...node.parts.control.attrs} />
+                )}
               </div>
             )
           } else if (node.nodeType === 'group') {
@@ -111,18 +108,20 @@ function App() {
                           {childNode.parts.label.text}
                           {childNode.validation.required && <span> *</span>}
                         </label>
-                        {childNode.widget === 'select' ? (
-                          <select {...childNode.parts.select.attrs}>
+                        {childNode.parts.control.kind === 'select' ? (
+                          <select {...childNode.parts.control.attrs}>
                             <option value="">-- Select --</option>
-                            {childNode.parts.select.options.map((opt) => (
+                            {childNode.parts.control.options.map((opt) => (
                               <option key={opt.value} value={opt.value}>
                                 {opt.label}
                               </option>
                             ))}
                           </select>
-                        ) : childNode.widget === 'input' ? (
-                          <input {...childNode.parts.input.attrs} />
-                        ) : null}
+                        ) : childNode.parts.control.kind === 'textarea' ? (
+                          <textarea {...childNode.parts.control.attrs} />
+                        ) : (
+                          <input {...childNode.parts.control.attrs} />
+                        )}
                       </div>
                     )
                   }

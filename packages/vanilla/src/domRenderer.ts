@@ -16,13 +16,9 @@ import {
   type EGroup,
   type EArray,
   type EArrayItem,
-  type EInputField,
-  type ESelectField,
   type GroupNode,
   type Resolver,
-  type HtmlInputAttrs,
-  type HtmlSelectAttrs,
-  type SelectOption,
+  type FieldControl,
 } from '@jsonschema-form/core'
 
 // ---------------------------------------------------------------------------
@@ -34,8 +30,6 @@ export type DomAdapter = RendererAdapter<Node>
 export type DomPartialAdapter = PartialAdapter<Node>
 export type DomVNode = ENode<Node>
 export type DomField = EField<Node>
-export type DomInputField = EInputField<Node>
-export type DomSelectField = ESelectField<Node>
 export type DomGroup = EGroup<Node>
 export type DomArray = EArray<Node>
 export type DomArrayItem = EArrayItem<Node>
@@ -139,10 +133,7 @@ const defaultAdapterImpl: DomAdapter = {
         return rendered
       }
 
-      const control =
-        node.widget === 'input'
-          ? renderPart(node.parts.input, 'input')
-          : renderPart(node.parts.select, 'select')
+      const control = renderPart(node.parts.control, 'control')
 
       return createEl(
         'div',
@@ -165,21 +156,29 @@ const defaultAdapterImpl: DomAdapter = {
       return createEl('small', { class: 'jsf-description' }, text)
     },
 
-    input({ attrs }: { attrs: HtmlInputAttrs }) {
-      return createEl('input', attrs)
-    },
-
-    select({ attrs, options }: { attrs: HtmlSelectAttrs; options: SelectOption[] }) {
-      const select = document.createElement('select')
-      setAttrs(select, attrs)
-      appendChild(select, createEl('option', { value: '' }, '-- select --'))
-      for (const option of options) {
-        appendChild(
-          select,
-          createEl('option', { value: String(option.value) }, option.label)
-        )
+    // One unified control slot (ADR 029 §5, v60): narrow on `control.kind`. Mirrors
+    // the string oracle's markup exactly so DOM ≡ string parity holds.
+    control(control: FieldControl) {
+      switch (control.kind) {
+        case 'input':
+          return createEl('input', control.attrs)
+        case 'textarea':
+          return createEl('textarea', control.attrs)
+        case 'select': {
+          const select = document.createElement('select')
+          setAttrs(select, control.attrs)
+          if (!control.attrs.multiple) {
+            appendChild(select, createEl('option', { value: '' }, '-- select --'))
+          }
+          for (const option of control.options) {
+            appendChild(
+              select,
+              createEl('option', { value: String(option.value) }, option.label)
+            )
+          }
+          return select
+        }
       }
-      return select
     },
   },
 
@@ -283,8 +282,7 @@ export const diagnosticDomAdapter: DomAdapter = {
     },
     label: (data) => notImplemented('label', data),
     description: (data) => notImplemented('description', data),
-    input: (data) => notImplemented('input', data),
-    select: (data) => notImplemented('select', data),
+    control: (data) => notImplemented('control', data),
   },
   group: {
     root({ node, children }) {

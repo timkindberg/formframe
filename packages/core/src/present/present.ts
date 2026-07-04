@@ -12,15 +12,15 @@
 
 import type {
   AnyNode,
+  FieldControl,
   FieldFacts,
   FieldNode,
+  FieldParts,
   GroupNode,
   HtmlInputAttrs,
   HtmlSelectAttrs,
-  InputFieldNode,
-  InputFieldParts,
-  SelectFieldNode,
-  SelectFieldParts,
+  HtmlTextareaAttrs,
+  WidgetName,
 } from '../parser/nodeTypes'
 
 /** The normalized presentation for one field (ADR 029). `args` is the generic
@@ -125,38 +125,76 @@ function inputAttrsFromFacts(f: FieldFacts): HtmlInputAttrs {
   return attrs
 }
 
-export function deriveInputParts(f: FieldFacts): InputFieldParts {
-  return { ...commonParts(f), input: { attrs: inputAttrsFromFacts(f) } }
-}
-
-export function deriveSelectParts(
-  f: FieldFacts,
-  multiple: boolean
-): SelectFieldParts {
+function selectAttrsFromFacts(f: FieldFacts, multiple: boolean): HtmlSelectAttrs {
   const attrs: HtmlSelectAttrs = { id: f.attrs.id, name: f.attrs.name }
   if (multiple) attrs.multiple = true
   if (f.constraints.required) attrs.required = true
-  return { ...commonParts(f), select: { attrs, options: f.choices ?? [] } }
+  return attrs
 }
 
-/** The widget + control parts a built-in archetype resolves to. Discriminated on
- * `widget` so a caller can rebuild the exact `FieldNode` subtype without a cast. */
-type WidgetParts =
-  | { widget: 'input'; parts: InputFieldParts }
-  | { widget: 'select' | 'multiselect'; parts: SelectFieldParts }
+function textareaAttrsFromFacts(f: FieldFacts): HtmlTextareaAttrs {
+  const attrs: HtmlTextareaAttrs = { id: f.attrs.id, name: f.attrs.name }
+  const c = f.constraints
+  if (c.required) attrs.required = true
+  if (c.minLength !== undefined) attrs.minLength = c.minLength
+  if (c.maxLength !== undefined) attrs.maxLength = c.maxLength
+  return attrs
+}
 
 /**
- * Map a resolved widget name to its Core-derived control parts. Returns
- * `undefined` for a widget the built-in catalog doesn't know (custom/raw widgets
- * are a later tracer — a no-op for now). Shared by `presentField` (the pass) and
- * `presentDefaultLeaf` (the parser's leaf finalizer) so widget→parts derivation
- * lives in exactly one place (ADR 029 §4).
+ * Derive the unified control facet (ADR 029 §5) for a widget name from neutral
+ * facts. `multiselect` maps to the `select` archetype + `attrs.multiple`. Returns
+ * `undefined` for a widget the built-in catalog doesn't know (custom widgets are a
+ * later tracer — a no-op for now). This is the ONE place widget→control lives.
  */
+export function deriveControl(
+  f: FieldFacts,
+  widget: string
+): FieldControl | undefined {
+  switch (widget) {
+    case 'input':
+      return { kind: 'input', attrs: inputAttrsFromFacts(f) }
+    case 'select':
+      return {
+        kind: 'select',
+        attrs: selectAttrsFromFacts(f, false),
+        options: f.choices ?? [],
+      }
+    case 'multiselect':
+      return {
+        kind: 'select',
+        attrs: selectAttrsFromFacts(f, true),
+        options: f.choices ?? [],
+      }
+    case 'textarea':
+      return { kind: 'textarea', attrs: textareaAttrsFromFacts(f) }
+    default:
+      return undefined
+  }
+}
+
+/** A field's full parts (common + control) for a widget, or `undefined` for a
+ * widget the catalog doesn't know. Shared by the parser leaf builders and the pass. */
+export function deriveFieldParts(
+  f: FieldFacts,
+  widget: string
+): FieldParts | undefined {
+  const control = deriveControl(f, widget)
+  return control ? { ...commonParts(f), control } : undefined
+}
+
+/** The widget name + its derived parts. `widget` is the resolved name (a label);
+ * the archetype discriminant lives in `parts.control.kind` (ADR 029 §5/§6, v60). */
+interface WidgetParts {
+  widget: WidgetName
+  parts: FieldParts
+}
+
 function widgetParts(f: FieldFacts, widget: string): WidgetParts | undefined {
-  if (widget === 'input') return { widget: 'input', parts: deriveInputParts(f) }
-  if (widget === 'select' || widget === 'multiselect')
-    return { widget, parts: deriveSelectParts(f, widget === 'multiselect') }
-  return undefined
+  const parts = deriveFieldParts(f, widget)
+  // `deriveFieldParts` returns non-undefined only for the known built-in names, so
+  // the cast is sound at this boundary; custom widgets (a later tracer) are a no-op.
+  return parts ? { widget: widget as WidgetName, parts } : undefined
 }
 
 /**
@@ -170,7 +208,12 @@ export function presentDefaultLeaf(f: FieldFacts): WidgetParts {
   const p = defaultPresentation(f)
   // `defaultPresentation` always yields input/select/multiselect for parser
   // facts; the fallback guards a future default rule returning something unmapped.
-  return (p && widgetParts(f, p.widget)) ?? { widget: 'input', parts: deriveInputParts(f) }
+  return (
+    (p && widgetParts(f, p.widget)) ?? {
+      widget: 'input',
+      parts: deriveFieldParts(f, 'input')!,
+    }
+  )
 }
 
 // --- The pass -------------------------------------------------------------------
@@ -182,11 +225,9 @@ function presentField(node: FieldNode, resolve: PresentationResolver): FieldNode
   if (p.widget === node.widget && !p.args) return node
   const wp = widgetParts(node.facts, p.widget)
   // Custom / raw widgets are deferred to a later tracer (ADR 029). Until the
-  // catalog + control facet land, an unknown widget name is a no-op.
+  // catalog earns a generic control facet, an unknown widget name is a no-op.
   if (!wp) return node
-  return wp.widget === 'input'
-    ? ({ ...node, widget: 'input', parts: wp.parts } as InputFieldNode)
-    : ({ ...node, widget: wp.widget, parts: wp.parts } as SelectFieldNode)
+  return { ...node, widget: wp.widget, parts: wp.parts }
 }
 
 // Generic in the node type so callers get their exact node back (e.g. `present`

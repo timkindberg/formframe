@@ -57,18 +57,21 @@ function App() {
                 <small>{node.parts.description.text}</small>
               )}
 
-              {node.widget === 'select' ? (
-                <select {...node.parts.select.attrs}>
+              {/* Dispatch on the unified control archetype (ADR 029 §5). */}
+              {node.parts.control.kind === 'select' ? (
+                <select {...node.parts.control.attrs}>
                   <option value="">-- Select --</option>
-                  {node.parts.select.options.map((opt) => (
+                  {node.parts.control.options.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
                   ))}
                 </select>
-              ) : node.widget === 'input' ? (
-                <input {...node.parts.input.attrs} />
-              ) : null}
+              ) : node.parts.control.kind === 'textarea' ? (
+                <textarea {...node.parts.control.attrs} />
+              ) : (
+                <input {...node.parts.control.attrs} />
+              )}
             </div>
           ),
 

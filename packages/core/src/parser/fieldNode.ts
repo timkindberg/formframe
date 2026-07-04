@@ -5,13 +5,7 @@ import {
   type ValidationRules,
 } from './utils'
 import { presentDefaultLeaf } from '../present/present'
-import type {
-  FieldFacts,
-  FieldNode,
-  InputFieldNode,
-  SelectFieldNode,
-  SelectOption,
-} from './nodeTypes'
+import type { FieldFacts, FieldNode, SelectOption } from './nodeTypes'
 
 // Re-export for type inference
 export type { ValidationRules }
@@ -83,22 +77,12 @@ export function createFieldNode(
   }
 
   // Widget + control parts come solely from the present stage's default rule and
-  // Core widget catalog (bd 9pb closed the dual period). `useSchemaForm` re-runs
-  // `present()` with any consumer resolver on top; a direct `jsonSchemaToTree`
-  // consumer still gets a fully-formed, default-presented tree.
+  // Core widget catalog (bd 9pb closed the dual period; bd v60 unified the control
+  // slot). `useSchemaForm` re-runs `present()` with any consumer resolver on top; a
+  // direct `jsonSchemaToTree` consumer still gets a fully-formed, default-presented
+  // tree. `FieldNode` is now a single shape — the widget lives in `parts.control`.
   const wp = presentDefaultLeaf(facts)
-  if (wp.widget === 'input') {
-    const node: InputFieldNode = {
-      ...nodeBase,
-      widget: 'input',
-      parts: wp.parts,
-      toJSON() {
-        return serializeNode(this)
-      },
-    }
-    return node
-  }
-  const node: SelectFieldNode = {
+  const node: FieldNode = {
     ...nodeBase,
     widget: wp.widget,
     parts: wp.parts,
@@ -109,12 +93,7 @@ export function createFieldNode(
   return node
 }
 
-export type {
-  FieldNode,
-  FieldParts,
-  InputFieldNode,
-  SelectFieldNode,
-} from './nodeTypes'
+export type { FieldNode, FieldParts } from './nodeTypes'
 
 /** Inputs for {@link buildFieldFacts}. `constraints` is passed in (not recomputed)
  * so the parser's already-built `ValidationRules` is reused; `choices` is supplied

@@ -66,9 +66,7 @@ import {
   type EArrayItem as CoreEArrayItem,
   type Resolver,
   type GroupNode,
-  type HtmlInputAttrs,
-  type HtmlSelectAttrs,
-  type SelectOption,
+  type FieldControl,
   type ValidationIssue,
 } from '@jsonschema-form/core'
 
@@ -126,41 +124,38 @@ interface FieldA11yState {
 }
 const FieldA11yContext = createContext<FieldA11yState | null>(null)
 
-function DefaultInput({ attrs }: { attrs: HtmlInputAttrs }): ReactNode {
+/**
+ * The unified control renderer (ADR 029 §5, v60): ONE `field.control` slot that
+ * narrows on `control.kind` — the render archetype — instead of separate
+ * `input`/`select` parts. A new widget is a new `kind` arm here, nothing in the
+ * engine or the node type. a11y wiring (`aria-invalid`/`aria-describedby`) is
+ * applied once, from the field root's `FieldA11yContext`, for every archetype.
+ */
+function DefaultControl(control: FieldControl): ReactNode {
   const a11y = useContext(FieldA11yContext)
-  return (
-    <input
-      {...attrs}
-      {...(a11y
-        ? { 'aria-invalid': true as const, 'aria-describedby': a11y.errorId }
-        : {})}
-    />
-  )
-}
-
-function DefaultSelect({
-  attrs,
-  options,
-}: {
-  attrs: HtmlSelectAttrs
-  options: SelectOption[]
-}): ReactNode {
-  const a11y = useContext(FieldA11yContext)
-  return (
-    <select
-      {...attrs}
-      {...(a11y
-        ? { 'aria-invalid': true as const, 'aria-describedby': a11y.errorId }
-        : {})}
-    >
-      <option value="">-- select --</option>
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  )
+  const a11yProps = a11y
+    ? { 'aria-invalid': true as const, 'aria-describedby': a11y.errorId }
+    : {}
+  switch (control.kind) {
+    case 'input':
+      return <input {...control.attrs} {...a11yProps} />
+    case 'textarea':
+      return <textarea {...control.attrs} {...a11yProps} />
+    case 'select': {
+      const { attrs, options } = control
+      return (
+        <select {...attrs} {...a11yProps}>
+          {/* No blank placeholder for multiple — nothing to "un-select" to. */}
+          {!attrs.multiple && <option value="">-- select --</option>}
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      )
+    }
+  }
 }
 
 function DefaultGroupLabel({ text }: { text: string }): ReactNode {
@@ -375,11 +370,9 @@ function DefaultFieldRoot({
     // Call, never mount: `part.Default()` returns a stable `PartHost` element.
     return override ? override(part) : part.Default()
   }
-  // Narrowing on `widget` reaches the variant-specific control part (ADR 012).
-  const control =
-    node.widget === 'input'
-      ? renderSlot(node.parts.input, 'input')
-      : renderSlot(node.parts.select, 'select')
+  // One unified control slot (ADR 029 §5, v60) — no widget narrowing here; the
+  // archetype lives in `control.kind`, read only by the control renderer.
+  const control = renderSlot(node.parts.control, 'control')
   const issues = useFieldIssues(node.path)
   const show = useFieldErrorDisplay(node.path)
   const a11y =
@@ -628,8 +621,7 @@ export const defaultAdapter: ReactAdapter = {
     root: DefaultFieldRoot,
     label: DefaultFieldLabel,
     description: DefaultDescription,
-    input: DefaultInput,
-    select: DefaultSelect,
+    control: DefaultControl,
   },
   group: {
     root: DefaultGroupRoot,
@@ -688,8 +680,7 @@ export const diagnosticAdapter: ReactAdapter = {
     ),
     label: (data) => <NotImplemented kind="label" data={data} />,
     description: (data) => <NotImplemented kind="description" data={data} />,
-    input: (data) => <NotImplemented kind="input" data={data} />,
-    select: (data) => <NotImplemented kind="select" data={data} />,
+    control: (data) => <NotImplemented kind="control" data={data} />,
   },
   group: {
     root: ({ node, children }) => (

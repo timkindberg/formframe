@@ -70,15 +70,16 @@ describe('SchemaFields', () => {
       <SchemaFields
         form={form}
         renderNode={(node, { Default }) => {
-          // narrowing to the input variant exposes the `input` part override
+          // the unified `control` part is overridable regardless of widget (v60)
           if (node.isField && node.widget === 'input' && node.path === 'name') {
             return (
               <Default
                 of={node}
                 parts={{
-                  input: (input) => (
-                    <input {...input.attrs} data-testid="fancy-input" />
-                  ),
+                  control: (control) =>
+                    control.kind === 'input' ? (
+                      <input {...control.attrs} data-testid="fancy-input" />
+                    ) : null,
                 }}
               />
             )
@@ -100,10 +101,10 @@ describe('SchemaFields', () => {
         form={form}
         renderNode={(node, { Default }) => {
           if (node.isField && node.widget === 'input' && node.path === 'name') {
-            const { label, input } = node.parts
+            const { label, control } = node.parts
             return (
               <div data-testid="hand-composed">
-                <Default of={input} />
+                <Default of={control} />
                 <Default of={label} />
               </div>
             )
@@ -182,7 +183,12 @@ describe('createRenderer — the floor (ADR 013)', () => {
 
   it('a supplied entry renders for real; siblings stay diagnostic', async () => {
     const Floor = createRenderer({
-      field: { input: ({ attrs }) => <input {...attrs} data-floor /> },
+      field: {
+        control: (control) =>
+          control.kind === 'input' ? (
+            <input {...control.attrs} data-floor />
+          ) : null,
+      },
     })
     const form = jsonSchemaToTree(schema)
     await render(<Floor form={form} />)

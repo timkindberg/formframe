@@ -76,23 +76,45 @@ export interface HtmlSelectAttrs {
   multiple?: boolean
 }
 
-// A field's parts are widget-discriminated (ADR 012): narrow on `widget` to
-// reach `input` (input widget) or `select` (select/multiselect widget).
+export interface HtmlTextareaAttrs {
+  id: string
+  name: string
+  required?: boolean
+  minLength?: number
+  maxLength?: number
+}
+
+// The resolved widget *name* (ADR 029 §6, amended by bd v60). It is a label, not
+// a parts discriminant — it widens to `string & Brand` when custom widgets land.
+export type WidgetName = 'input' | 'select' | 'multiselect' | 'textarea'
+
+/**
+ * The unified control facet (ADR 029 §5). A single `control` part replaces the old
+ * per-widget `input`/`select` parts. It is discriminated on `kind` — the render
+ * **archetype** (which element to draw) — decoupled from `node.widget` (the resolved
+ * name): `multiselect` is `kind: 'select'` + `attrs.multiple`. The adapter narrows on
+ * `kind`; the engine and node structure never enumerate widgets. A generic/`raw`
+ * archetype for custom widgets is deferred until the catalog earns it (ADR 008).
+ */
+export type FieldControl =
+  | { kind: 'input'; attrs: HtmlInputAttrs }
+  | { kind: 'select'; attrs: HtmlSelectAttrs; options: SelectOption[] }
+  | { kind: 'textarea'; attrs: HtmlTextareaAttrs }
+
+export type ControlKind = FieldControl['kind']
+
 export interface FieldPartsBase {
   container: { key: string }
   label: { text: string; attrs: { for: string }; showRequired: boolean }
   description?: { text: string }
 }
 
-export interface InputFieldParts extends FieldPartsBase {
-  input: { attrs: HtmlInputAttrs }
+// Every field has the same parts shape: common parts + one `control` facet. The
+// widget variation lives inside `control` (discriminated on `kind`), not in the
+// node type (ADR 029 §5/§6, amended by bd v60).
+export interface FieldParts extends FieldPartsBase {
+  control: FieldControl
 }
-
-export interface SelectFieldParts extends FieldPartsBase {
-  select: { attrs: HtmlSelectAttrs; options: SelectOption[] }
-}
-
-export type FieldParts = InputFieldParts | SelectFieldParts
 
 export interface GroupParts {
   container: { key: string }
@@ -131,28 +153,21 @@ interface ContainerMethods {
   walk<R>(handlers?: WalkHandlers<R>): R[]
 }
 
-interface FieldNodeBase extends NodeBase {
+// A field leaf (ADR 029 §5/§6, amended by bd v60): a single interface. The widget
+// variation lives in `parts.control` (discriminated on `control.kind`), NOT in the
+// node type — so nothing that handles *nodes* narrows on widget. `widget` is the
+// resolved name (a label); the adapter dispatches on `control.kind`.
+export interface FieldNode extends NodeBase {
   nodeType: 'field'
+  widget: WidgetName
   /** Neutral facts the `present()` stage reads to assign a widget (ADR 029). */
   facts: FieldFacts
+  parts: FieldParts
   isField: true
   isGroup: false
   isArray: false
   isArrayItem: false
 }
-
-export interface InputFieldNode extends FieldNodeBase {
-  widget: 'input'
-  parts: InputFieldParts
-}
-
-export interface SelectFieldNode extends FieldNodeBase {
-  widget: 'select' | 'multiselect'
-  parts: SelectFieldParts
-}
-
-// A field leaf — widget-discriminated. Narrow on `widget` (ADR 012).
-export type FieldNode = InputFieldNode | SelectFieldNode
 
 export interface GroupNode extends NodeBase, ContainerMethods {
   nodeType: 'group'

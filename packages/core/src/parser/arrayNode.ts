@@ -1,6 +1,6 @@
 import { buildFieldFacts, createFieldNode } from './fieldNode'
 import { createGroupNode } from './groupNode'
-import { deriveSelectParts } from '../present/present'
+import { deriveFieldParts } from '../present/present'
 import {
   buildValidation,
   type JSONSchemaObject,
@@ -14,7 +14,6 @@ import type {
   ArrayItemNode,
   ArrayItemParts,
   FieldNode,
-  SelectFieldNode,
   WalkHandlers,
 } from './nodeTypes'
 
@@ -275,7 +274,7 @@ function createMultiselectFieldNode(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-): SelectFieldNode {
+): FieldNode {
   const itemsSchema = schema.items as JSONSchemaObject
 
   // Build options (neutral choices) from enum or oneOf
@@ -306,7 +305,7 @@ function createMultiselectFieldNode(
     choices: options,
   })
 
-  const node: SelectFieldNode = {
+  const node: FieldNode = {
     nodeType: 'field',
     path,
     schema,
@@ -321,7 +320,7 @@ function createMultiselectFieldNode(
     },
     isRoot: path === '',
     depth: path ? path.split('.').length : 0,
-    parts: deriveSelectParts(facts, true),
+    parts: deriveFieldParts(facts, 'multiselect')!,
 
     isField: true,
     isGroup: false,

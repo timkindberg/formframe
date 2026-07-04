@@ -91,7 +91,7 @@ describe('renderToString — continuation model', () => {
     const html = renderToString(form, {
       renderNode: (node) => {
         if (node.isField && node.widget === 'input' && node.path === 'name') {
-          return `<div class="hand">${node.parts.input.Default()}${node.parts.label.Default()}</div>`
+          return `<div class="hand">${node.parts.control.Default()}${node.parts.label.Default()}</div>`
         }
         return node.Default()
       },
@@ -147,7 +147,12 @@ describe('createRenderer — the floor (ADR 013)', () => {
 
   it('a supplied entry renders for real; the rest stay diagnostic', () => {
     const render = createRenderer({
-      field: { input: ({ attrs }) => `<input data-floor${attrsId(attrs.id)}>` },
+      field: {
+        control: (control) =>
+          control.kind === 'input'
+            ? `<input data-floor${attrsId(control.attrs.id)}>`
+            : '',
+      },
     })
     const html = render(form)
     // the implemented input is real…

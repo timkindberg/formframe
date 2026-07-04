@@ -24,13 +24,9 @@ import {
   type EGroup,
   type EArray,
   type EArrayItem,
-  type EInputField,
-  type ESelectField,
   type GroupNode,
   type Resolver,
-  type HtmlInputAttrs,
-  type HtmlSelectAttrs,
-  type SelectOption,
+  type FieldControl,
 } from '@jsonschema-form/core'
 
 // ---------------------------------------------------------------------------
@@ -42,8 +38,6 @@ export type VanillaAdapter = RendererAdapter<string>
 export type VanillaPartialAdapter = PartialAdapter<string>
 export type VNode = ENode<string>
 export type VField = EField<string>
-export type VInputField = EInputField<string>
-export type VSelectField = ESelectField<string>
 export type VGroup = EGroup<string>
 export type VArray = EArray<string>
 export type VArrayItem = EArrayItem<string>
@@ -98,10 +92,7 @@ const defaultAdapterImpl: VanillaAdapter = {
         const override = overrides?.[name]
         return override ? override(part) : part.Default()
       }
-      const control =
-        node.widget === 'input'
-          ? renderPart(node.parts.input, 'input')
-          : renderPart(node.parts.select, 'select')
+      const control = renderPart(node.parts.control, 'control')
       return `<div class="jsf-field">${renderPart(
         node.parts.label,
         'label'
@@ -117,22 +108,29 @@ const defaultAdapterImpl: VanillaAdapter = {
       return `<small class="jsf-description">${escapeText(text)}</small>`
     },
 
-    input({ attrs }: { attrs: HtmlInputAttrs }) {
-      return `<input${renderAttrs(attrs)}>`
-    },
-
-    select({ attrs, options }: { attrs: HtmlSelectAttrs; options: SelectOption[] }) {
-      const opts = options
-        .map(
-          (o) =>
-            `<option value="${escapeAttr(String(o.value))}">${escapeText(
-              o.label
-            )}</option>`
-        )
-        .join('')
-      return `<select${renderAttrs(
-        attrs
-      )}><option value="">-- select --</option>${opts}</select>`
+    // One unified control slot (ADR 029 §5, v60): narrow on `control.kind`.
+    control(control: FieldControl) {
+      switch (control.kind) {
+        case 'input':
+          return `<input${renderAttrs(control.attrs)}>`
+        case 'textarea':
+          return `<textarea${renderAttrs(control.attrs)}></textarea>`
+        case 'select': {
+          const opts = control.options
+            .map(
+              (o) =>
+                `<option value="${escapeAttr(String(o.value))}">${escapeText(
+                  o.label
+                )}</option>`
+            )
+            .join('')
+          // No blank placeholder for multiple — nothing to "un-select" to.
+          const placeholder = control.attrs.multiple
+            ? ''
+            : '<option value="">-- select --</option>'
+          return `<select${renderAttrs(control.attrs)}>${placeholder}${opts}</select>`
+        }
+      }
     },
   },
 
@@ -215,8 +213,7 @@ export const diagnosticAdapter: VanillaAdapter = {
     },
     label: (data) => notImplemented('label', data),
     description: (data) => notImplemented('description', data),
-    input: (data) => notImplemented('input', data),
-    select: (data) => notImplemented('select', data),
+    control: (data) => notImplemented('control', data),
   },
   group: {
     root({ node, children }) {
