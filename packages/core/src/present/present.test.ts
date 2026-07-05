@@ -6,6 +6,7 @@ import {
   layered,
   type PresentationResolver,
 } from './present'
+import { inputCtl, selectCtl, textareaCtl } from './controlTestUtils'
 
 const schema = {
   type: 'object',
@@ -31,11 +32,9 @@ describe('present (ADR 029)', () => {
       jsonSchemaToTree(schema),
       layered(defaultPresentation, toMultiselect)
     )
-    const color = tree.getField('color')!
-    expect(color.widget).toBe('multiselect')
-    const control = color.parts.control
-    expect(control.kind).toBe('select')
-    if (control.kind !== 'select') throw new Error('expected select control')
+    const color = tree.getField('color')
+    expect(color?.widget).toBe('multiselect')
+    const control = selectCtl(color)
     expect(control.attrs.multiple).toBe(true)
     expect(control.options.map((o) => o.value)).toEqual(['red', 'green', 'blue'])
   })
@@ -66,11 +65,9 @@ describe('present (ADR 029)', () => {
         type: 'object',
         properties: { field: { type: 'string', format } },
       })
-      const field = tree.getField('field')!
-      expect(field.widget).toBe('input')
-      const control = field.parts.control
-      if (control.kind !== 'input') throw new Error('expected input control')
-      expect(control.attrs.type).toBe(expectedType)
+      const field = tree.getField('field')
+      expect(field?.widget).toBe('input')
+      expect(inputCtl(field).attrs.type).toBe(expectedType)
     }
   )
 
@@ -90,11 +87,10 @@ describe('present (ADR 029)', () => {
       jsonSchemaToTree(bioSchema),
       layered(defaultPresentation, toTextarea)
     )
-    const bio = tree.getField('bio')!
-    expect(bio.widget).toBe('textarea')
-    const control = bio.parts.control
-    if (control.kind !== 'textarea') throw new Error('expected textarea control')
-    expect(control.attrs).toEqual({
+    const bio = tree.getField('bio')
+    expect(bio?.widget).toBe('textarea')
+    // `textareaCtl` returns the textarea-typed control — `.attrs` is HtmlTextareaAttrs.
+    expect(textareaCtl(bio).attrs).toEqual({
       id: 'bio',
       name: 'bio',
       required: true,

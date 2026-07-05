@@ -59,33 +59,27 @@ export function createFieldNode(
     choices: isSelect ? buildSelectOptions() : undefined,
   })
 
-  const nodeBase = {
-    nodeType: 'field' as const,
-    path,
-    schema,
-    validation,
-    facts,
-
-    // Computed properties
-    isRoot: path === '',
-    depth: path ? path.split('.').length : 0,
-
-    isField: true as const,
-    isGroup: false as const,
-    isArray: false as const,
-    isArrayItem: false as const,
-  }
-
   // Widget + control parts come solely from the present stage's default rule and
   // Core widget catalog (bd 9pb closed the dual period; bd v60 unified the control
   // slot). `useSchemaForm` re-runs `present()` with any consumer resolver on top; a
   // direct `jsonSchemaToTree` consumer still gets a fully-formed, default-presented
-  // tree. `FieldNode` is now a single shape — the widget lives in `parts.control`.
+  // tree. `FieldNode` is now a single shape — the widget lives in `parts.control`,
+  // so the node is built in one go.
   const wp = presentDefaultLeaf(facts)
   const node: FieldNode = {
-    ...nodeBase,
+    nodeType: 'field',
+    path,
+    schema,
+    validation,
+    facts,
     widget: wp.widget,
     parts: wp.parts,
+    isRoot: path === '',
+    depth: path ? path.split('.').length : 0,
+    isField: true,
+    isGroup: false,
+    isArray: false,
+    isArrayItem: false,
     toJSON() {
       return serializeNode(this)
     },
