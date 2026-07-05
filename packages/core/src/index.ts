@@ -27,8 +27,10 @@ export type {
   HtmlInputAttrs,
   HtmlSelectAttrs,
   HtmlTextareaAttrs,
+  HtmlOptionInputAttrs,
   HtmlInputType,
   SelectOption,
+  ChoiceOption,
   GroupParts,
   ArrayParts,
   ArrayItemParts,
@@ -48,6 +50,7 @@ export { jsonSchemaToTree } from './parser/index'
 export {
   present,
   defaultPresentation,
+  OPTION_COUNT_THRESHOLD,
   layered,
   deriveControl,
   deriveFieldParts,

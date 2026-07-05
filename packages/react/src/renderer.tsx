@@ -155,6 +155,24 @@ function DefaultControl(control: FieldControl): ReactNode {
         </select>
       )
     }
+    case 'choicegroup': {
+      // Radio (single) or checkbox (multi) group — a set of native option inputs,
+      // each implicitly labelled by its wrapping `<label>` (bd cm7). The group's
+      // a11y (role + error wiring) sits on the wrapper; each option is uncontrolled
+      // with a `value` attr (radio/checkbox use `checked`, not `value`, for state,
+      // so no controlled-input warning). `role` reflects single- vs multi-choice.
+      const role = control.multiple ? 'group' : 'radiogroup'
+      return (
+        <div className="jsf-choicegroup" role={role} {...a11yProps}>
+          {control.options.map((o) => (
+            <label key={o.attrs.id} className="jsf-choice">
+              <input {...o.attrs} />
+              <span className="jsf-choice-text">{o.label}</span>
+            </label>
+          ))}
+        </div>
+      )
+    }
   }
 }
 

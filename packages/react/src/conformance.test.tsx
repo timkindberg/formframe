@@ -113,7 +113,9 @@ async function reactDom(
 // ---------------------------------------------------------------------------
 
 const defaultSchemas: Record<string, JSONSchema> = {
-  'flat fields + select': {
+  // A small scalar enum (≤ threshold) defaults to a radio group (bd cm7); this is
+  // the first multi-element control archetype to go through conformance.
+  'flat fields + radio (small enum)': {
     type: 'object',
     properties: {
       name: { type: 'string', title: 'Name' },
@@ -132,7 +134,9 @@ const defaultSchemas: Record<string, JSONSchema> = {
     },
     required: ['handle', 'email'],
   },
-  'select + multiselect + description': {
+  // Small scalar + array enums default to radio / checkbox groups, with a
+  // description caption to prove the shared field chrome wraps groups too.
+  'radio + checkboxes + description': {
     type: 'object',
     properties: {
       size: {
@@ -145,6 +149,23 @@ const defaultSchemas: Record<string, JSONSchema> = {
         type: 'array',
         title: 'Tags',
         items: { enum: ['a', 'b', 'c'] },
+      },
+    },
+  },
+  // Above the threshold the same enums fall back to <select> / multi-<select>,
+  // so both single-element choice archetypes are also covered by default.
+  'select + multiselect (large enums)': {
+    type: 'object',
+    properties: {
+      size: {
+        type: 'string',
+        title: 'Size',
+        enum: ['xs', 's', 'm', 'l', 'xl', 'xxl'],
+      },
+      tags: {
+        type: 'array',
+        title: 'Tags',
+        items: { enum: ['a', 'b', 'c', 'd', 'e', 'f'] },
       },
     },
   },

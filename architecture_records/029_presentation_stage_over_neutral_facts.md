@@ -2,7 +2,8 @@
 
 **Date:** 2026-07-01
 **Status:** Accepted (tracer bd `wsr` landed; dual period closed by bd `9pb`; §5
-control slot implemented by bd `v60`)
+control slot implemented by bd `v60`; widget catalog + default heuristic grown by
+bd `cm7`)
 **Deciders:** Tim Kindberg
 **Supersedes:** ADR 022 (Widget Selection as a Layered IR Slot)
 **Amends:** ADR 012 §3 (ownership of schema-derived HTML attributes)
@@ -128,6 +129,17 @@ function present(
     : f.choices                          ? { widget: 'select' }
     :                                      { widget: 'input' }
   ```
+
+  **Amended (bd `cm7`, 2026-07-05) — the default is option-count driven.** A
+  constrained field with **few** `choices` now defaults to an inline **group**
+  (`radio` for single-choice, `checkboxes` for multi-choice) and with **many** to a
+  compact **dropdown** (`select` / `multiselect`), split at one tunable constant
+  `OPTION_COUNT_THRESHOLD` (5 — the conservative common boundary across USWDS,
+  Chrome forms, and Miller 7±2). The four choice widgets share the SAME neutral
+  facts AND the SAME submitted-value contract — a `radio` ≡ a `select` (one scalar),
+  a `checkboxes` group ≡ a `multiselect` (a `string[]`) — so the heuristic is a
+  pure *presentation* swap: it never changes what the schema validates or submit
+  assembles, and every choice stays overridable by a consumer resolver.
 - It runs **once per schema/resolver change**, memoized alongside parse, and **must
   preserve node identity for unchanged subtrees** (structural sharing) so the
   React `NodeRenderer` memo-bail keeps holding.
@@ -189,6 +201,20 @@ Two fixes folded in: a11y wiring (`aria-invalid`/`aria-describedby`) is applied 
 the unified control renderer instead of per-widget, and the empty `-- select --`
 placeholder option is omitted for `multiple` selects.
 
+**Amended (bd `cm7`, 2026-07-05) — the `choicegroup` archetype.** `radio` and
+`checkboxes` are both `kind: 'choicegroup'` (distinguished by `multiple`, exactly as
+`select`/`multiselect` share `kind: 'select'`). It is the FIRST archetype that renders
+**many** elements — a set of `<label><input type=radio|checkbox></label>` option pairs
+wrapped in a `role={radiogroup|group}` container — so the per-option `<input>` attrs
+(`HtmlOptionInputAttrs`: adds an intrinsic `value` + a unique per-option `id`) are
+derived **in Core** (`choiceOptions(facts)`), keeping React ≡ vanilla. Two seam
+consequences confirmed the design generalizes: (a) the group's error a11y sits on the
+**wrapper**, not each input, still applied once from the field root's context; and (b)
+`deriveFieldParts` retargets the caption `<label for>` at the first option (a group has
+no single element bearing the field id). Submit needed no widget special-casing —
+array-wrapping was re-keyed off `facts.valueShape === 'array'` (§ below), which already
+covered `multiselect` and now `checkboxes` for free.
+
 ### 6. Typing: closed Core archetype union, branded custom widgets
 
 - Core keeps a **closed, fully-discriminated archetype union** for its built-ins
@@ -197,9 +223,10 @@ placeholder option is omitted for `multiple` selects.
   **Amended (bd `v60`) — where the archetype union lives.** The closed archetype
   discrimination moved from the **node** (`FieldNode = InputFieldNode | SelectFieldNode`,
   discriminated on `widget`) to the **control facet** (`FieldControl`, discriminated on
-  `kind`). `FieldNode` is now a **single** interface; `node.widget` is the resolved
-  widget *name* (`'input' | 'select' | 'multiselect' | 'textarea'` today, widening to
-  `string & Brand` when custom widgets land) and it **no longer gates parts access** —
+  `kind`).   `FieldNode` is now a **single** interface; `node.widget` is the resolved
+  widget *name* (`'input' | 'select' | 'multiselect' | 'textarea' | 'radio' |
+  'checkboxes'` today, widening to `string & Brand` when custom widgets land) and it
+  **no longer gates parts access** —
   only `control.kind` does, and only the adapter (the pixels boundary) reads it. This was
   a clean break (no `parts.input`/`parts.select` aliases); all first-party consumers
   (React, the vanilla string + DOM oracle, examples, tests) migrated in one change.

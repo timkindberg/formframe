@@ -12,6 +12,7 @@
 
 import type {
   AnyNode,
+  ChoiceOption,
   FieldControl,
   FieldFacts,
   FieldNode,
@@ -39,17 +40,39 @@ export interface Presentation {
 export type PresentationResolver = (facts: FieldFacts) => Presentation | undefined
 
 /**
- * The shipped default widget rule — the floor. Replaces the parser's old
- * hard-coding: array-of-choices → multiselect, scalar-with-choices → select,
- * else a plain input. `valueShape` (not `choices` alone) distinguishes the array
- * case so submit-wrapping (`widget === 'multiselect'`) stays correct.
+ * The option-count threshold (bd cm7). At or below it, a constrained field
+ * defaults to an inline **group** (radio for single-choice, checkboxes for
+ * multi-choice); above it, to a compact **dropdown** (select / multiselect). 5 is
+ * the conservative common boundary across UX research (USWDS 2–5 radio then
+ * select; Chrome forms 1–5 radio then select; Miller 7±2). It is one named
+ * constant so the whole heuristic is tunable in one place, and every default it
+ * produces is overridable by a consumer resolver (ADR 029).
  */
-export const defaultPresentation: PresentationResolver = (f) =>
-  f.valueShape === 'array' && f.choices
-    ? { widget: 'multiselect' }
-    : f.choices
-      ? { widget: 'select' }
-      : { widget: 'input' }
+export const OPTION_COUNT_THRESHOLD = 5
+
+/**
+ * The shipped default widget rule — the floor. Replaces the parser's old
+ * hard-coding, now option-count driven (bd cm7): a constrained field with few
+ * `choices` gets an inline group (radio / checkboxes), with many a dropdown
+ * (select / multiselect); an unconstrained field is a plain input. `valueShape`
+ * (not `choices` alone) picks the multi-choice branch so submit-wrapping (array-
+ * valued leaves → `string[]`) stays correct. All four choice widgets carry the
+ * SAME neutral facts and the SAME submitted-value contract (a radio ≡ a select; a
+ * checkbox group ≡ a multiselect) — only the rendered control differs.
+ */
+export const defaultPresentation: PresentationResolver = (f) => {
+  if (f.valueShape === 'array' && f.choices) {
+    return f.choices.length <= OPTION_COUNT_THRESHOLD
+      ? { widget: 'checkboxes' }
+      : { widget: 'multiselect' }
+  }
+  if (f.choices) {
+    return f.choices.length <= OPTION_COUNT_THRESHOLD
+      ? { widget: 'radio' }
+      : { widget: 'select' }
+  }
+  return { widget: 'input' }
+}
 
 /** Compose resolvers lowest→highest precedence; later (consumer) wins, and an
  * `undefined` return defers to the layer below. Use `layered(defaultPresentation,
@@ -142,6 +165,28 @@ function textareaAttrsFromFacts(f: FieldFacts): HtmlTextareaAttrs {
 }
 
 /**
+ * Per-option `<input>` attrs for a radio/checkbox group (bd cm7). Each option is a
+ * distinct `<input>` carrying its own `value` and a unique `id` (`${fieldId}-${i}`)
+ * so a `<label>` can target it; all share the field's `name`. `required` is set only
+ * for radios (single-choice): native `required` on a shared-name radio group means
+ * "pick one", which is correct — but on a checkbox group it would demand EVERY box,
+ * so "at least one" is left to the side-loaded validator (ADR 019).
+ */
+function choiceOptions(f: FieldFacts, multiple: boolean): ChoiceOption[] {
+  const type = multiple ? 'checkbox' : 'radio'
+  return (f.choices ?? []).map((choice, i) => {
+    const attrs = {
+      id: `${f.attrs.id}-${i}`,
+      name: f.attrs.name,
+      type,
+      value: choice.value,
+    } as ChoiceOption['attrs']
+    if (!multiple && f.constraints.required) attrs.required = true
+    return { attrs, label: choice.label }
+  })
+}
+
+/**
  * Derive the unified control facet (ADR 029 §5) for a widget name from neutral
  * facts. `multiselect` maps to the `select` archetype + `attrs.multiple`. Returns
  * `undefined` for a widget the built-in catalog doesn't know (custom widgets are a
@@ -168,6 +213,10 @@ export function deriveControl(
       }
     case 'textarea':
       return { kind: 'textarea', attrs: textareaAttrsFromFacts(f) }
+    case 'radio':
+      return { kind: 'choicegroup', multiple: false, options: choiceOptions(f, false) }
+    case 'checkboxes':
+      return { kind: 'choicegroup', multiple: true, options: choiceOptions(f, true) }
     default:
       return undefined
   }
@@ -180,7 +229,15 @@ export function deriveFieldParts(
   widget: string
 ): FieldParts | undefined {
   const control = deriveControl(f, widget)
-  return control ? { ...commonParts(f), control } : undefined
+  if (!control) return undefined
+  const parts: FieldParts = { ...commonParts(f), control }
+  // A choicegroup has no single element with the field id, so the caption
+  // `<label for>` would dangle. Point it at the first option (a valid, focusable
+  // target) so clicking the caption focuses the group's first control.
+  if (control.kind === 'choicegroup' && control.options.length > 0) {
+    parts.label = { ...parts.label, attrs: { for: control.options[0].attrs.id } }
+  }
+  return parts
 }
 
 /** The widget name + its derived parts. `widget` is the resolved name (a label);

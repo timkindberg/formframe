@@ -38,7 +38,9 @@ const objectArraySchema = {
   },
 } as const
 
-// A leaf enum-array — already one control (multiselect) today.
+// A leaf enum-array — already one control today (a checkbox group at this size,
+// bd cm7; the ADR 030 point is only that a *leaf* array is one control, contrasted
+// with the object-array *subtree* below — the exact widget is incidental).
 const enumArraySchema = {
   type: 'object',
   properties: {
@@ -81,7 +83,7 @@ describe('container facts / subtree collapse — CURRENT behavior (ADR 030 gap)'
   it('a leaf enum-array already carries facts with valueShape:"array" + choices', () => {
     const tree = jsonSchemaToTree(enumArraySchema)
     const tags = tree.getField('tags')
-    expect(tags?.widget).toBe('multiselect')
+    expect(tags?.widget).toBe('checkboxes')
     expect(tags?.facts.valueShape).toBe('array')
     expect(tags?.facts.choices?.map((o) => o.value)).toEqual(['a', 'b', 'c'])
   })
@@ -92,7 +94,7 @@ describe('container facts / subtree collapse — CURRENT behavior (ADR 030 gap)'
     // display label (title), so identity is known WITHOUT args.valueKey/labelKey.
     const tree = jsonSchemaToTree(oneOfArraySchema)
     const permissions = tree.getField('permissions')
-    expect(permissions?.widget).toBe('multiselect')
+    expect(permissions?.widget).toBe('checkboxes')
     expect(permissions?.facts.valueShape).toBe('array')
     expect(permissions?.facts.choices).toEqual([
       { value: 'read', label: 'Can read' },

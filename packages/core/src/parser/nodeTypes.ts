@@ -84,22 +84,51 @@ export interface HtmlTextareaAttrs {
   maxLength?: number
 }
 
-// The resolved widget *name* (ADR 029 §6, amended by bd v60). It is a label, not
-// a parts discriminant — it widens to `string & Brand` when custom widgets land.
-export type WidgetName = 'input' | 'select' | 'multiselect' | 'textarea'
+// Per-option `<input>` attrs for a radio/checkbox group (the `choicegroup`
+// archetype, bd cm7). Every option is one `<input type=radio|checkbox>` that
+// carries its own `value` (submitted when checked) and a unique `id` (so an
+// external `<label for>` can target it); all share the field's `name`, so a radio
+// group submits one scalar and a checkbox group submits many values under one key.
+// Distinct from `HtmlInputAttrs` (single scalar input) — `value` is intrinsic here.
+export interface HtmlOptionInputAttrs {
+  id: string
+  name: string
+  type: 'radio' | 'checkbox'
+  value: string | number
+  required?: boolean
+}
+
+// One rendered option in a `choicegroup`: its derived per-input attrs + its label.
+// The attrs are derived in Core (not the adapter) so React ≡ vanilla holds (ADR 029 §4).
+export interface ChoiceOption {
+  attrs: HtmlOptionInputAttrs
+  label: string
+}
+
+// The resolved widget *name* (ADR 029 §6, amended by bd v60/cm7). It is a label,
+// not a parts discriminant — it widens to `string & Brand` when custom widgets land.
+export type WidgetName =
+  | 'input'
+  | 'select'
+  | 'multiselect'
+  | 'textarea'
+  | 'radio'
+  | 'checkboxes'
 
 /**
  * The unified control facet (ADR 029 §5). A single `control` part replaces the old
  * per-widget `input`/`select` parts. It is discriminated on `kind` — the render
  * **archetype** (which element to draw) — decoupled from `node.widget` (the resolved
- * name): `multiselect` is `kind: 'select'` + `attrs.multiple`. The adapter narrows on
- * `kind`; the engine and node structure never enumerate widgets. A generic/`raw`
- * archetype for custom widgets is deferred until the catalog earns it (ADR 008).
+ * name): `multiselect` is `kind: 'select'` + `attrs.multiple`; `radio` and
+ * `checkboxes` are both `kind: 'choicegroup'`, distinguished by `multiple` (bd cm7).
+ * The adapter narrows on `kind`; the engine and node structure never enumerate
+ * widgets. A generic/`raw` archetype for custom widgets is deferred (ADR 008).
  */
 export type FieldControl =
   | { kind: 'input'; attrs: HtmlInputAttrs }
   | { kind: 'select'; attrs: HtmlSelectAttrs; options: SelectOption[] }
   | { kind: 'textarea'; attrs: HtmlTextareaAttrs }
+  | { kind: 'choicegroup'; multiple: boolean; options: ChoiceOption[] }
 
 export type ControlKind = FieldControl['kind']
 

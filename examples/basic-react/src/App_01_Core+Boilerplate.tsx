@@ -42,11 +42,11 @@ console.log('\n=== Get Single Field ===')
 console.log('Name field:', form.getField('name'))
 console.log('Email field:', form.getField('email'))
 console.log('Age field:', form.getField('age'))
-console.log('\n=== Field Attrs ===')
+console.log('\n=== Field Control ===')
 const nameField = form.getField('name')
-console.log('Name field attrs:', nameField?.parts.control.attrs)
+console.log('Name field control:', nameField?.parts.control)
 const emailField = form.getField('email')
-console.log('Email field attrs:', emailField?.parts.control.attrs)
+console.log('Email field control:', emailField?.parts.control)
 console.log('\n=== JSON Export ===')
 console.log('JSON:', form.toJSON())
 
@@ -90,6 +90,14 @@ function App() {
                   </select>
                 ) : node.parts.control.kind === 'textarea' ? (
                   <textarea {...node.parts.control.attrs} />
+                ) : node.parts.control.kind === 'choicegroup' ? (
+                  <div role={node.parts.control.multiple ? 'group' : 'radiogroup'}>
+                    {node.parts.control.options.map((opt) => (
+                      <label key={opt.attrs.id}>
+                        <input {...opt.attrs} /> {opt.label}
+                      </label>
+                    ))}
+                  </div>
                 ) : (
                   <input {...node.parts.control.attrs} />
                 )}
@@ -119,6 +127,20 @@ function App() {
                           </select>
                         ) : childNode.parts.control.kind === 'textarea' ? (
                           <textarea {...childNode.parts.control.attrs} />
+                        ) : childNode.parts.control.kind === 'choicegroup' ? (
+                          <div
+                            role={
+                              childNode.parts.control.multiple
+                                ? 'group'
+                                : 'radiogroup'
+                            }
+                          >
+                            {childNode.parts.control.options.map((opt) => (
+                              <label key={opt.attrs.id}>
+                                <input {...opt.attrs} /> {opt.label}
+                              </label>
+                            ))}
+                          </div>
                         ) : (
                           <input {...childNode.parts.control.attrs} />
                         )}

@@ -156,14 +156,17 @@ export function createGroupNode(
 
         const formData = new FormData(target)
 
-        // Signatures of every array-valued leaf field (multiselect), keyed by
-        // normalized path so one signature covers all item instances. A
-        // representative item (getItem(0)) is walked so nested array leaves are
-        // found even when the array has no compiled items (minItems: 0).
+        // Signatures of every array-valued leaf field, keyed by normalized path so
+        // one signature covers all item instances. Keyed off `facts.valueShape ===
+        // 'array'` (not a widget name) so it covers EVERY array-valued control —
+        // `multiselect` and the `checkboxes` group alike (bd cm7) — since both
+        // submit many values under one name and must coerce a lone selection to a
+        // 1-element array. A representative item (getItem(0)) is walked so nested
+        // array leaves are found even when the array has no compiled items.
         const arrayFieldSignatures = new Set<string>()
         const collectHandlers: WalkHandlers<void> = {
           field(fieldNode: FieldNode) {
-            if (fieldNode.widget === 'multiselect') {
+            if (fieldNode.facts.valueShape === 'array') {
               arrayFieldSignatures.add(normalizeArrayFieldPath(fieldNode.path))
             }
           },

@@ -3,7 +3,7 @@ import { jsonSchemaToTree } from './index'
 import type { JSONSchema, GroupNode } from '../types'
 // The field control is a single discriminated slot now (ADR 029 §5, v60); these
 // shared helpers narrow `control.kind` to reach archetype-specific attrs/options.
-import { inputCtl, selectCtl } from '../present/controlTestUtils'
+import { inputCtl, selectCtl, choicegroupCtl } from '../present/controlTestUtils'
 
 describe('jsonSchemaToTree', () => {
   describe('basic object schemas', () => {
@@ -794,11 +794,14 @@ describe('jsonSchemaToTree', () => {
       const field = form.getField('color')
 
       expect(field?.nodeType).toBe('field')
-      expect(field?.widget).toBe('select')
+      // 3 options (≤ threshold) → radio by default (bd cm7); the widget heuristic
+      // itself is unit-tested in present.test.ts. Here we assert the parser's job:
+      // enum → neutral choices, independent of which control renders them.
+      expect(field?.widget).toBe('radio')
       expect(field?.parts.label.text).toBe('Favorite Color')
     })
 
-    it('generates select part with options from enum', () => {
+    it('extracts neutral choices from an enum', () => {
       const schema: JSONSchema = {
         type: 'object',
         properties: {
@@ -812,8 +815,7 @@ describe('jsonSchemaToTree', () => {
       const form = jsonSchemaToTree(schema)
       const field = form.getField('size')
 
-      expect(selectCtl(field)).toBeDefined()
-      expect(selectCtl(field).options).toEqual([
+      expect(field?.facts.choices).toEqual([
         { value: 'small', label: 'small' },
         { value: 'medium', label: 'medium' },
         { value: 'large', label: 'large' },
@@ -837,7 +839,7 @@ describe('jsonSchemaToTree', () => {
       const form = jsonSchemaToTree(schema)
       const field = form.getField('size')
 
-      expect(selectCtl(field).options).toEqual([
+      expect(field?.facts.choices).toEqual([
         { value: 'sm', label: 'Small' },
         { value: 'md', label: 'Medium' },
         { value: 'lg', label: 'Large' },
@@ -861,8 +863,8 @@ describe('jsonSchemaToTree', () => {
       const form = jsonSchemaToTree(schema)
       const field = form.getField('status')
 
-      expect(field?.widget).toBe('select')
-      expect(selectCtl(field).options).toEqual([
+      expect(field?.widget).toBe('radio')
+      expect(field?.facts.choices).toEqual([
         { value: 'draft', label: 'draft' },
         { value: 'published', label: 'Published' },
         { value: 'archived', label: 'archived' },
@@ -884,8 +886,9 @@ describe('jsonSchemaToTree', () => {
       const form = jsonSchemaToTree(schema)
       const field = form.getField('rating')
 
-      expect(field?.widget).toBe('select')
-      expect(selectCtl(field).options).toEqual([
+      // 5 options == threshold, so still a radio; choices keep their number values.
+      expect(field?.widget).toBe('radio')
+      expect(field?.facts.choices).toEqual([
         { value: 1, label: '1' },
         { value: 2, label: '2' },
         { value: 3, label: '3' },
@@ -910,7 +913,8 @@ describe('jsonSchemaToTree', () => {
       const field = form.getField('country')
 
       expect(field?.validation.required).toBe(true)
-      expect(selectCtl(field).attrs.required).toBe(true)
+      // 3 options → radio group; `required` lands on each radio input.
+      expect(choicegroupCtl(field).options[0].attrs.required).toBe(true)
       expect(field?.parts.label.showRequired).toBe(true)
     })
 
@@ -930,7 +934,7 @@ describe('jsonSchemaToTree', () => {
 
       expect(allFields).toHaveLength(4)
       expect(form.getField('name')?.widget).toBe('input')
-      expect(form.getField('size')?.widget).toBe('select')
+      expect(form.getField('size')?.widget).toBe('radio')
       expect(form.getField('quantity')?.widget).toBe('input')
       expect(form.getField('inStock')?.widget).toBe('input')
     })
@@ -964,22 +968,22 @@ describe('jsonSchemaToTree', () => {
       )
       const priorityField = form.getField('shipping.priority')
 
-      expect(methodField?.widget).toBe('select')
+      expect(methodField?.widget).toBe('radio')
       expect(methodField?.validation.required).toBe(true)
-      expect(selectCtl(methodField).options).toHaveLength(3)
-      expect(selectCtl(methodField).options[0].label).toBe(
-        'Standard (5-7 days)'
-      )
+      expect(methodField?.facts.choices).toHaveLength(3)
+      expect(methodField?.facts.choices?.[0].label).toBe('Standard (5-7 days)')
       expect(priorityField?.widget).toBe('input')
     })
 
     it('includes select part with id and name in parts API', () => {
+      // 6 options (> threshold) so the default lands on `select` and we can pin the
+      // select control shape here (the radio/checkbox shapes live in present.test.ts).
       const schema: JSONSchema = {
         type: 'object',
         properties: {
           status: {
             type: 'string',
-            enum: ['active', 'inactive'],
+            enum: ['a', 'b', 'c', 'd', 'e', 'f'],
             title: 'Status',
           },
         },
@@ -997,8 +1001,12 @@ describe('jsonSchemaToTree', () => {
           required: true,
         },
         options: [
-          { value: 'active', label: 'active' },
-          { value: 'inactive', label: 'inactive' },
+          { value: 'a', label: 'a' },
+          { value: 'b', label: 'b' },
+          { value: 'c', label: 'c' },
+          { value: 'd', label: 'd' },
+          { value: 'e', label: 'e' },
+          { value: 'f', label: 'f' },
         ],
       })
     })
@@ -1022,12 +1030,13 @@ describe('jsonSchemaToTree', () => {
     })
 
     it('select widgets expose a single select control (ADR 029 §5, v60)', () => {
+      // 6 options (> threshold) → select by default.
       const schema: JSONSchema = {
         type: 'object',
         properties: {
           color: {
             type: 'string',
-            enum: ['red', 'green', 'blue'],
+            enum: ['red', 'green', 'blue', 'cyan', 'magenta', 'yellow'],
           },
         },
       }
@@ -1799,6 +1808,8 @@ describe('jsonSchemaToTree', () => {
 
   describe('array fields - multiselect', () => {
     it('creates multiselect FieldNode for primitive array with enum', () => {
+      // 6 options (> threshold) → multiselect by default; the checkbox-group shape
+      // for small array enums is covered in present.test.ts.
       const schema: JSONSchema = {
         type: 'object',
         properties: {
@@ -1807,7 +1818,7 @@ describe('jsonSchemaToTree', () => {
             title: 'Skills',
             items: {
               type: 'string',
-              enum: ['JavaScript', 'TypeScript', 'React'],
+              enum: ['JavaScript', 'TypeScript', 'React', 'Vue', 'Svelte', 'Solid'],
             },
           },
         },
@@ -1822,7 +1833,7 @@ describe('jsonSchemaToTree', () => {
         const field = skillsField
         expect(field.widget).toBe('multiselect')
         expect(selectCtl(field).attrs.multiple).toBe(true)
-        expect(selectCtl(field).options).toHaveLength(3)
+        expect(selectCtl(field).options).toHaveLength(6)
         expect(selectCtl(field).options[0]).toEqual({
           value: 'JavaScript',
           label: 'JavaScript',
@@ -1831,6 +1842,7 @@ describe('jsonSchemaToTree', () => {
     })
 
     it('creates multiselect FieldNode for primitive array with oneOf', () => {
+      // 6 options (> threshold) → multiselect by default.
       const schema: JSONSchema = {
         type: 'object',
         properties: {
@@ -1842,6 +1854,9 @@ describe('jsonSchemaToTree', () => {
                 { const: 'red', title: 'Red' },
                 { const: 'blue', title: 'Blue' },
                 { const: 'green', title: 'Green' },
+                { const: 'cyan', title: 'Cyan' },
+                { const: 'magenta', title: 'Magenta' },
+                { const: 'yellow', title: 'Yellow' },
               ],
             },
           },
@@ -1856,7 +1871,7 @@ describe('jsonSchemaToTree', () => {
       if (colorsField?.isField) {
         const field = colorsField
         expect(field.widget).toBe('multiselect')
-        expect(selectCtl(field).options).toHaveLength(3)
+        expect(selectCtl(field).options).toHaveLength(6)
         expect(selectCtl(field).options[0]).toEqual({
           value: 'red',
           label: 'Red',
@@ -2043,7 +2058,7 @@ describe('jsonSchemaToTree', () => {
           const tagsField = item.children[0].children.find(
             (c) => c.path === 'todos.0.tags'
           )
-          expect(tagsField?.widget).toBe('multiselect')
+          expect(tagsField?.widget).toBe('checkboxes')
         }
       }
     })

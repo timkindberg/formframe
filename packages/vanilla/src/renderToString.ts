@@ -130,6 +130,22 @@ const defaultAdapterImpl: VanillaAdapter = {
             : '<option value="">-- select --</option>'
           return `<select${renderAttrs(control.attrs)}>${placeholder}${opts}</select>`
         }
+        case 'choicegroup': {
+          // Radio/checkbox group — one implicitly-labelled option input each,
+          // mirroring the React markup exactly (bd cm7).
+          const role = control.multiple ? 'group' : 'radiogroup'
+          const opts = control.options
+            .map(
+              (o) =>
+                `<label class="jsf-choice"><input${renderAttrs(
+                  o.attrs
+                )}><span class="jsf-choice-text">${escapeText(
+                  o.label
+                )}</span></label>`
+            )
+            .join('')
+          return `<div class="jsf-choicegroup" role="${role}">${opts}</div>`
+        }
       }
     },
   },

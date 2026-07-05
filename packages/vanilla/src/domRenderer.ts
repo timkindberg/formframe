@@ -178,6 +178,21 @@ const defaultAdapterImpl: DomAdapter = {
           }
           return select
         }
+        case 'choicegroup': {
+          // Mirror renderToString.ts markup exactly so DOM ≡ string parity holds.
+          const role = control.multiple ? 'group' : 'radiogroup'
+          const wrap = createEl('div', { class: 'jsf-choicegroup', role })
+          for (const option of control.options) {
+            const label = createEl('label', { class: 'jsf-choice' })
+            appendChild(label, createEl('input', option.attrs))
+            appendChild(
+              label,
+              createEl('span', { class: 'jsf-choice-text' }, option.label)
+            )
+            appendChild(wrap, label)
+          }
+          return wrap
+        }
       }
     },
   },
