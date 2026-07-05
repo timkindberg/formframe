@@ -3,15 +3,21 @@ import { jsonSchemaToTree } from '../parser/index'
 import {
   present,
   defaultPresentation,
+  OPTION_COUNT_THRESHOLD,
   layered,
   type PresentationResolver,
 } from './present'
-import { inputCtl, selectCtl, textareaCtl } from './controlTestUtils'
+import {
+  inputCtl,
+  selectCtl,
+  textareaCtl,
+  choicegroupCtl,
+} from './controlTestUtils'
 
 const schema = {
   type: 'object',
   properties: {
-    // scalar enum — default → select
+    // scalar enum, 3 options (≤ threshold) — default → radio (bd cm7)
     color: { type: 'string', enum: ['red', 'green', 'blue'] },
     // plain string — default → input
     name: { type: 'string' },
@@ -19,9 +25,9 @@ const schema = {
 } as const
 
 describe('present (ADR 029)', () => {
-  it('default rule keeps scalar-enum as select and plain string as input', () => {
+  it('default rule maps a small scalar-enum to radio and a plain string to input', () => {
     const tree = present(jsonSchemaToTree(schema), defaultPresentation)
-    expect(tree.getField('color')?.widget).toBe('select')
+    expect(tree.getField('color')?.widget).toBe('radio')
     expect(tree.getField('name')?.widget).toBe('input')
   })
 
@@ -117,5 +123,85 @@ describe('present (ADR 029)', () => {
       },
     })
     expect(multiselectPaths).toContain('color')
+  })
+})
+
+// bd cm7 — the option-count heuristic. The four choice widgets share the same
+// facts and submitted-value contract; only the rendered control differs, split at
+// `OPTION_COUNT_THRESHOLD`. These pin the boundary and the derived group markup.
+describe('present — option-count heuristic (bd cm7)', () => {
+  const N = OPTION_COUNT_THRESHOLD
+  const optionsOf = (count: number) =>
+    Array.from({ length: count }, (_, i) => `o${i}`)
+  const scalarEnum = (count: number) =>
+    jsonSchemaToTree({
+      type: 'object',
+      properties: { pick: { type: 'string', enum: optionsOf(count) } },
+    }).getField('pick')
+  const arrayEnum = (count: number) =>
+    jsonSchemaToTree({
+      type: 'object',
+      properties: {
+        pick: { type: 'array', items: { type: 'string', enum: optionsOf(count) } },
+      },
+    }).getField('pick')
+
+  it(`a scalar enum defaults to radio at ${N} options and select at ${N + 1}`, () => {
+    expect(scalarEnum(N)?.widget).toBe('radio')
+    expect(scalarEnum(N + 1)?.widget).toBe('select')
+  })
+
+  it(`an array enum defaults to checkboxes at ${N} options and multiselect at ${N + 1}`, () => {
+    expect(arrayEnum(N)?.widget).toBe('checkboxes')
+    expect(arrayEnum(N + 1)?.widget).toBe('multiselect')
+  })
+
+  it('a radio derives one <input type=radio> per option, sharing the field name', () => {
+    const tree = jsonSchemaToTree({
+      type: 'object',
+      properties: { pick: { type: 'string', enum: ['a', 'b'] } },
+      required: ['pick'],
+    })
+    const control = choicegroupCtl(tree.getField('pick'))
+    expect(control.multiple).toBe(false)
+    expect(control.options).toEqual([
+      { attrs: { id: 'pick-0', name: 'pick', type: 'radio', value: 'a', required: true }, label: 'a' },
+      { attrs: { id: 'pick-1', name: 'pick', type: 'radio', value: 'b', required: true }, label: 'b' },
+    ])
+    // The caption <label> targets the first option (a group has no field-id element).
+    expect(tree.getField('pick')?.parts.label.attrs.for).toBe('pick-0')
+  })
+
+  it('a checkbox group derives <input type=checkbox> per option and does NOT set required', () => {
+    // "at least one" is not natively expressible on a checkbox group, so `required`
+    // is left to the side-loaded validator (ADR 019) — unlike the radio group.
+    const tree = jsonSchemaToTree({
+      type: 'object',
+      properties: {
+        pick: { type: 'array', items: { type: 'string', enum: ['a', 'b'] } },
+      },
+      required: ['pick'],
+    })
+    const control = choicegroupCtl(tree.getField('pick'))
+    expect(control.multiple).toBe(true)
+    expect(control.options).toEqual([
+      { attrs: { id: 'pick-0', name: 'pick', type: 'checkbox', value: 'a' }, label: 'a' },
+      { attrs: { id: 'pick-1', name: 'pick', type: 'checkbox', value: 'b' }, label: 'b' },
+    ])
+  })
+
+  it('the heuristic is overridable — a resolver forces select on a small enum', () => {
+    const toSelect: PresentationResolver = (f) =>
+      f.path === 'pick' ? { widget: 'select' } : undefined
+    const tree = present(
+      jsonSchemaToTree({
+        type: 'object',
+        properties: { pick: { type: 'string', enum: ['a', 'b'] } },
+      }),
+      layered(defaultPresentation, toSelect)
+    )
+    const pick = tree.getField('pick')
+    expect(pick?.widget).toBe('select')
+    expect(selectCtl(pick).options.map((o) => o.value)).toEqual(['a', 'b'])
   })
 })

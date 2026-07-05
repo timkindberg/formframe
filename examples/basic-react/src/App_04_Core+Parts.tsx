@@ -100,6 +100,20 @@ function App() {
                     {...node.parts.control.attrs}
                     style={{ display: 'block', marginTop: '0.25rem' }}
                   />
+                ) : node.parts.control.kind === 'choicegroup' ? (
+                  <div
+                    role={node.parts.control.multiple ? 'group' : 'radiogroup'}
+                    style={{ display: 'block', marginTop: '0.25rem' }}
+                  >
+                    {node.parts.control.options.map((opt) => (
+                      <label
+                        key={opt.attrs.id}
+                        style={{ display: 'block' }}
+                      >
+                        <input {...opt.attrs} /> {opt.label}
+                      </label>
+                    ))}
+                  </div>
                 ) : (
                   <input
                     {...node.parts.control.attrs}

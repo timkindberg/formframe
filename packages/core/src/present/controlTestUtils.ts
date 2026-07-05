@@ -37,3 +37,7 @@ export const selectCtl = (node: FieldNode | undefined) =>
 /** Assert the field renders as a `<textarea>` and return its typed control. */
 export const textareaCtl = (node: FieldNode | undefined) =>
   controlOfKind(node, 'textarea')
+
+/** Assert the field renders as a radio/checkbox group and return its typed control. */
+export const choicegroupCtl = (node: FieldNode | undefined) =>
+  controlOfKind(node, 'choicegroup')

@@ -22,8 +22,17 @@ import {
   type ReactPartialAdapter,
 } from './renderer'
 import { useSchemaForm } from './useSchemaForm'
+import type { FieldControl } from '@jsonschema-form/core'
 
 type Counts = Record<string, number>
+
+/** The field's submitted `name` from any control archetype — every option in a
+ * `choicegroup` shares the field name, so its first option carries it. */
+function controlName(control: FieldControl): string {
+  return control.kind === 'choicegroup'
+    ? (control.options[0]?.attrs.name ?? '')
+    : control.attrs.name
+}
 
 /** Wrap the real defaults, tallying each renderer invocation by a stable key. */
 function countingAdapter(counts: Counts): ReactPartialAdapter {
@@ -40,7 +49,7 @@ function countingAdapter(counts: Counts): ReactPartialAdapter {
       label: d.field.label,
       description: d.field.description,
       control: (data) => {
-        bump(`field.control:${data.attrs.name}`)
+        bump(`field.control:${controlName(data)}`)
         return d.field.control(data)
       },
     },

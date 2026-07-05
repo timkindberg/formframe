@@ -67,6 +67,16 @@ const FieldsMost = createRenderer({
               ))}
             </select>
           )
+        case 'choicegroup':
+          return (
+            <div role={control.multiple ? 'group' : 'radiogroup'}>
+              {control.options.map((o) => (
+                <label key={o.attrs.id}>
+                  <input {...o.attrs} /> {o.label}
+                </label>
+              ))}
+            </div>
+          )
       }
     },
   },

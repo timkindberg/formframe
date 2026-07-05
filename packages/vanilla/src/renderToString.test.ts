@@ -8,7 +8,13 @@ const schema: JSONSchema = {
   properties: {
     name: { type: 'string', title: 'Name' },
     email: { type: 'string', format: 'email', title: 'Email' },
-    color: { type: 'string', title: 'Color', enum: ['red', 'green'] },
+    // 6 options (> OPTION_COUNT_THRESHOLD) so the default lands on a <select>;
+    // the radio/checkbox-group rendering is exercised in the conformance suite.
+    color: {
+      type: 'string',
+      title: 'Color',
+      enum: ['red', 'green', 'blue', 'cyan', 'magenta', 'yellow'],
+    },
     address: {
       type: 'object',
       title: 'Address',
