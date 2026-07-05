@@ -1,6 +1,6 @@
 import { buildFieldFacts, createFieldNode } from './fieldNode'
 import { createGroupNode } from './groupNode'
-import { deriveFieldParts } from '../present/present'
+import { presentDefaultLeaf } from '../present/present'
 import {
   buildValidation,
   type JSONSchemaObject,
@@ -305,11 +305,15 @@ function createMultiselectFieldNode(
     choices: options,
   })
 
+  // A `valueShape: 'array'` leaf with `choices` resolves to `multiselect` via the
+  // shipped default rule, which derives its `<select multiple>` control parts — so
+  // the widget/parts come from the same source as every other leaf (no cast).
+  const wp = presentDefaultLeaf(facts)
   const node: FieldNode = {
     nodeType: 'field',
     path,
     schema,
-    widget: 'multiselect',
+    widget: wp.widget,
     facts,
     validation: {
       required,
@@ -320,7 +324,7 @@ function createMultiselectFieldNode(
     },
     isRoot: path === '',
     depth: path ? path.split('.').length : 0,
-    parts: deriveFieldParts(facts, 'multiselect')!,
+    parts: wp.parts,
 
     isField: true,
     isGroup: false,

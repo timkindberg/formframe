@@ -1,21 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { jsonSchemaToTree } from './index'
-import type { JSONSchema, GroupNode, FieldNode } from '../types'
-
-// The field control is a single discriminated slot now (ADR 029 §5, v60): narrow
-// on `control.kind` to reach archetype-specific attrs/options.
-function inputCtl(node: FieldNode | undefined) {
-  const c = node?.parts.control
-  if (c?.kind !== 'input')
-    throw new Error(`expected input control, got ${c?.kind ?? 'none'}`)
-  return c
-}
-function selectCtl(node: FieldNode | undefined) {
-  const c = node?.parts.control
-  if (c?.kind !== 'select')
-    throw new Error(`expected select control, got ${c?.kind ?? 'none'}`)
-  return c
-}
+import type { JSONSchema, GroupNode } from '../types'
+// The field control is a single discriminated slot now (ADR 029 §5, v60); these
+// shared helpers narrow `control.kind` to reach archetype-specific attrs/options.
+import { inputCtl, selectCtl } from '../present/controlTestUtils'
 
 describe('jsonSchemaToTree', () => {
   describe('basic object schemas', () => {
