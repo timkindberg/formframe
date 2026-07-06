@@ -1,32 +1,41 @@
 import { describe, it, expect } from 'vitest'
+import { OPTION_COUNT_THRESHOLD } from '../index'
 import { jsonSchemaToTree } from './index'
-import type { JSONSchema, ArrayNode } from '../types'
+import type { JSONSchema } from '../types'
 import { choicegroupCtl } from '../present/controlTestUtils'
+import { assertArrayNode, assertField } from './nodeTestUtils'
 import { submitWith } from './submitTestUtils'
 
 describe('array robustness', () => {
-  it('minItems: 0 renders no initial array items', () => {
-    const schema: JSONSchema = {
-      type: 'object',
-      properties: {
-        items: {
-          type: 'array',
-          minItems: 0,
-          items: { type: 'string' },
+  it.each([0, 1, 2, 3, 5, 8])(
+    'minItems: %i renders %i initial array items with correct paths',
+    (n) => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          rows: {
+            type: 'array',
+            minItems: n,
+            items: { type: 'string' },
+          },
         },
-      },
+      }
+
+      const form = jsonSchemaToTree(schema)
+      const rowsNode = form.children.find((c) => c.path === 'rows')
+      assertArrayNode(rowsNode)
+
+      expect(rowsNode.children).toHaveLength(n)
+      expect(rowsNode.children.map((c) => c.path)).toEqual(
+        Array.from({ length: n }, (_, i) => `rows.${i}`)
+      )
+      if (n > 0) {
+        expect(rowsNode.validation.minItems).toBe(n)
+      }
     }
+  )
 
-    const form = jsonSchemaToTree(schema)
-    const itemsNode = form.children.find((c) => c.path === 'items')
-
-    expect(itemsNode?.isArray).toBe(true)
-    if (itemsNode?.isArray) {
-      expect(itemsNode.children).toHaveLength(0)
-    }
-  })
-
-  it('minItems >= 1 renders the expected number of initial items', () => {
+  it('minItems on object-item arrays pins validation.minItems', () => {
     const schema: JSONSchema = {
       type: 'object',
       properties: {
@@ -42,20 +51,10 @@ describe('array robustness', () => {
     }
 
     const form = jsonSchemaToTree(schema)
-    const rowsNode = form.children.find((c) => c.path === 'rows') as
-      | ArrayNode
-      | undefined
+    const rowsNode = form.children.find((c) => c.path === 'rows')
+    assertArrayNode(rowsNode)
 
-    expect(rowsNode?.isArray).toBe(true)
-    if (rowsNode?.isArray) {
-      expect(rowsNode.children).toHaveLength(3)
-      expect(rowsNode.children.map((c) => c.path)).toEqual([
-        'rows.0',
-        'rows.1',
-        'rows.2',
-      ])
-      expect(rowsNode.validation.minItems).toBe(3)
-    }
+    expect(rowsNode.validation.minItems).toBe(3)
   })
 
   it('submit assembles nested dynamic arrays of primitives', () => {
@@ -83,7 +82,7 @@ describe('array robustness', () => {
     })
   })
 
-  it('checkbox groups (array enum <=5) submit as arrays with multiple selections', () => {
+  it(`checkbox groups (array enum <=${OPTION_COUNT_THRESHOLD}) submit as arrays with multiple selections`, () => {
     const schema: JSONSchema = {
       type: 'object',
       properties: {
@@ -96,8 +95,9 @@ describe('array robustness', () => {
 
     const form = jsonSchemaToTree(schema)
     const tags = form.getField('tags')
+    assertField(tags)
 
-    expect(tags?.widget).toBe('checkboxes')
+    expect(tags.widget).toBe('checkboxes')
     expect(choicegroupCtl(tags).multiple).toBe(true)
 
     expect(

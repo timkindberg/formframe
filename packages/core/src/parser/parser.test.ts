@@ -4,6 +4,7 @@ import type { JSONSchema, GroupNode } from '../types'
 // The field control is a single discriminated slot now (ADR 029 §5, v60); these
 // shared helpers narrow `control.kind` to reach archetype-specific attrs/options.
 import { inputCtl, selectCtl, choicegroupCtl } from '../present/controlTestUtils'
+import { submitWith } from './submitTestUtils'
 
 describe('jsonSchemaToTree', () => {
   describe('basic object schemas', () => {
@@ -1659,31 +1660,6 @@ describe('jsonSchemaToTree', () => {
         hobbies: ['reading', 'coding'], // Should be array
       })
     })
-
-    // Runs form.submit() against a mocked FormData backed by [key, value] pairs
-    // (a multimap, so duplicate keys survive — matching real FormData).
-    function submitWith(
-      schema: JSONSchema,
-      pairs: Array<[string, string]>
-    ): Record<string, unknown> {
-      const form = jsonSchemaToTree(schema)
-      let submitted: Record<string, unknown> = {}
-      const handleSubmit = form.submit((data) => {
-        submitted = data
-      })
-      const originalFormData = globalThis.FormData
-      globalThis.FormData = class MockFormData {
-        entries() {
-          return pairs.values()
-        }
-      } as unknown as typeof FormData
-      handleSubmit({
-        preventDefault() {},
-        currentTarget: {} as EventTarget,
-      })
-      globalThis.FormData = originalFormData
-      return submitted
-    }
 
     it('wraps a multiselect nested in an array item (single selection)', () => {
       const schema: JSONSchema = {

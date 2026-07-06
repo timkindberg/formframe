@@ -16,15 +16,18 @@ export function submitWith(
     submitted = data
   })
   const originalFormData = globalThis.FormData
-  globalThis.FormData = class MockFormData {
-    entries() {
-      return pairs.values()
-    }
-  } as unknown as typeof FormData
-  handleSubmit({
-    preventDefault() {},
-    currentTarget: {} as EventTarget,
-  })
-  globalThis.FormData = originalFormData
+  try {
+    globalThis.FormData = class MockFormData {
+      entries() {
+        return pairs.values()
+      }
+    } as unknown as typeof FormData
+    handleSubmit({
+      preventDefault() {},
+      currentTarget: {} as EventTarget,
+    })
+  } finally {
+    globalThis.FormData = originalFormData
+  }
   return submitted
 }
