@@ -159,22 +159,26 @@ export function createGroupNode(
         // Signatures of every array-valued leaf field, keyed by normalized path so
         // one signature covers all item instances. A leaf submits an array when
         // EITHER its neutral `facts.valueShape === 'array'` (a native array-enum
-        // leaf) OR its *presented* widget is a multi-choice control (`multiselect`
-        // / `checkboxes`). The widget arm is load-bearing: a consumer resolver can
-        // present a scalar-valueShape enum as a multiselect (ADR 029 golden
-        // scenario), and submit must follow the widget — wrapping a lone selection
-        // as a 1-element array — even though the underlying facts stayed scalar.
-        // (Keying on valueShape alone, bd cm7, silently dropped that case.) A
-        // representative item (getItem(0)) is walked so nested array leaves are
-        // found even when the array has no compiled items.
+        // leaf) OR its resolved *control* is multi-valued — a `multiple` select or
+        // a checkbox `choicegroup`. Multiplicity is read off the typed control
+        // archetype (`kind` + `multiple`), NOT the widget name, so submit stays
+        // decoupled from presentation vocabulary and any custom widget that renders
+        // as a multi-select/checkbox group is covered for free. The control arm is
+        // load-bearing: a resolver can present a scalar-valueShape enum as a
+        // multi-select (ADR 029 golden scenario), and submit must follow the
+        // control — wrapping a lone selection as a 1-element array — even though the
+        // underlying facts stayed scalar. (Keying on valueShape alone, bd cm7,
+        // silently dropped that case.) A representative item (getItem(0)) is walked
+        // so nested array leaves are found even when the array has no compiled items.
         const arrayFieldSignatures = new Set<string>()
         const collectHandlers: WalkHandlers<void> = {
           field(fieldNode: FieldNode) {
-            if (
+            const control = fieldNode.parts.control
+            const submitsArray =
               fieldNode.facts.valueShape === 'array' ||
-              fieldNode.widget === 'multiselect' ||
-              fieldNode.widget === 'checkboxes'
-            ) {
+              (control.kind === 'select' && control.attrs.multiple === true) ||
+              (control.kind === 'choicegroup' && control.multiple === true)
+            if (submitsArray) {
               arrayFieldSignatures.add(normalizeArrayFieldPath(fieldNode.path))
             }
           },
