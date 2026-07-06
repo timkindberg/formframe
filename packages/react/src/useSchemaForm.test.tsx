@@ -136,7 +136,10 @@ describe('useSchemaForm', () => {
         color: {
           type: 'string',
           title: 'Favorite Color',
-          enum: ['red', 'green', 'blue'],
+          // 6 options (> OPTION_COUNT_THRESHOLD) keeps this a <select> dropdown —
+          // small enums now default to a radio group (cm7), so the "as select
+          // dropdowns" intent needs enough options to clear the threshold.
+          enum: ['red', 'green', 'blue', 'cyan', 'magenta', 'yellow'],
         },
       },
     }

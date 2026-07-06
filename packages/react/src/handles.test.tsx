@@ -19,7 +19,13 @@ const schema: JSONSchema = {
   type: 'object',
   properties: {
     name: { type: 'string', title: 'Name', description: 'Your name' },
-    color: { type: 'string', title: 'Color', enum: ['red', 'green'] },
+    // 6 options (> OPTION_COUNT_THRESHOLD) so this stays a <select> — the fixture
+    // exercises the combobox/select archetype (small enums default to radio, cm7).
+    color: {
+      type: 'string',
+      title: 'Color',
+      enum: ['red', 'green', 'blue', 'cyan', 'magenta', 'yellow'],
+    },
     address: {
       type: 'object',
       title: 'Address',
