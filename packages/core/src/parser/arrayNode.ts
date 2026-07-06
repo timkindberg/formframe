@@ -114,14 +114,23 @@ export function createArrayNode(
       return createArrayItemNode(path, index, itemSchemaObject, required)
     },
 
-    // Read `this.children` (not the closure) so a present()-rebuilt node (ADR
-    // 029) queries its own children.
+    // `targetPath` is relative to this array; its leading segment is an item
+    // index (ADR 032), e.g. '0.name' or '2'. Resolve to the instantiated item at
+    // that index and delegate the remainder. Reads `this.children` (not the
+    // closure) so a present()-rebuilt node (ADR 029) queries its own children.
     getField(targetPath: string): FieldNode | undefined {
-      // Search through children
+      if (targetPath === '') return undefined // the array itself is not a field
+      const dot = targetPath.indexOf('.')
+      const indexSeg = dot === -1 ? targetPath : targetPath.slice(0, dot)
+      const rest = dot === -1 ? '' : targetPath.slice(dot + 1)
+
+      const index = Number(indexSeg)
+      if (!Number.isInteger(index) || index < 0) return undefined
+
+      const itemPath = `${this.path}.${index}`
       for (const child of this.children) {
-        if (child.nodeType === 'arrayItem') {
-          const found = child.getField(targetPath)
-          if (found) return found
+        if (child.nodeType === 'arrayItem' && child.path === itemPath) {
+          return child.getField(rest)
         }
       }
       return undefined
@@ -211,10 +220,13 @@ export function createArrayItemNode(
     // Parts API
     parts,
 
+    // `targetPath` is relative to this item (ADR 032). For a primitive-array
+    // item the item *is* the leaf, so the empty remainder selects it; for an
+    // object/array item, delegate the remainder to the wrapped child.
     getField(targetPath: string): FieldNode | undefined {
       const c = this.children[0]
       if (c.nodeType === 'field') {
-        return c.path === targetPath ? c : undefined
+        return targetPath === '' ? c : undefined
       } else if (c.nodeType === 'group' || c.nodeType === 'array') {
         return c.getField(targetPath)
       }

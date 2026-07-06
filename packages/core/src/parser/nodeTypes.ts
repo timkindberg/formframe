@@ -218,10 +218,19 @@ interface NodeBase {
   toJSON(): object
 }
 
-// Traversal/query surface shared by container nodes.
+// Traversal/query surface shared by container nodes. All three range over the
+// same *instantiated* tree — the nodes `walk` visits — including array items
+// (ADR 032). `getField`/`getAllFields` traverse arrays just like `walk`; use
+// `ArrayNode.getItem(i)` to reach an item that has not been instantiated yet.
 interface ContainerMethods {
   children: AnyNode[]
+  /**
+   * Resolve a leaf by path relative to this node. Numeric segments select array
+   * items by index (e.g. `'members.0.name'`); an out-of-range index or a
+   * non-numeric segment where an index is expected yields `undefined` (ADR 032).
+   */
   getField(path: string): FieldNode | undefined
+  /** Flat list of every instantiated leaf, arrays included — ≡ `walk({ field })` (ADR 032). */
   getAllFields(): FieldNode[]
   walk<R>(handlers?: WalkHandlers<R>): R[]
 }
