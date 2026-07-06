@@ -30,7 +30,7 @@ const examples = [
   { id: '11', name: 'React + Live Validation (ADR 021)', component: App11 },
   { id: '12', name: 'React + React Hook Form (recipe)', component: App12 },
   { id: '13', name: 'React + Touched-Gated Errors (ADR 027)', component: App13 },
-  { id: '14', name: 'React + Widget Catalog (bd 4j1)', component: App14 },
+  { id: '14', name: 'React + Widget Catalog (bd 4j1, bd 672)', component: App14 },
 ]
 
 function App() {

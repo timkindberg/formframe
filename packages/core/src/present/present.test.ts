@@ -55,28 +55,6 @@ describe('present (ADR 029)', () => {
     expect(after.getField('color')).not.toBe(before.getField('color'))
   })
 
-  it.each([
-    ['date', 'date'],
-    ['date-time', 'datetime-local'],
-    ['time', 'time'],
-    ['url', 'url'],
-    ['uri', 'url'],
-    ['color', 'color'],
-    ['tel', 'tel'],
-    ['email', 'email'],
-  ] as const)(
-    'format %s → input attrs.type %s',
-    (format, expectedType) => {
-      const tree = jsonSchemaToTree({
-        type: 'object',
-        properties: { field: { type: 'string', format } },
-      })
-      const field = tree.getField('field')
-      expect(field?.widget).toBe('input')
-      expect(inputCtl(field).attrs.type).toBe(expectedType)
-    }
-  )
-
   it('a resolver opt-in maps a string field to the textarea archetype (ADR 029 §5, v60)', () => {
     // textarea has no default rule — it is resolver-opt-in — proving a new widget
     // is a `control.kind` arm + a deriver, with no engine/node change.
@@ -123,6 +101,40 @@ describe('present (ADR 029)', () => {
       },
     })
     expect(multiselectPaths).toContain('color')
+  })
+})
+
+// bd 672 — format → native `<input type>` mapping. JSON Schema uses `date-time`
+// (hyphen); we do not accept a `datetime` alias. month/week have no standard
+// JSON Schema format keyword, so they stay out of scope here.
+describe('present — format-driven input types (bd 672)', () => {
+  it.each([
+    ['date', 'date'],
+    ['date-time', 'datetime-local'],
+    ['time', 'time'],
+    ['email', 'email'],
+    ['url', 'url'],
+    ['uri', 'url'],
+    ['color', 'color'],
+    ['tel', 'tel'],
+  ] as const)('format %s → input attrs.type %s', (format, expectedType) => {
+    const tree = jsonSchemaToTree({
+      type: 'object',
+      properties: { field: { type: 'string', format } },
+    })
+    const field = tree.getField('field')
+    expect(field?.widget).toBe('input')
+    expect(inputCtl(field).attrs.type).toBe(expectedType)
+  })
+
+  it('an unknown format falls back to text', () => {
+    const tree = jsonSchemaToTree({
+      type: 'object',
+      properties: { field: { type: 'string', format: 'uuid' } },
+    })
+    const field = tree.getField('field')
+    expect(field?.widget).toBe('input')
+    expect(inputCtl(field).attrs.type).toBe('text')
   })
 })
 
