@@ -157,16 +157,24 @@ export function createGroupNode(
         const formData = new FormData(target)
 
         // Signatures of every array-valued leaf field, keyed by normalized path so
-        // one signature covers all item instances. Keyed off `facts.valueShape ===
-        // 'array'` (not a widget name) so it covers EVERY array-valued control —
-        // `multiselect` and the `checkboxes` group alike (bd cm7) — since both
-        // submit many values under one name and must coerce a lone selection to a
-        // 1-element array. A representative item (getItem(0)) is walked so nested
-        // array leaves are found even when the array has no compiled items.
+        // one signature covers all item instances. A leaf submits an array when
+        // EITHER its neutral `facts.valueShape === 'array'` (a native array-enum
+        // leaf) OR its *presented* widget is a multi-choice control (`multiselect`
+        // / `checkboxes`). The widget arm is load-bearing: a consumer resolver can
+        // present a scalar-valueShape enum as a multiselect (ADR 029 golden
+        // scenario), and submit must follow the widget — wrapping a lone selection
+        // as a 1-element array — even though the underlying facts stayed scalar.
+        // (Keying on valueShape alone, bd cm7, silently dropped that case.) A
+        // representative item (getItem(0)) is walked so nested array leaves are
+        // found even when the array has no compiled items.
         const arrayFieldSignatures = new Set<string>()
         const collectHandlers: WalkHandlers<void> = {
           field(fieldNode: FieldNode) {
-            if (fieldNode.facts.valueShape === 'array') {
+            if (
+              fieldNode.facts.valueShape === 'array' ||
+              fieldNode.widget === 'multiselect' ||
+              fieldNode.widget === 'checkboxes'
+            ) {
               arrayFieldSignatures.add(normalizeArrayFieldPath(fieldNode.path))
             }
           },
