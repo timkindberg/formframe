@@ -68,7 +68,7 @@ function App() {
 
   return (
     <div>
-      <h1>Widget Catalog — format-driven input types (bd 4j1)</h1>
+      <h1>Widget Catalog — format-driven input types (bd 4j1, bd 672)</h1>
       <p>
         Each control&apos;s native <code>type</code> is derived by{' '}
         <code>present()</code> from the field&apos;s neutral facts — the schema
