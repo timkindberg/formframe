@@ -144,7 +144,15 @@ const defaultAdapterImpl: DomAdapter = {
       )
     },
 
-    label({ text, attrs, showRequired }: { text: string; attrs: { for: string }; showRequired: boolean }) {
+    label({
+      text,
+      attrs,
+      showRequired,
+    }: {
+      text: string
+      attrs: { for: string } | { id: string }
+      showRequired: boolean
+    }) {
       const label = createEl('label', attrs, text)
       if (showRequired) {
         appendChild(label, createEl('span', { 'aria-hidden': 'true' }, ' *'))
@@ -180,8 +188,12 @@ const defaultAdapterImpl: DomAdapter = {
         }
         case 'choicegroup': {
           // Mirror renderToString.ts markup exactly so DOM ≡ string parity holds.
-          const role = control.multiple ? 'group' : 'radiogroup'
-          const wrap = createEl('div', { class: 'jsf-choicegroup', role })
+          // Group a11y is Core-derived (bd l8j): `control.role` + `aria-labelledby`.
+          const wrap = createEl('div', {
+            class: 'jsf-choicegroup',
+            role: control.role,
+            'aria-labelledby': control.labelledBy,
+          })
           for (const option of control.options) {
             const label = createEl('label', { class: 'jsf-choice' })
             appendChild(label, createEl('input', option.attrs))

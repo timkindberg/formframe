@@ -106,7 +106,7 @@ function App() {
               ) : node.parts.control.kind === 'textarea' ? (
                 <textarea {...node.parts.control.attrs} />
               ) : node.parts.control.kind === 'choicegroup' ? (
-                <div role={node.parts.control.multiple ? 'group' : 'radiogroup'}>
+                <div role={node.parts.control.role}>
                   {node.parts.control.options.map((opt) => (
                     <label key={opt.attrs.id}>
                       <input {...opt.attrs} /> {opt.label}

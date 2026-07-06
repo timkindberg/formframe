@@ -136,7 +136,7 @@ function RHFField({
     ) : ctl.kind === 'choicegroup' ? (
       // Radio/checkbox group: register every option input to the shared field
       // name so RHF collects one scalar (radio) or an array (checkboxes).
-      <div role={ctl.multiple ? 'group' : 'radiogroup'} {...a11y}>
+      <div role={ctl.role} aria-labelledby={ctl.labelledBy} {...a11y}>
         {ctl.options.map((opt) => (
           <label key={opt.attrs.id}>
             <input {...opt.attrs} {...register(node.path)} /> {opt.label}

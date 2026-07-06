@@ -99,7 +99,15 @@ const defaultAdapterImpl: VanillaAdapter = {
       )}${renderPart(node.parts.description, 'description')}${control}</div>`
     },
 
-    label({ text, attrs, showRequired }: { text: string; attrs: { for: string }; showRequired: boolean }) {
+    label({
+      text,
+      attrs,
+      showRequired,
+    }: {
+      text: string
+      attrs: { for: string } | { id: string }
+      showRequired: boolean
+    }) {
       const req = showRequired ? '<span aria-hidden="true"> *</span>' : ''
       return `<label${renderAttrs(attrs)}>${escapeText(text)}${req}</label>`
     },
@@ -132,8 +140,8 @@ const defaultAdapterImpl: VanillaAdapter = {
         }
         case 'choicegroup': {
           // Radio/checkbox group — one implicitly-labelled option input each,
-          // mirroring the React markup exactly (bd cm7).
-          const role = control.multiple ? 'group' : 'radiogroup'
+          // mirroring the React markup exactly (bd cm7). Group a11y is Core-derived
+          // (bd l8j): `control.role` + `aria-labelledby` naming it by its caption id.
           const opts = control.options
             .map(
               (o) =>
@@ -144,7 +152,9 @@ const defaultAdapterImpl: VanillaAdapter = {
                 )}</span></label>`
             )
             .join('')
-          return `<div class="jsf-choicegroup" role="${role}">${opts}</div>`
+          return `<div class="jsf-choicegroup" role="${control.role}" aria-labelledby="${escapeAttr(
+            control.labelledBy
+          )}">${opts}</div>`
         }
       }
     },

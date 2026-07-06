@@ -176,12 +176,16 @@ describe('present — option-count heuristic (bd cm7)', () => {
     })
     const control = choicegroupCtl(tree.getField('pick'))
     expect(control.multiple).toBe(false)
+    expect(control.role).toBe('radiogroup')
+    expect(control.labelledBy).toBe('pick-label')
     expect(control.options).toEqual([
       { attrs: { id: 'pick-0', name: 'pick', type: 'radio', value: 'a', required: true }, label: 'a' },
       { attrs: { id: 'pick-1', name: 'pick', type: 'radio', value: 'b', required: true }, label: 'b' },
     ])
-    // The caption <label> targets the first option (a group has no field-id element).
-    expect(tree.getField('pick')?.parts.label.attrs.for).toBe('pick-0')
+    // The caption is a labelling target (`id`) named by the group's
+    // `aria-labelledby` (bd l8j) — no dangling `for`, no first-option-select
+    // side effect. Its id equals the control's `labelledBy`.
+    expect(tree.getField('pick')?.parts.label.attrs).toEqual({ id: 'pick-label' })
   })
 
   it('a checkbox group derives <input type=checkbox> per option and does NOT set required', () => {
@@ -196,10 +200,14 @@ describe('present — option-count heuristic (bd cm7)', () => {
     })
     const control = choicegroupCtl(tree.getField('pick'))
     expect(control.multiple).toBe(true)
+    // A checkbox group is ARIA `group` (there is no `checkboxgroup` role).
+    expect(control.role).toBe('group')
+    expect(control.labelledBy).toBe('pick-label')
     expect(control.options).toEqual([
       { attrs: { id: 'pick-0', name: 'pick', type: 'checkbox', value: 'a' }, label: 'a' },
       { attrs: { id: 'pick-1', name: 'pick', type: 'checkbox', value: 'b' }, label: 'b' },
     ])
+    expect(tree.getField('pick')?.parts.label.attrs).toEqual({ id: 'pick-label' })
   })
 
   it('the heuristic is overridable — a resolver forces select on a small enum', () => {

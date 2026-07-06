@@ -172,6 +172,13 @@ function textareaAttrsFromFacts(f: FieldFacts): HtmlTextareaAttrs {
  * "pick one", which is correct — but on a checkbox group it would demand EVERY box,
  * so "at least one" is left to the side-loaded validator (ADR 019).
  */
+/** The id of a field's caption `<label>` — the anchor a choicegroup wrapper
+ * points `aria-labelledby` at (bd l8j). Distinct from the field id (`f.attrs.id`)
+ * and the per-option ids (`${f.attrs.id}-0`…), so nothing collides. */
+function captionId(f: FieldFacts): string {
+  return `${f.attrs.id}-label`
+}
+
 function choiceOptions(f: FieldFacts, multiple: boolean): ChoiceOption[] {
   const type = multiple ? 'checkbox' : 'radio'
   return (f.choices ?? []).map((choice, i) => {
@@ -214,9 +221,21 @@ export function deriveControl(
     case 'textarea':
       return { kind: 'textarea', attrs: textareaAttrsFromFacts(f) }
     case 'radio':
-      return { kind: 'choicegroup', multiple: false, options: choiceOptions(f, false) }
+      return {
+        kind: 'choicegroup',
+        multiple: false,
+        role: 'radiogroup',
+        labelledBy: captionId(f),
+        options: choiceOptions(f, false),
+      }
     case 'checkboxes':
-      return { kind: 'choicegroup', multiple: true, options: choiceOptions(f, true) }
+      return {
+        kind: 'choicegroup',
+        multiple: true,
+        role: 'group',
+        labelledBy: captionId(f),
+        options: choiceOptions(f, true),
+      }
     default:
       return undefined
   }
@@ -231,14 +250,13 @@ export function deriveFieldParts(
   const control = deriveControl(f, widget)
   if (!control) return undefined
   const parts: FieldParts = { ...commonParts(f), control }
-  // A choicegroup has no single element with the field id, so the caption
-  // `<label for>` would dangle. Point it at the first option so the caption is
-  // programmatically associated. This is a pragmatic compromise, NOT the canonical
-  // pattern: the textbook grouping a11y is fieldset+legend or role=radiogroup +
-  // aria-labelledby, and label-for-first-option has the side effect of selecting
-  // that option on caption click. Upgrading to aria-labelledby is bd l8j.
-  if (control.kind === 'choicegroup' && control.options.length > 0) {
-    parts.label = { ...parts.label, attrs: { for: control.options[0].attrs.id } }
+  // A choicegroup has no single control for the caption `<label for>` to target.
+  // Rather than the cm7 hack (point `for` at the first option — which selected
+  // that option on caption click), give the caption an `id` and let the group
+  // wrapper name itself with `aria-labelledby={control.labelledBy}` (bd l8j — the
+  // canonical role + aria-labelledby grouping pattern; both ids are one value).
+  if (control.kind === 'choicegroup') {
+    parts.label = { ...parts.label, attrs: { id: control.labelledBy } }
   }
   return parts
 }

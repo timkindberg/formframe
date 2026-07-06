@@ -103,11 +103,15 @@ function DefaultFieldLabel({
   showRequired,
 }: {
   text: string
-  attrs: { for: string }
+  attrs: { for: string } | { id: string }
   showRequired: boolean
 }): ReactNode {
+  // A single-control caption points AT its control (`htmlFor`); a choicegroup
+  // caption is a labelling target (`id`) referenced by the group's
+  // `aria-labelledby` (bd l8j). Same `<label>`, one of two anchoring attrs.
+  const anchor = 'for' in attrs ? { htmlFor: attrs.for } : { id: attrs.id }
   return (
-    <label htmlFor={attrs.for}>
+    <label {...anchor}>
       {text}
       {showRequired && <span aria-hidden> *</span>}
     </label>
@@ -157,13 +161,18 @@ function DefaultControl(control: FieldControl): ReactNode {
     }
     case 'choicegroup': {
       // Radio (single) or checkbox (multi) group — a set of native option inputs,
-      // each implicitly labelled by its wrapping `<label>` (bd cm7). The group's
-      // a11y (role + error wiring) sits on the wrapper; each option is uncontrolled
-      // with a `value` attr (radio/checkbox use `checked`, not `value`, for state,
-      // so no controlled-input warning). `role` reflects single- vs multi-choice.
-      const role = control.multiple ? 'group' : 'radiogroup'
+      // each implicitly labelled by its wrapping `<label>` (bd cm7). Group a11y is
+      // Core-derived (bd l8j): `control.role` (radiogroup|group) and
+      // `aria-labelledby={control.labelledBy}` naming the group by its caption id —
+      // no adapter recomputes the role. Each option is uncontrolled with a `value`
+      // attr (radio/checkbox use `checked`, not `value`, so no controlled warning).
       return (
-        <div className="jsf-choicegroup" role={role} {...a11yProps}>
+        <div
+          className="jsf-choicegroup"
+          role={control.role}
+          aria-labelledby={control.labelledBy}
+          {...a11yProps}
+        >
           {control.options.map((o) => (
             <label key={o.attrs.id} className="jsf-choice">
               <input {...o.attrs} />

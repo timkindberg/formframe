@@ -77,9 +77,14 @@ function App() {
           if (node.nodeType === 'field') {
             return (
               <div key={node.path}>
-                {/* Use the derived `for` (not node.path): a choicegroup points it at
-                    its first option, since the group has no single element id. */}
-                <label htmlFor={node.parts.label.attrs.for}>
+                {/* A single-control caption points AT its control (`for`); a
+                    choicegroup caption is a labelling target (`id`) named by the
+                    group's aria-labelledby (bd l8j) — both derived in Core. */}
+                <label
+                  {...('for' in node.parts.label.attrs
+                    ? { htmlFor: node.parts.label.attrs.for }
+                    : { id: node.parts.label.attrs.id })}
+                >
                   {node.parts.label.text}
                   {node.validation.required && <span> *</span>}
                 </label>
@@ -101,7 +106,10 @@ function App() {
                 ) : node.parts.control.kind === 'textarea' ? (
                   <textarea {...node.parts.control.attrs} />
                 ) : node.parts.control.kind === 'choicegroup' ? (
-                  <div role={node.parts.control.multiple ? 'group' : 'radiogroup'}>
+                  <div
+                    role={node.parts.control.role}
+                    aria-labelledby={node.parts.control.labelledBy}
+                  >
                     {node.parts.control.options.map((opt) => (
                       <label key={opt.attrs.id}>
                         <input {...opt.attrs} /> {opt.label}
@@ -122,7 +130,11 @@ function App() {
                   if (childNode.nodeType === 'field') {
                     return (
                       <div key={childNode.path}>
-                        <label htmlFor={childNode.parts.label.attrs.for}>
+                        <label
+                          {...('for' in childNode.parts.label.attrs
+                            ? { htmlFor: childNode.parts.label.attrs.for }
+                            : { id: childNode.parts.label.attrs.id })}
+                        >
                           {childNode.parts.label.text}
                           {childNode.validation.required && <span> *</span>}
                         </label>
@@ -139,11 +151,8 @@ function App() {
                           <textarea {...childNode.parts.control.attrs} />
                         ) : childNode.parts.control.kind === 'choicegroup' ? (
                           <div
-                            role={
-                              childNode.parts.control.multiple
-                                ? 'group'
-                                : 'radiogroup'
-                            }
+                            role={childNode.parts.control.role}
+                            aria-labelledby={childNode.parts.control.labelledBy}
                           >
                             {childNode.parts.control.options.map((opt) => (
                               <label key={opt.attrs.id}>

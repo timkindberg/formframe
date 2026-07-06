@@ -45,7 +45,9 @@ const FieldsInput = createRenderer({
 const FieldsMost = createRenderer({
   field: {
     label: ({ text, attrs, showRequired }) => (
-      <label htmlFor={attrs.for}>
+      // Single-control caption points AT its control (`htmlFor`); a choicegroup
+      // caption is a labelling target (`id`) named by the group's aria-labelledby.
+      <label {...('for' in attrs ? { htmlFor: attrs.for } : { id: attrs.id })}>
         {text}
         {showRequired && <span aria-hidden> *</span>}
       </label>
@@ -69,7 +71,7 @@ const FieldsMost = createRenderer({
           )
         case 'choicegroup':
           return (
-            <div role={control.multiple ? 'group' : 'radiogroup'}>
+            <div role={control.role} aria-labelledby={control.labelledBy}>
               {control.options.map((o) => (
                 <label key={o.attrs.id}>
                   <input {...o.attrs} /> {o.label}

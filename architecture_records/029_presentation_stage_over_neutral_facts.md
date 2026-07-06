@@ -218,10 +218,25 @@ wrapped in a `role={radiogroup|group}` container — so the per-option `<input>`
 derived **in Core** (`choiceOptions(facts)`), keeping React ≡ vanilla. Two seam
 consequences confirmed the design generalizes: (a) the group's error a11y sits on the
 **wrapper**, not each input, still applied once from the field root's context; and (b)
-`deriveFieldParts` retargets the caption `<label for>` at the first option (a group has
-no single element bearing the field id). Submit needed no widget special-casing —
-array-wrapping was re-keyed off `facts.valueShape === 'array'` (§ below), which already
-covered `multiselect` and now `checkboxes` for free.
+the caption/group are wired by the canonical **`role` + `aria-labelledby`** grouping
+pattern (see the `l8j` note below).
+
+**Amended (bd `l8j`, 2026-07-05) — group naming + role live in Core.** `cm7` first
+retargeted the caption `<label for>` at the first option (a group has no single element
+bearing the field id) — but `for` *activates* its target, so clicking the caption
+selected the first radio. Replaced with the standard pattern, fully derived in Core so
+every adapter is byte-identical: the `choicegroup` control carries `role`
+(`'radiogroup'` for single-choice, `'group'` for multi — there is no `checkboxgroup`
+role) and `labelledBy` (the caption's `id`); `deriveFieldParts` gives the caption an
+`id` (not a `for`) so `FieldPartsBase.label.attrs` is now the closed either/or
+`{ for } | { id }`. The wrapper renders `role={control.role}
+aria-labelledby={control.labelledBy}`. This removes the `node.parts.control.multiple ?
+'group' : 'radiogroup'` ternary that had leaked into every adapter and example.
+
+Submit needed no widget special-casing at compile time — array-wrapping keys off array
+shape at assembly (§ below). (A later hotfix widened that key to also match the
+`multiselect`/`checkboxes` widget names, since a resolver can force an array-valued
+control onto a scalar-shaped field.)
 
 ### 6. Typing: closed Core archetype union, branded custom widgets
 

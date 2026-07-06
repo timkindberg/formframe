@@ -71,7 +71,13 @@ function App() {
 
             return (
               <div key={container.key} style={{ marginBottom: '1rem' }}>
-                <label htmlFor={label.attrs.for}>
+                {/* Single-control caption points AT its control (`for`); a
+                    choicegroup caption is a labelling target (`id`) — bd l8j. */}
+                <label
+                  {...('for' in label.attrs
+                    ? { htmlFor: label.attrs.for }
+                    : { id: label.attrs.id })}
+                >
                   {label.text}
                   {label.showRequired && <span> *</span>}
                 </label>
@@ -102,7 +108,8 @@ function App() {
                   />
                 ) : node.parts.control.kind === 'choicegroup' ? (
                   <div
-                    role={node.parts.control.multiple ? 'group' : 'radiogroup'}
+                    role={node.parts.control.role}
+                    aria-labelledby={node.parts.control.labelledBy}
                     style={{ display: 'block', marginTop: '0.25rem' }}
                   >
                     {node.parts.control.options.map((opt) => (
