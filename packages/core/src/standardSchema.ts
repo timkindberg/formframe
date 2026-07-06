@@ -31,7 +31,9 @@ export interface StandardSchemaV1Props<Input = unknown, Output = Input> {
   readonly validate: (
     value: unknown
   ) => StandardSchemaV1Result<Output> | Promise<StandardSchemaV1Result<Output>>
-  readonly types?: { readonly input: Input; readonly output: Output } | undefined
+  readonly types?:
+    | { readonly input: Input; readonly output: Output }
+    | undefined
 }
 
 /** Success carries the typed `value`; failure carries `issues` (its presence is the verdict). */
@@ -126,9 +128,7 @@ function dotPathToStandardPath(path: string): readonly string[] | undefined {
 function standardPathToDotPath(path: StandardSchemaV1Issue['path']): string {
   if (!path) return ''
   return path
-    .map((segment) =>
-      typeof segment === 'object' ? segment.key : segment
-    )
+    .map((segment) => (typeof segment === 'object' ? segment.key : segment))
     .map(String)
     .join('.')
 }

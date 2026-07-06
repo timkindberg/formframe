@@ -64,7 +64,10 @@ export type EField<R> = Omit<FieldNode, 'parts'> & {
 }
 
 /** Enriched container — parts + children + re-entry points. */
-type EContainerOf<N extends ContainerNode, R> = Omit<N, 'parts' | 'children'> & {
+type EContainerOf<N extends ContainerNode, R> = Omit<
+  N,
+  'parts' | 'children'
+> & {
   parts: EnrichedParts<N['parts'], R>
   /** Children keyed by last path segment — `node.children.street.Default`. */
   children: Record<string, ENode<R>>
@@ -270,7 +273,10 @@ export function createContinuation<R>(
   type AnyPartRenderer = (data: unknown) => R
 
   /** Look up the renderer for `kind`'s `name` part; `undefined` if none. */
-  function partRenderer(kind: PartKind | null, name: string): AnyPartRenderer | undefined {
+  function partRenderer(
+    kind: PartKind | null,
+    name: string
+  ): AnyPartRenderer | undefined {
     if (!kind) return undefined
     // Internal dynamic dispatch: the public adapter type stays precise; here we
     // index by runtime part name (`root` is never a part name, so no collision).
@@ -278,7 +284,10 @@ export function createContinuation<R>(
     return set[name]
   }
 
-  function enrichParts(parts: object, kind: PartKind | null): Record<string, unknown> {
+  function enrichParts(
+    parts: object,
+    kind: PartKind | null
+  ): Record<string, unknown> {
     const out: Record<string, unknown> = {}
     for (const [name, data] of Object.entries(parts)) {
       out[name] =
@@ -300,7 +309,9 @@ export function createContinuation<R>(
 
   /** Render one child — lazily (adapter-supplied) or eagerly (default fold). */
   function renderChild(core: AnyNode, resolver: Resolver<R>): R {
-    return options.renderChild ? options.renderChild(core, resolver) : resolve(core, resolver)
+    return options.renderChild
+      ? options.renderChild(core, resolver)
+      : resolve(core, resolver)
   }
 
   // A child's reconciliation key must be its *relative* identity — stable across
@@ -311,7 +322,11 @@ export function createContinuation<R>(
   // segment); positional containers (array/arrayItem) by *index*. Both are unique
   // among siblings and survive a dense re-path. (Vanilla joins markup and ignores
   // keys, so conformance is indifferent to this choice.)
-  function childKey(core: ContainerNode, child: AnyNode, index: number): string {
+  function childKey(
+    core: ContainerNode,
+    child: AnyNode,
+    index: number
+  ): string {
     return core.isGroup ? lastSegment(child.path) : String(index)
   }
 
@@ -359,8 +374,10 @@ export function createContinuation<R>(
   function enrich(core: AnyNode, resolver: Resolver<R>): ENode<R> {
     const kind = partKind(core)
     const parts = enrichParts(core.parts, kind)
-    const Default = (opts?: { parts?: Overrides; renderNode?: Resolver<R> }): R =>
-      renderDefault(core, opts?.renderNode ?? resolver, opts?.parts)
+    const Default = (opts?: {
+      parts?: Overrides
+      renderNode?: Resolver<R>
+    }): R => renderDefault(core, opts?.renderNode ?? resolver, opts?.parts)
 
     if (core.isField) {
       return { ...core, parts, Default } as unknown as ENode<R>

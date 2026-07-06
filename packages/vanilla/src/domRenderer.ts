@@ -49,7 +49,10 @@ type DomPart = { Default(): Node }
 const oracleAttrs = new WeakMap<Element, object>()
 
 function escapeText(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
 
 function escapeAttr(value: string): string {
@@ -126,7 +129,10 @@ function appendRendered(parent: Node, rendered: Node): void {
 const defaultAdapterImpl: DomAdapter = {
   field: {
     root({ node, overrides }) {
-      const renderPart = (part: DomPart | undefined, name: string): Node | string => {
+      const renderPart = (
+        part: DomPart | undefined,
+        name: string
+      ): Node | string => {
         if (!part) return ''
         const override = overrides?.[name]
         const rendered = override ? override(part) : part.Default()
@@ -176,7 +182,10 @@ const defaultAdapterImpl: DomAdapter = {
           const select = document.createElement('select')
           setAttrs(select, control.attrs)
           if (!control.attrs.multiple) {
-            appendChild(select, createEl('option', { value: '' }, '-- select --'))
+            appendChild(
+              select,
+              createEl('option', { value: '' }, '-- select --')
+            )
           }
           for (const option of control.options) {
             appendChild(
@@ -267,7 +276,13 @@ const defaultAdapterImpl: DomAdapter = {
       return div
     },
 
-    removeButton({ attrs, label }: { attrs: { type: 'button' }; label: string }) {
+    removeButton({
+      attrs,
+      label,
+    }: {
+      attrs: { type: 'button' }
+      label: string
+    }) {
       return createEl('button', attrs, label)
     },
   },
@@ -303,7 +318,10 @@ export const diagnosticDomAdapter: DomAdapter = {
         class: 'jsf-not-implemented',
         'data-jsf-not-implemented': 'field.root',
       })
-      appendRendered(div, notImplemented('field', { path: node.path, widget: node.widget }))
+      appendRendered(
+        div,
+        notImplemented('field', { path: node.path, widget: node.widget })
+      )
       appendRendered(div, defaultAdapterImpl.field.root({ node, overrides }))
       return div
     },
@@ -362,9 +380,15 @@ export const diagnosticDomAdapter: DomAdapter = {
  * adapter gaps fall back to `diagnosticDomAdapter`. Emits content only.
  */
 export function createDomRenderer(adapter: DomPartialAdapter) {
-  const engine = createContinuation<Node>(mergeAdapter(diagnosticDomAdapter, adapter))
-  return function renderToDom(form: GroupNode, options: RenderToDomOptions = {}): Node {
-    const resolver: DomRenderNode = options.renderNode ?? ((node) => node.Default())
+  const engine = createContinuation<Node>(
+    mergeAdapter(diagnosticDomAdapter, adapter)
+  )
+  return function renderToDom(
+    form: GroupNode,
+    options: RenderToDomOptions = {}
+  ): Node {
+    const resolver: DomRenderNode =
+      options.renderNode ?? ((node) => node.Default())
     return engine.resolve(form, resolver)
   }
 }
@@ -392,7 +416,9 @@ export function serializeDomToOracleHtml(node: Node): string {
     if (VOID_TAGS.has(tag)) {
       return `<${open}>`
     }
-    const kids = Array.from(el.childNodes).map(serializeDomToOracleHtml).join('')
+    const kids = Array.from(el.childNodes)
+      .map(serializeDomToOracleHtml)
+      .join('')
     return `<${open}>${kids}</${tag}>`
   }
   return ''

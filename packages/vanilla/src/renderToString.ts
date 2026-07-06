@@ -52,7 +52,10 @@ export interface RenderToStringOptions {
 // ---------------------------------------------------------------------------
 
 function escapeText(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
 
 function escapeAttr(value: string): string {
@@ -87,7 +90,10 @@ type StringPart = { Default(): string }
 const defaultAdapterImpl: VanillaAdapter = {
   field: {
     root({ node, overrides }) {
-      const renderPart = (part: StringPart | undefined, name: string): string => {
+      const renderPart = (
+        part: StringPart | undefined,
+        name: string
+      ): string => {
         if (!part) return ''
         const override = overrides?.[name]
         return override ? override(part) : part.Default()
@@ -163,7 +169,8 @@ const defaultAdapterImpl: VanillaAdapter = {
   group: {
     root({ node, children }) {
       const { label, description } = node.parts
-      if (!label && !description) return `<div class="jsf-group">${children}</div>`
+      if (!label && !description)
+        return `<div class="jsf-group">${children}</div>`
       const legend = label ? label.Default() : ''
       const desc = description ? description.Default() : ''
       return `<fieldset class="jsf-group">${legend}${desc}${children}</fieldset>`
@@ -204,7 +211,13 @@ const defaultAdapterImpl: VanillaAdapter = {
       return `<div class="jsf-array-item">${children}${node.parts.removeButton.Default()}</div>`
     },
 
-    removeButton({ attrs, label }: { attrs: { type: 'button' }; label: string }) {
+    removeButton({
+      attrs,
+      label,
+    }: {
+      attrs: { type: 'button' }
+      label: string
+    }) {
       return `<button${renderAttrs(attrs)}>${escapeText(label)}</button>`
     },
   },
@@ -284,12 +297,15 @@ export const diagnosticAdapter: VanillaAdapter = {
  * `diagnosticAdapter` markers. Emits the form's *content only*.
  */
 export function createRenderer(adapter: VanillaPartialAdapter) {
-  const engine = createContinuation<string>(mergeAdapter(diagnosticAdapter, adapter))
+  const engine = createContinuation<string>(
+    mergeAdapter(diagnosticAdapter, adapter)
+  )
   return function renderToString(
     form: GroupNode,
     options: RenderToStringOptions = {}
   ): string {
-    const resolver: RenderNode = options.renderNode ?? ((node) => node.Default())
+    const resolver: RenderNode =
+      options.renderNode ?? ((node) => node.Default())
     return engine.resolve(form, resolver)
   }
 }

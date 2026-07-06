@@ -23,10 +23,7 @@ type RequiredKeys<S> = S extends { readonly required: readonly (infer K)[] }
     : never
   : never
 
-type InferObjectData<
-  P extends Record<string, unknown>,
-  Req extends string,
-> = {
+type InferObjectData<P extends Record<string, unknown>, Req extends string> = {
   [K in keyof P & string as K extends Req ? K : never]: InferSchemaData<P[K]>
 } & {
   [K in keyof P & string as K extends Req ? never : K]?: InferSchemaData<P[K]>
@@ -41,7 +38,9 @@ type InferSchemaData<S> = S extends { readonly const: infer C }
           readonly properties: infer P extends Record<string, unknown>
         }
       ? InferObjectData<P, RequiredKeys<S>>
-      : S extends { readonly properties: infer P extends Record<string, unknown> }
+      : S extends {
+            readonly properties: infer P extends Record<string, unknown>
+          }
         ? InferObjectData<P, RequiredKeys<S>>
         : S extends {
               readonly type: 'array'
@@ -70,11 +69,7 @@ type FieldPathFromProperties<
     | FieldPathFromSchema<P[K], JoinPath<Prefix, K>, NextDepth<Depth>>
 }[keyof P & string]
 
-type FieldPathFromArrayItems<
-  I,
-  Prefix extends string,
-  Depth extends number,
-> =
+type FieldPathFromArrayItems<I, Prefix extends string, Depth extends number> =
   | IndexedArrayPrefix<Prefix>
   | FieldPathFromSchema<I, IndexedArrayPrefix<Prefix>, NextDepth<Depth>>
 

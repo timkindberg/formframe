@@ -16,7 +16,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "gate": "npm run typecheck && npm run lint && npm run test",
+    "gate": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "clean": "npm run clean --workspaces --if-present && rm -rf node_modules"
   },
   "keywords": [

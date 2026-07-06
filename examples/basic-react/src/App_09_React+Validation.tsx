@@ -6,7 +6,11 @@
 // returned `SchemaFields` surfaces each issue under its own field — no schema
 // annotations, no IR change, and the validator stays swappable (AJV → Zod).
 import { useMemo, useState } from 'react'
-import { useSchemaForm, ValidationProvider, ValidationSummary } from '@jsonschema-form/react'
+import {
+  useSchemaForm,
+  ValidationProvider,
+  ValidationSummary,
+} from '@jsonschema-form/react'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
 import type { JSONSchema } from '@jsonschema-form/core'
 
@@ -40,8 +44,12 @@ function App() {
   const validator = useMemo(() => createAjvValidator(schema), [])
   // `submitAttempted` is the hook's submit flag; the default display policy is
   // `'touched'` (ADR 027), so a submit attempt is what reveals these errors.
-  const { SchemaFields, submit, errors, submitted: submitAttempted } =
-    useSchemaForm(schema, { validator })
+  const {
+    SchemaFields,
+    submit,
+    errors,
+    submitted: submitAttempted,
+  } = useSchemaForm(schema, { validator })
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
     null
   )

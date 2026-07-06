@@ -1,6 +1,9 @@
 import { describe, expectTypeOf, it } from 'vitest'
 import type { FieldPath, InferData } from './infer'
-import type { FieldPath as PublicFieldPath, InferData as PublicInferData } from './index'
+import type {
+  FieldPath as PublicFieldPath,
+  InferData as PublicInferData,
+} from './index'
 
 const _flatSchema = {
   type: 'object',
@@ -220,8 +223,12 @@ describe('FieldPath', () => {
   })
 
   it('is exported from the package barrel', () => {
-    expectTypeOf<PublicInferData<typeof _flatSchema>>().toEqualTypeOf<FlatData>()
-    expectTypeOf<PublicFieldPath<typeof _arraySchema>>().toEqualTypeOf<ArrayPaths>()
+    expectTypeOf<
+      PublicInferData<typeof _flatSchema>
+    >().toEqualTypeOf<FlatData>()
+    expectTypeOf<
+      PublicFieldPath<typeof _arraySchema>
+    >().toEqualTypeOf<ArrayPaths>()
   })
 })
 

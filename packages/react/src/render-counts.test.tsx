@@ -111,7 +111,8 @@ const reset = (counts: Counts) => {
   for (const k of Object.keys(counts)) delete counts[k]
 }
 
-const total = (counts: Counts) => Object.values(counts).reduce((a, b) => a + b, 0)
+const total = (counts: Counts) =>
+  Object.values(counts).reduce((a, b) => a + b, 0)
 
 describe('render-count contract', () => {
   it('appending an item re-renders nothing in the existing items', async () => {
@@ -150,7 +151,10 @@ describe('render-count contract', () => {
 
     reset(counts)
     // drop the SECOND (last) item — the survivor at contacts.0 does not shift
-    await screen.getByRole('button', { name: /remove/i }).nth(1).click()
+    await screen
+      .getByRole('button', { name: /remove/i })
+      .nth(1)
+      .click()
     await expect
       .poll(() => document.querySelectorAll('input[name$=".name"]').length)
       .toBe(1)
@@ -179,7 +183,10 @@ describe('render-count contract', () => {
 
     reset(counts)
     // drop the MIDDLE item (contacts.1); the tail (contacts.2) re-paths to .1
-    await screen.getByRole('button', { name: /remove/i }).nth(1).click()
+    await screen
+      .getByRole('button', { name: /remove/i })
+      .nth(1)
+      .click()
     await expect
       .poll(() => document.querySelectorAll('input[name$=".name"]').length)
       .toBe(2)
@@ -263,7 +270,9 @@ describe('validation render-count contract (ADR 023)', () => {
   it('a field gaining an issue re-renders only that field, not its siblings', async () => {
     const counts: Counts = {}
     const Counting = createRenderer(countingAdapter(counts))
-    const screen = await render(<ValidationCountingHarness Counting={Counting} />)
+    const screen = await render(
+      <ValidationCountingHarness Counting={Counting} />
+    )
 
     reset(counts)
     // type an invalid value into username (minLength 3); `note` stays valid

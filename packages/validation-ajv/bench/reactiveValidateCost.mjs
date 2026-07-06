@@ -86,12 +86,42 @@ function rowsData(rows, fields) {
 }
 
 const cases = [
-  { name: 'tiny (10 fields)', schema: flatSchema(10), data: flatData(10), leaves: 10 },
-  { name: 'small (30 fields)', schema: flatSchema(30), data: flatData(30), leaves: 30 },
-  { name: 'medium (100 fields)', schema: flatSchema(100), data: flatData(100), leaves: 100 },
-  { name: 'large (300 fields)', schema: flatSchema(300), data: flatData(300), leaves: 300 },
-  { name: 'huge (1000 fields)', schema: flatSchema(1000), data: flatData(1000), leaves: 1000 },
-  { name: 'grid (100 rows x 8)', schema: rowsSchema(100, 8), data: rowsData(100, 8), leaves: 800 },
+  {
+    name: 'tiny (10 fields)',
+    schema: flatSchema(10),
+    data: flatData(10),
+    leaves: 10,
+  },
+  {
+    name: 'small (30 fields)',
+    schema: flatSchema(30),
+    data: flatData(30),
+    leaves: 30,
+  },
+  {
+    name: 'medium (100 fields)',
+    schema: flatSchema(100),
+    data: flatData(100),
+    leaves: 100,
+  },
+  {
+    name: 'large (300 fields)',
+    schema: flatSchema(300),
+    data: flatData(300),
+    leaves: 300,
+  },
+  {
+    name: 'huge (1000 fields)',
+    schema: flatSchema(1000),
+    data: flatData(1000),
+    leaves: 1000,
+  },
+  {
+    name: 'grid (100 rows x 8)',
+    schema: rowsSchema(100, 8),
+    data: rowsData(100, 8),
+    leaves: 800,
+  },
 ]
 
 console.log(

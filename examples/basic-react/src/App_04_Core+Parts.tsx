@@ -109,10 +109,7 @@ function App() {
                     style={{ display: 'block', marginTop: '0.25rem' }}
                   >
                     {node.parts.control.options.map((opt) => (
-                      <label
-                        key={opt.attrs.id}
-                        style={{ display: 'block' }}
-                      >
+                      <label key={opt.attrs.id} style={{ display: 'block' }}>
                         <input {...opt.attrs} /> {opt.label}
                       </label>
                     ))}

@@ -37,7 +37,9 @@ export interface Presentation {
  * coupling, which the consumer owns). `undefined` means "no opinion" — a lower
  * layer decides. The library recognizes NO source keyword.
  */
-export type PresentationResolver = (facts: FieldFacts) => Presentation | undefined
+export type PresentationResolver = (
+  facts: FieldFacts
+) => Presentation | undefined
 
 /**
  * The option-count threshold (bd cm7). At or below it, a constrained field
@@ -107,11 +109,17 @@ function commonParts(f: FieldFacts) {
       showRequired: f.required,
     },
   }
-  return f.description ? { ...base, description: { text: f.description } } : base
+  return f.description
+    ? { ...base, description: { text: f.description } }
+    : base
 }
 
 function inputAttrsFromFacts(f: FieldFacts): HtmlInputAttrs {
-  const attrs: HtmlInputAttrs = { id: f.attrs.id, name: f.attrs.name, type: 'text' }
+  const attrs: HtmlInputAttrs = {
+    id: f.attrs.id,
+    name: f.attrs.name,
+    type: 'text',
+  }
   if (f.primitive === 'boolean') attrs.type = 'checkbox'
   else if (f.primitive === 'number' || f.primitive === 'integer')
     attrs.type = 'number'
@@ -151,7 +159,10 @@ function inputAttrsFromFacts(f: FieldFacts): HtmlInputAttrs {
   return attrs
 }
 
-function selectAttrsFromFacts(f: FieldFacts, multiple: boolean): HtmlSelectAttrs {
+function selectAttrsFromFacts(
+  f: FieldFacts,
+  multiple: boolean
+): HtmlSelectAttrs {
   const attrs: HtmlSelectAttrs = { id: f.attrs.id, name: f.attrs.name }
   if (multiple) attrs.multiple = true
   if (f.constraints.required) attrs.required = true
@@ -299,7 +310,10 @@ export function presentDefaultLeaf(f: FieldFacts): WidgetParts {
 
 // --- The pass -------------------------------------------------------------------
 
-function presentField(node: FieldNode, resolve: PresentationResolver): FieldNode {
+function presentField(
+  node: FieldNode,
+  resolve: PresentationResolver
+): FieldNode {
   const p = resolve(node.facts)
   if (!p) return node
   // Unchanged widget (and no args) → keep identity so the memo bail holds.

@@ -120,7 +120,9 @@ describe('renderToDom — DOM ≡ string oracle parity', () => {
         },
       },
     })
-    expect(serializeDomToOracleHtml(renderToDom(nameless))).toBe(renderToString(nameless))
+    expect(serializeDomToOracleHtml(renderToDom(nameless))).toBe(
+      renderToString(nameless)
+    )
   })
 })
 

@@ -17,11 +17,7 @@ export function decodeJsonPointerSegment(segment: string): string {
  */
 export function jsonPointerToPath(pointer: string): string {
   if (!pointer) return ''
-  return pointer
-    .slice(1)
-    .split('/')
-    .map(decodeJsonPointerSegment)
-    .join('.')
+  return pointer.slice(1).split('/').map(decodeJsonPointerSegment).join('.')
 }
 
 /** Append a segment to a dot-path; empty base returns the segment alone. */

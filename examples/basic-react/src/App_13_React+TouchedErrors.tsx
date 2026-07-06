@@ -110,10 +110,10 @@ function App() {
       </form>
 
       <p style={{ color: '#666', fontSize: '0.85rem' }}>
-        Try <code>touched</code>: type an invalid value — no error yet — then tab
-        away to reveal it. Because blur also revalidates, tabbing through an empty
-        required field surfaces its error on blur too. Untouched fields stay quiet
-        until you submit.
+        Try <code>touched</code>: type an invalid value — no error yet — then
+        tab away to reveal it. Because blur also revalidates, tabbing through an
+        empty required field surfaces its error on blur too. Untouched fields
+        stay quiet until you submit.
       </p>
 
       {submittedData && (

@@ -90,7 +90,9 @@ describe('createAjvValidator — AJV specifics', () => {
     // AJV v8 ignores `format` unless ajv-formats is registered — this must fail.
     const result = validate({ email: 'notanemail' })
     expect(result.valid).toBe(false)
-    expect(result.issues.find((i) => i.path === 'email')?.keyword).toBe('format')
+    expect(result.issues.find((i) => i.path === 'email')?.keyword).toBe(
+      'format'
+    )
     expect(validate({ email: 'a@b.com' }).valid).toBe(true)
   })
 

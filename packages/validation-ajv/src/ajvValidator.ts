@@ -123,4 +123,3 @@ function toIssue(error: ErrorObject): ValidationIssue {
     keyword: error.keyword,
   }
 }
-

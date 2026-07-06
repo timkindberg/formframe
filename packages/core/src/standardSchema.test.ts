@@ -47,7 +47,11 @@ describe('toStandardSchema (emit)', () => {
       valid: false,
       issues: [
         { path: 'name', message: 'required', keyword: 'required' },
-        { path: 'contacts.0.email', message: 'too short', keyword: 'minLength' },
+        {
+          path: 'contacts.0.email',
+          message: 'too short',
+          keyword: 'minLength',
+        },
         { path: '', message: 'root issue' },
       ],
     })
@@ -67,7 +71,8 @@ describe('fromStandardSchema (consume)', () => {
       vendor: 'fake',
       validate: (value) => {
         const v = value as { age?: unknown }
-        if (typeof v.age === 'number' && v.age >= 18) return { value: { age: v.age } }
+        if (typeof v.age === 'number' && v.age >= 18)
+          return { value: { age: v.age } }
         return { issues: [{ message: 'must be >= 18', path: ['age'] }] }
       },
     },
@@ -95,12 +100,17 @@ describe('fromStandardSchema (consume)', () => {
         vendor: 'fake',
         validate: () => ({
           issues: [
-            { message: 'bad', path: [{ key: 'contacts' }, { key: 0 }, { key: 'email' }] },
+            {
+              message: 'bad',
+              path: [{ key: 'contacts' }, { key: 0 }, { key: 'email' }],
+            },
           ],
         }),
       },
     }
-    expect(fromStandardSchema(schema)({}).issues[0].path).toBe('contacts.0.email')
+    expect(fromStandardSchema(schema)({}).issues[0].path).toBe(
+      'contacts.0.email'
+    )
   })
 
   it('maps a path-less issue to the root path ""', () => {

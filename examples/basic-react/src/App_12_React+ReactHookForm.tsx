@@ -182,7 +182,10 @@ export default function App() {
     () =>
       standardSchemaResolver(
         // Core emits input: unknown; RHF's resolver expects FieldValues at the boundary.
-        toStandardSchema(validator) as StandardSchemaV1<FieldValues, FieldValues>
+        toStandardSchema(validator) as StandardSchemaV1<
+          FieldValues,
+          FieldValues
+        >
       ),
     [validator]
   )
@@ -198,9 +201,9 @@ export default function App() {
         Schema via <code>toStandardSchema</code> (ADR 026) and wired into RHF
         through <code>standardSchemaResolver</code>. Errors show on submit and
         re-validate on change (default RHF mode); switching to{' '}
-        <code>mode: &quot;onTouched&quot;</code> gives touched-gated display with
-        no extra code, because RHF field-scopes resolver errors itself. This is a
-        copy-paste recipe, not a published adapter.
+        <code>mode: &quot;onTouched&quot;</code> gives touched-gated display
+        with no extra code, because RHF field-scopes resolver errors itself.
+        This is a copy-paste recipe, not a published adapter.
       </p>
 
       <FormProvider {...methods}>
@@ -211,7 +214,8 @@ export default function App() {
           <SchemaFields
             form={form}
             renderNode={(node, { Default }) => {
-              if (node.isField) return <RHFField node={node} Default={Default} />
+              if (node.isField)
+                return <RHFField node={node} Default={Default} />
               return <Default of={node} />
             }}
           />

@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { jsonSchemaToTree } from './index'
 import type { JSONSchema } from '../types'
-import {
-  inputCtl,
-  choicegroupCtl,
-} from '../present/controlTestUtils'
+import { inputCtl, choicegroupCtl } from '../present/controlTestUtils'
 import { submitWith } from './submitTestUtils'
 
 describe('edge schema robustness', () => {

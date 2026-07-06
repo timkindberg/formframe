@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { jsonSchemaToTree } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/core'
-import { renderToString, createRenderer, defaultAdapter } from './renderToString'
+import {
+  renderToString,
+  createRenderer,
+  defaultAdapter,
+} from './renderToString'
 
 const schema: JSONSchema = {
   type: 'object',

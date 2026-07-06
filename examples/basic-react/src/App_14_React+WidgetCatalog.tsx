@@ -9,26 +9,67 @@ import type { JSONSchema } from '@jsonschema-form/core'
 const schema: JSONSchema = {
   type: 'object',
   properties: {
-    fullName: { type: 'string', title: 'Full name', description: 'Plain string → text input' },
-    email: { type: 'string', format: 'email', title: 'Email', description: "format: 'email'" },
-    website: { type: 'string', format: 'url', title: 'Website', description: "format: 'url'" },
-    phone: { type: 'string', format: 'tel', title: 'Phone', description: "format: 'tel'" },
-    birthday: { type: 'string', format: 'date', title: 'Birthday', description: "format: 'date'" },
+    fullName: {
+      type: 'string',
+      title: 'Full name',
+      description: 'Plain string → text input',
+    },
+    email: {
+      type: 'string',
+      format: 'email',
+      title: 'Email',
+      description: "format: 'email'",
+    },
+    website: {
+      type: 'string',
+      format: 'url',
+      title: 'Website',
+      description: "format: 'url'",
+    },
+    phone: {
+      type: 'string',
+      format: 'tel',
+      title: 'Phone',
+      description: "format: 'tel'",
+    },
+    birthday: {
+      type: 'string',
+      format: 'date',
+      title: 'Birthday',
+      description: "format: 'date'",
+    },
     appointment: {
       type: 'string',
       format: 'date-time',
       title: 'Appointment',
       description: "format: 'date-time' → datetime-local",
     },
-    reminderTime: { type: 'string', format: 'time', title: 'Reminder time', description: "format: 'time'" },
+    reminderTime: {
+      type: 'string',
+      format: 'time',
+      title: 'Reminder time',
+      description: "format: 'time'",
+    },
     favoriteColor: {
       type: 'string',
       format: 'color',
       title: 'Favorite color',
       description: "format: 'color'",
     },
-    age: { type: 'integer', title: 'Age', minimum: 0, maximum: 120, description: 'integer → number input' },
-    rating: { type: 'number', title: 'Rating', minimum: 0, maximum: 10, description: 'number input' },
+    age: {
+      type: 'integer',
+      title: 'Age',
+      minimum: 0,
+      maximum: 120,
+      description: 'integer → number input',
+    },
+    rating: {
+      type: 'number',
+      title: 'Rating',
+      minimum: 0,
+      maximum: 10,
+      description: 'number input',
+    },
     plan: {
       type: 'string',
       title: 'Plan',
@@ -64,7 +105,9 @@ const schema: JSONSchema = {
 
 function App() {
   const { form, SchemaFields } = useSchemaForm(schema)
-  const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(null)
+  const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
+    null
+  )
 
   return (
     <div>

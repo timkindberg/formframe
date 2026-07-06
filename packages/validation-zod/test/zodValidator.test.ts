@@ -31,14 +31,14 @@ describe('createZodValidator — Zod specifics', () => {
 
   it('maps Zod issue codes through as keywords', () => {
     const minLength = createZodValidator(z.object({ name: z.string().min(2) }))
-    expect(minLength({ name: 'T' }).issues.find((i) => i.path === 'name')?.keyword).toBe(
-      'too_small'
-    )
+    expect(
+      minLength({ name: 'T' }).issues.find((i) => i.path === 'name')?.keyword
+    ).toBe('too_small')
 
     const wrongType = createZodValidator(z.object({ name: z.string() }))
-    expect(wrongType({ name: 1 }).issues.find((i) => i.path === 'name')?.keyword).toBe(
-      'invalid_type'
-    )
+    expect(
+      wrongType({ name: 1 }).issues.find((i) => i.path === 'name')?.keyword
+    ).toBe('invalid_type')
   })
 
   it('collects all errors, not just the first', () => {
@@ -53,9 +53,7 @@ describe('createZodValidator — Zod specifics', () => {
   })
 
   it('carries Zod-authored messages through unchanged', () => {
-    const validate = createZodValidator(
-      z.object({ name: z.string().min(2) })
-    )
+    const validate = createZodValidator(z.object({ name: z.string().min(2) }))
     const issue = validate({ name: 'T' }).issues.find((i) => i.path === 'name')
     expect(issue?.message.length).toBeGreaterThan(0)
   })

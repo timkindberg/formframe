@@ -3,7 +3,11 @@ import { jsonSchemaToTree } from './index'
 import type { JSONSchema, GroupNode } from '../types'
 // The field control is a single discriminated slot now (ADR 029 §5, v60); these
 // shared helpers narrow `control.kind` to reach archetype-specific attrs/options.
-import { inputCtl, selectCtl, choicegroupCtl } from '../present/controlTestUtils'
+import {
+  inputCtl,
+  selectCtl,
+  choicegroupCtl,
+} from '../present/controlTestUtils'
 import { submitWith } from './submitTestUtils'
 
 describe('jsonSchemaToTree', () => {
@@ -965,9 +969,7 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const methodField = form.getField(
-        'shipping.method'
-      )
+      const methodField = form.getField('shipping.method')
       const priorityField = form.getField('shipping.priority')
 
       expect(methodField?.widget).toBe('radio')
@@ -1126,22 +1128,10 @@ describe('jsonSchemaToTree', () => {
       const allFields = form.getAllFields()
 
       expect(allFields).toHaveLength(4)
-      expect(
-        inputCtl(form.getField('name'))
-          .attrs.type
-      ).toBe('text')
-      expect(
-        inputCtl(form.getField('age')).attrs
-          .type
-      ).toBe('number')
-      expect(
-        inputCtl(form.getField('subscribe'))
-          .attrs.type
-      ).toBe('checkbox')
-      expect(
-        inputCtl(form.getField('terms'))
-          .attrs.type
-      ).toBe('checkbox')
+      expect(inputCtl(form.getField('name')).attrs.type).toBe('text')
+      expect(inputCtl(form.getField('age')).attrs.type).toBe('number')
+      expect(inputCtl(form.getField('subscribe')).attrs.type).toBe('checkbox')
+      expect(inputCtl(form.getField('terms')).attrs.type).toBe('checkbox')
     })
 
     it('includes boolean fields in parts API correctly', () => {
@@ -1204,12 +1194,8 @@ describe('jsonSchemaToTree', () => {
       }
 
       const form = jsonSchemaToTree(schema)
-      const emailField = form.getField(
-        'preferences.emailNotifications'
-      )
-      const smsField = form.getField(
-        'preferences.smsNotifications'
-      )
+      const emailField = form.getField('preferences.emailNotifications')
+      const smsField = form.getField('preferences.smsNotifications')
 
       expect(inputCtl(emailField).attrs.type).toBe('checkbox')
       expect(emailField?.validation.required).toBe(true)
@@ -1796,7 +1782,14 @@ describe('jsonSchemaToTree', () => {
             title: 'Skills',
             items: {
               type: 'string',
-              enum: ['JavaScript', 'TypeScript', 'React', 'Vue', 'Svelte', 'Solid'],
+              enum: [
+                'JavaScript',
+                'TypeScript',
+                'React',
+                'Vue',
+                'Svelte',
+                'Solid',
+              ],
             },
           },
         },

@@ -20,13 +20,15 @@ const schema: JSONSchema = {
     username: {
       type: 'string',
       title: 'Username',
-      description: 'At least 3 characters (validator reports; no native minLength attr).',
+      description:
+        'At least 3 characters (validator reports; no native minLength attr).',
       minLength: 3,
     },
     handle: {
       type: 'string',
       title: 'Handle',
-      description: 'Max 20 characters — the browser constrains via native maxLength.',
+      description:
+        'Max 20 characters — the browser constrains via native maxLength.',
       maxLength: 20,
     },
     zip: {
@@ -58,18 +60,19 @@ function App() {
         per-field issues — no controlled inputs, no form-state adapter.
       </p>
       <p>
-        <strong>When to wire which:</strong> <code>onInput</code> = validate while
-        typing; <code>onChange</code> = validate when the field loses focus. Wire
-        both if you want keystroke feedback <em>and</em> a final blur pass — the
-        consumer chooses.
+        <strong>When to wire which:</strong> <code>onInput</code> = validate
+        while typing; <code>onChange</code> = validate when the field loses
+        focus. Wire both if you want keystroke feedback <em>and</em> a final
+        blur pass — the consumer chooses.
       </p>
       <p>
         <strong>Constrain vs report:</strong> where the schema maps to a native
-        HTML attribute (<code>maxLength</code>, <code>min</code>/<code>max</code>
-        , <code>step</code>, <code>pattern</code>), the browser live-constrains
-        input. Semantic rules without a native twin (e.g. <code>minLength</code>{' '}
-        on a plain text field) are live-reported by the validator only. Both
-        layers can apply to different fields in the same form.
+        HTML attribute (<code>maxLength</code>, <code>min</code>/
+        <code>max</code>, <code>step</code>, <code>pattern</code>), the browser
+        live-constrains input. Semantic rules without a native twin (e.g.{' '}
+        <code>minLength</code> on a plain text field) are live-reported by the
+        validator only. Both layers can apply to different fields in the same
+        form.
       </p>
       <p>
         Omit live handlers and behaviour stays submit-only (ADR 019). Async
@@ -79,8 +82,8 @@ function App() {
         <strong>Display policy:</strong> this demo passes{' '}
         <code>showErrorsWhen=&quot;always&quot;</code> so a live-reported error
         appears the instant it exists — the point here is the validate-on-change
-        seam. The library default is <code>&quot;touched&quot;</code> (errors stay
-        quiet until a field blurs); see <code>App_13</code> for that UX.
+        seam. The library default is <code>&quot;touched&quot;</code> (errors
+        stay quiet until a field blurs); see <code>App_13</code> for that UX.
       </p>
 
       <form

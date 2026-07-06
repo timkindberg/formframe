@@ -42,7 +42,8 @@ const schema: JSONSchema = {
     addresses: {
       type: 'array',
       title: 'Addresses',
-      description: 'Add multiple addresses; removing one leaves the others typed',
+      description:
+        'Add multiple addresses; removing one leaves the others typed',
       minItems: 1,
       items: {
         type: 'object',
@@ -67,19 +68,21 @@ const schema: JSONSchema = {
 
 function App() {
   const { form, SchemaFields } = useSchemaForm(schema)
-  const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(null)
+  const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
+    null
+  )
 
   return (
     <div>
       <h1>Dynamic arrays (ADR 015)</h1>
       <p style={{ color: '#555' }}>
         Add/remove items folded by the continuation engine. The trick: each item
-        has a <strong>stable React key</strong> (its identity) decoupled from its{' '}
-        <strong>path</strong> (its position), so adding or removing a sibling
-        updates the list <em>in place</em> — every other item keeps its typed
-        value with no remount, while paths stay <em>dense</em>. Type into a few
-        fields, remove the first item, then submit: the survivors re-path to a
-        contiguous array — no holes.
+        has a <strong>stable React key</strong> (its identity) decoupled from
+        its <strong>path</strong> (its position), so adding or removing a
+        sibling updates the list <em>in place</em> — every other item keeps its
+        typed value with no remount, while paths stay <em>dense</em>. Type into
+        a few fields, remove the first item, then submit: the survivors re-path
+        to a contiguous array — no holes.
       </p>
 
       <form onSubmit={form.submit(setSubmitted)}>

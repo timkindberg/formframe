@@ -62,8 +62,9 @@ function App() {
       <h1>JSON Schema Form - useSchemaForm Hook</h1>
       <p>
         Simple API: <code>useSchemaForm(schema)</code> returns{' '}
-        <code>{'{ form, SchemaFields }'}</code>. <code>SchemaFields</code> renders the form
-        content; you own the <code>&lt;form&gt;</code> + submit (ADR 013).
+        <code>{'{ form, SchemaFields }'}</code>. <code>SchemaFields</code>{' '}
+        renders the form content; you own the <code>&lt;form&gt;</code> + submit
+        (ADR 013).
       </p>
       <p>
         Use <code>form.submit(onSubmit)</code> to automatically transform and

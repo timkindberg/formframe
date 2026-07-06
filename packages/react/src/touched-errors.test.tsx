@@ -29,8 +29,15 @@ const schema: JSONSchema = {
 // (ADR 027 makes that `'touched'`).
 function Harness({ mode }: { mode?: ShowErrorsWhen }) {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, submit, revalidate, errors, handleBlur, touched, submitted } =
-    useSchemaForm(schema, { validator })
+  const {
+    SchemaFields,
+    submit,
+    revalidate,
+    errors,
+    handleBlur,
+    touched,
+    submitted,
+  } = useSchemaForm(schema, { validator })
   return (
     <form
       noValidate

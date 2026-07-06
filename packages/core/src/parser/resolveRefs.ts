@@ -84,7 +84,11 @@ function resolveSchemaWithoutRef(
     !Array.isArray(items) &&
     items !== null
   ) {
-    const resolvedItems = resolveSchema(items as JSONSchemaObject, root, refStack)
+    const resolvedItems = resolveSchema(
+      items as JSONSchemaObject,
+      root,
+      refStack
+    )
     if (resolvedItems !== items) {
       result.items = resolvedItems
       changed = true
@@ -106,10 +110,7 @@ function resolveJsonPointer(
     throw new Error(`Invalid local JSON Pointer $ref: ${pointer}`)
   }
 
-  const segments = pointer
-    .slice(2)
-    .split('/')
-    .map(decodeJsonPointerSegment)
+  const segments = pointer.slice(2).split('/').map(decodeJsonPointerSegment)
 
   let current: unknown = root
   for (const segment of segments) {

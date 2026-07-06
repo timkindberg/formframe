@@ -111,7 +111,10 @@ describe('forceArrayFields', () => {
     // into an array by unflatten, not array-valued leaves themselves.
     const signatures = new Set<string>()
     expect(
-      forceArrayFields({ 'hobbies.0': 'reading', 'hobbies.1': 'coding' }, signatures)
+      forceArrayFields(
+        { 'hobbies.0': 'reading', 'hobbies.1': 'coding' },
+        signatures
+      )
     ).toEqual({ 'hobbies.0': 'reading', 'hobbies.1': 'coding' })
   })
 })

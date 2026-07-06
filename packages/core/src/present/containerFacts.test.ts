@@ -121,7 +121,10 @@ describe('container facts / subtree collapse — CURRENT behavior (ADR 030 gap)'
     // The default rule keys multiselect off valueShape==='array' && choices; a
     // subtree array has an item descriptor, not choices, so it must STAY add/remove
     // once containers carry facts (ADR 030 §3). Today it is already an ArrayNode.
-    const tree = present(jsonSchemaToTree(objectArraySchema), defaultPresentation)
+    const tree = present(
+      jsonSchemaToTree(objectArraySchema),
+      defaultPresentation
+    )
     const criteria = tree.children.find((c) => c.path === 'allowed_criteria')
     expect(criteria?.nodeType).toBe('array')
   })

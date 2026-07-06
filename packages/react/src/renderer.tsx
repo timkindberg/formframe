@@ -368,11 +368,7 @@ function DefaultFieldErrors({ path }: { path: string }): ReactNode {
   const show = useFieldErrorDisplay(path)
   if (!show || issues.length === 0) return null
   return (
-    <ul
-      id={fieldErrorId(path)}
-      className="jsf-field-errors"
-      role="alert"
-    >
+    <ul id={fieldErrorId(path)} className="jsf-field-errors" role="alert">
       {issues.map((issue, i) => (
         <li key={i}>{issue.message}</li>
       ))}
@@ -408,7 +404,9 @@ function DefaultFieldRoot({
     <div className="jsf-field">
       {renderSlot(node.parts.label, 'label')}
       {renderSlot(node.parts.description, 'description')}
-      <FieldA11yContext.Provider value={a11y}>{control}</FieldA11yContext.Provider>
+      <FieldA11yContext.Provider value={a11y}>
+        {control}
+      </FieldA11yContext.Provider>
       <DefaultFieldErrors path={node.path} />
     </div>
   )

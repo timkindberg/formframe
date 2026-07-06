@@ -27,10 +27,12 @@ function nestSubmittedValue(
   path: string,
   value: string
 ): Record<string, unknown> {
-  return path.split('.').reduceRight<unknown>(
-    (acc, key) => ({ [key]: acc }),
-    value
-  ) as Record<string, unknown>
+  return path
+    .split('.')
+    .reduceRight<unknown>((acc, key) => ({ [key]: acc }), value) as Record<
+    string,
+    unknown
+  >
 }
 
 describe('deep nesting robustness', () => {

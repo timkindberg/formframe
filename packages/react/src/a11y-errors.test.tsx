@@ -8,7 +8,12 @@ import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import type { JSONSchema, ValidationIssue } from '@jsonschema-form/core'
 import { jsonSchemaToTree } from '@jsonschema-form/core'
-import { SchemaFields, ValidationProvider, fieldControlId, fieldErrorId } from './renderer'
+import {
+  SchemaFields,
+  ValidationProvider,
+  fieldControlId,
+  fieldErrorId,
+} from './renderer'
 import { ValidationSummary } from './ValidationSummary'
 
 const schema: JSONSchema = {
@@ -86,9 +91,7 @@ describe('validation a11y wiring', () => {
     const usernameErrors = document.getElementById(fieldErrorId('username'))
     expect(usernameErrors).not.toBeNull()
     expect(usernameErrors?.getAttribute('role')).toBe('alert')
-    expect(username?.getAttribute('aria-describedby')).toBe(
-      usernameErrors?.id
-    )
+    expect(username?.getAttribute('aria-describedby')).toBe(usernameErrors?.id)
 
     const zip = document.getElementById(fieldControlId('zip'))
     expect(zip?.getAttribute('aria-invalid')).toBe('true')
@@ -106,7 +109,9 @@ describe('validation a11y wiring', () => {
 
     const links = summary?.querySelectorAll('a') ?? []
     expect(links.length).toBe(2)
-    expect(links[0]?.getAttribute('href')).toBe(`#${fieldControlId('username')}`)
+    expect(links[0]?.getAttribute('href')).toBe(
+      `#${fieldControlId('username')}`
+    )
     expect(links[1]?.getAttribute('href')).toBe(`#${fieldControlId('zip')}`)
     expect(links[0]?.textContent).toContain('username')
     expect(links[0]?.textContent).toContain('Username is too short')
@@ -114,7 +119,9 @@ describe('validation a11y wiring', () => {
     expect(links[1]?.textContent).toContain('Zip must be 5 digits')
 
     await expect
-      .element(screen.getByRole('link', { name: /username: Username is too short/ }))
+      .element(
+        screen.getByRole('link', { name: /username: Username is too short/ })
+      )
       .toBeInTheDocument()
   })
 
@@ -150,9 +157,7 @@ describe('validation a11y wiring', () => {
       expect(errorEl?.id).toBe(fieldErrorId(path))
       expect(control?.getAttribute('aria-describedby')).toBe(errorEl?.id)
 
-      const link = document.querySelector(
-        `a[href="#${fieldControlId(path)}"]`
-      )
+      const link = document.querySelector(`a[href="#${fieldControlId(path)}"]`)
       expect(link).not.toBeNull()
       expect(link?.textContent).toContain(path)
       expect(link?.textContent).toContain(message)
