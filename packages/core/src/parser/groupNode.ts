@@ -95,8 +95,11 @@ export function createGroupNode(
       for (const child of this.children) {
         if (child.nodeType === 'field' && child.path === fullPath) {
           return child
-        } else if (child.nodeType === 'group') {
-          // Check if target is within this child group
+        } else if (child.nodeType === 'group' || child.nodeType === 'array') {
+          // Target is within this child's subtree. Groups and arrays both take a
+          // path relative to themselves; the array consumes the leading segment
+          // as an item index (ADR 032). `fullPath === child.path` only matters
+          // for a group (a bare group is not a field); an array is never a leaf.
           if (
             fullPath.startsWith(child.path + '.') ||
             fullPath === child.path
@@ -116,7 +119,9 @@ export function createGroupNode(
       for (const child of this.children) {
         if (child.nodeType === 'field') {
           fields.push(child)
-        } else if (child.nodeType === 'group') {
+        } else if (child.nodeType === 'group' || child.nodeType === 'array') {
+          // Arrays fold over their instantiated items (ADR 032), so array-item
+          // leaves are included — getAllFields() ≡ walk({ field }).
           fields.push(...child.getAllFields())
         }
       }
