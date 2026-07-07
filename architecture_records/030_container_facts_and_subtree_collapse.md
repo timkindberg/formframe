@@ -1,7 +1,8 @@
 # ADR 030: Container Facts — Generalizing the Neutral Waist so `present()` Can Collapse a Subtree into One Widget
 
 **Date:** 2026-07-02
-**Status:** Accepted (bd `fcj`) — approved 2026-07-03 after review (PR #28)
+**Status:** Accepted (bd `fcj`) — approved 2026-07-03 after review (PR #28); **tree-level
+contract implemented 2026-07-07** (see Amendment below)
 **Deciders:** Tim Kindberg
 **Extends:** ADR 029 (§1 `FieldFacts` → a node-level `NodeFacts` waist; resolves the
 deferred `valueShape: 'object'` member of §1)
@@ -299,6 +300,51 @@ the async object-array multiselect lands with the §5 `control` rewrite (tracked
 - **A separate `presentContainer()` resolver distinct from the leaf resolver** —
   rejected; two resolver seams double the consumer's surface for one concept ("present
   this node as that widget"). One `NodeFacts`-typed resolver covers both.
+
+## Amendment (2026-07-07) — implementation split; the scalar-choice §3 rule deferred to the front-end extraction
+
+Implementing this ADR surfaced two refinements, agreed with the decider:
+
+1. **The default-collapse rule is *widened* to scalar-choice arrays — but that half is
+   deferred to PR B, not landed here.** As written, §3 makes the default a pure no-op for
+   *every* container. The agreed end state additionally makes the default **collapse a
+   *scalar-choice* array** (items are a finite `enum`/`oneOf` set → one
+   multiselect/checkboxes leaf), while an **object array** and an **object subtree** still
+   stay decomposed unless a resolver opts in. This relocates the array→multiselect collapse
+   that the JSON Schema front-end does **today** (`arrayNode.ts`
+   `createMultiselectFieldNode`) out of the parser and into `present()`, so front-ends
+   become pure structural transcribers and a second front-end (Zod) inherits the collapse
+   for free.
+
+   It is **deferred to PR B** (the `input-jsonschema` extraction) because a byte-identical
+   relocation collides with a legacy wart: the multiselect leaf currently stores
+   `minItems`/`maxItems` in `validation.minLength`/`maxLength` (pinned by
+   `parser.test.ts` "respects minItems and maxItems for multiselect"). Porting that remap
+   into `present()` would drag a wart into the clean stage; instead PR B removes the
+   redundant `node.validation` field (moving array-length constraints into
+   `facts.constraints`, which already has `minItems`/`maxItems` slots) so the wart **dies**
+   as the collapse relocates. Until then the parser keeps collapsing scalar-choice arrays
+   to a `LeafFacts` leaf, and `defaultPresentation` returns `undefined` for every container
+   (the §3 no-op), guarded by `!('primitive' in facts)`.
+
+2. **Naming: the resolver receives `AnyFacts` (the `LeafFacts | ContainerFacts` union),
+   with `NodeFacts` as the shared base interface.** §1 sketched a single `NodeFacts`; in
+   code the union is what a resolver / the default rule needs so it can read `choices` on
+   either arm while `primitive` (leaf) and `item` (container) narrow by discriminant. A
+   collapse synthesizes a `LeafFacts` from the container's `ContainerFacts`, preserving
+   `valueShape` (load-bearing for submit) and using a placeholder `primitive: 'string'`
+   (collapsed controls are select/multiselect/choicegroup, whose derivers ignore
+   `primitive`).
+
+**What PR A landed (the tree-level contract, fully verified without a renderer):**
+`NodeFacts`/`LeafFacts`/`ContainerFacts`/`ItemDescriptor` (+ `FieldFacts` back-compat
+alias); container facts projected onto `ArrayNode` (`valueShape:'array'` + `item`) and
+`GroupNode` (`valueShape:'object'`); `present()` offers non-root containers to the resolver
+and **collapses** a container into one leaf-like `FieldNode` (pruning the subtree,
+preserving `valueShape`, carrying resolver `args`); submit assembly already keys on
+`facts.valueShape === 'array'`, so a collapsed object-array submits `Array<…>` with no
+further change. **Not** in PR A: rendering the collapsed control (§7, needs the
+async-options slot) and the §3 scalar-choice relocation (PR B, above).
 
 ---
 

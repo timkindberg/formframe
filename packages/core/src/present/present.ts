@@ -11,8 +11,11 @@
 // bail keeps holding and only overridden subtrees re-render.
 
 import type {
+  AnyFacts,
   AnyNode,
+  ArrayNode,
   ChoiceOption,
+  ContainerFacts,
   FieldControl,
   FieldFacts,
   FieldNode,
@@ -21,8 +24,10 @@ import type {
   HtmlInputAttrs,
   HtmlSelectAttrs,
   HtmlTextareaAttrs,
+  LeafFacts,
   WidgetName,
 } from '../parser/nodeTypes'
+import { serializeNode } from '../parser/utils'
 
 /** The normalized presentation for one field (ADR 029). `args` is the generic
  * per-widget config bag — named to avoid collision with a select's `options`. */
@@ -32,14 +37,18 @@ export interface Presentation {
 }
 
 /**
- * Assigns a widget to a leaf from its neutral facts. Source-agnostic: a resolver
- * may match on facts or reach into `facts.origin.schema` (accepting front-end
- * coupling, which the consumer owns). `undefined` means "no opinion" — a lower
- * layer decides. The library recognizes NO source keyword.
+ * Assigns a widget to a node from its neutral facts (ADR 030 §5: leaves AND
+ * containers). Source-agnostic: a resolver may match on facts or reach into
+ * `facts.origin.schema` (accepting front-end coupling, which the consumer owns).
+ * Returning a widget for a *container* collapses its subtree into one control
+ * (ADR 030 §5). `undefined` means "no opinion" — a lower layer decides. The
+ * library recognizes NO source keyword.
+ *
+ * Receives {@link AnyFacts} (the `LeafFacts | ContainerFacts` union) so a resolver
+ * can read `choices` on either; `primitive` (leaf) and `item` (container) are
+ * reached by narrowing (`'primitive' in facts`).
  */
-export type PresentationResolver = (
-  facts: FieldFacts
-) => Presentation | undefined
+export type PresentationResolver = (facts: AnyFacts) => Presentation | undefined
 
 /**
  * The option-count threshold (bd cm7). At or below it, a constrained field
@@ -73,6 +82,13 @@ export const defaultPresentation: PresentationResolver = (f) => {
       ? { widget: 'radio' }
       : { widget: 'select' }
   }
+  // Containers are never collapsed by default (ADR 030 §3): only a leaf gets the
+  // plain-input fallback. A container has no `primitive`, so returning `undefined`
+  // for it leaves the subtree decomposed unless a consumer resolver opts in.
+  // (§3 amendment — collapsing scalar-choice arrays by default — is deferred to
+  // the front-end extraction, PR B, alongside removing the redundant
+  // `node.validation` field it currently collides with.)
+  if (!('primitive' in f)) return undefined
   return { widget: 'input' }
 }
 
@@ -322,24 +338,94 @@ function presentField(
   // Custom / raw widgets are deferred to a later tracer (ADR 029). Until the
   // catalog earns a generic control facet, an unknown widget name is a no-op.
   if (!wp) return node
-  return { ...node, widget: wp.widget, parts: wp.parts }
+  const next: FieldNode = { ...node, widget: wp.widget, parts: wp.parts }
+  // Carry the resolver's per-widget `args` (ADR 029 §6); clear any stale bag when
+  // a later resolution drops it.
+  if (p.args) next.args = p.args
+  else if ('args' in next) delete next.args
+  return next
 }
 
-// Generic in the node type so callers get their exact node back (e.g. `present`
-// returns a `GroupNode`, not a widened `AnyNode`). The `as TNode` casts are the
-// unavoidable cost of narrowing a generic by a discriminant / rebuilding via
-// spread — they are internal and structurally sound (a field stays a field; a
-// rebuilt container keeps its shape, only `children` changes).
-function presentNode<TNode extends AnyNode>(
-  node: TNode,
-  resolve: PresentationResolver
-): TNode {
-  // Widen to the union locally so the `isField` discriminant narrows soundly
-  // (control-flow narrowing on a bare type parameter can't reach `.children`).
-  const n: AnyNode = node
-  if (n.isField) return presentField(n, resolve) as TNode
+/**
+ * The leaf facts for a collapsed container (ADR 030 §5). The container's
+ * `valueShape` is preserved — load-bearing so submit still assembles the array /
+ * object value — while `primitive` is a placeholder: a collapsed container renders
+ * as a select/multiselect/choicegroup, whose derivers ignore `primitive`. The
+ * option source + value identity are NOT here; they ride on the resolver's `args`
+ * (ADR 030 §4).
+ */
+function containerFactsToLeaf(cf: ContainerFacts): LeafFacts {
+  const leaf: LeafFacts = {
+    path: cf.path,
+    label: cf.label,
+    required: cf.required,
+    primitive: 'string',
+    valueShape: cf.valueShape,
+    constraints: cf.constraints,
+    attrs: cf.attrs,
+    origin: cf.origin,
+  }
+  if (cf.description !== undefined) leaf.description = cf.description
+  if (cf.choices !== undefined) leaf.choices = cf.choices
+  return leaf
+}
+
+/**
+ * Collapse a container into a single leaf-like control node (ADR 030 §5): prune
+ * the subtree's children and emit a `FieldNode` at the container's path carrying
+ * the container's facts (so `valueShape` — hence submit assembly — is preserved),
+ * the resolved widget, and any `args`. Returns `undefined` (a no-op) when the
+ * widget is outside the built-in catalog, so an unknown widget leaves the subtree
+ * decomposed rather than erasing it.
+ */
+function collapseContainer(
+  node: GroupNode | ArrayNode,
+  p: Presentation
+): FieldNode | undefined {
+  const facts = containerFactsToLeaf(node.facts)
+  const wp = widgetParts(facts, p.widget)
+  if (!wp) return undefined
+  const leaf: FieldNode = {
+    nodeType: 'field',
+    path: node.path,
+    schema: node.schema,
+    widget: wp.widget,
+    facts,
+    parts: wp.parts,
+    validation: node.validation,
+    isRoot: node.isRoot,
+    depth: node.depth,
+    isField: true,
+    isGroup: false,
+    isArray: false,
+    isArrayItem: false,
+    toJSON() {
+      return serializeNode(this)
+    },
+  }
+  if (p.args) leaf.args = p.args
+  return leaf
+}
+
+// Returns `AnyNode` (not the input node type) because collapse can change a
+// node's type — a `GroupNode`/`ArrayNode` becomes a `FieldNode` (ADR 030 §5). The
+// `as AnyNode` cast on the rebuilt-container branch is the unavoidable cost of
+// rebuilding a union member via spread; it is structurally sound (a rebuilt
+// container keeps its shape and `this`-based methods, only `children` changes).
+function presentNode(node: AnyNode, resolve: PresentationResolver): AnyNode {
+  if (node.isField) return presentField(node, resolve)
+  // Offer a collapsible container (group/array) to the resolver before recursing.
+  // The root is never collapsed (the whole form is not one control) and an
+  // arrayItem is a structural wrapper, not a resolve target — both just recurse.
+  if ((node.isGroup || node.isArray) && !node.isRoot) {
+    const p = resolve(node.facts)
+    if (p) {
+      const collapsed = collapseContainer(node, p)
+      if (collapsed) return collapsed
+    }
+  }
   let changed = false
-  const next = n.children.map((child) => {
+  const next = node.children.map((child) => {
     const presented = presentNode(child, resolve)
     if (presented !== child) changed = true
     return presented
@@ -348,17 +434,19 @@ function presentNode<TNode extends AnyNode>(
   // A rebuilt container: same `this`-based methods (getField/walk/submit) now
   // read the new `children` (see groupNode/arrayNode). Structural sharing keeps
   // every unchanged subtree by reference.
-  return { ...n, children: next } as TNode
+  return { ...node, children: next } as AnyNode
 }
 
 /**
- * Apply a presentation resolver over the tree (ADR 029). Pure and identity-
- * preserving. Wrap the consumer's resolver under the default:
- * `present(tree, layered(defaultPresentation, consumerResolver))`.
+ * Apply a presentation resolver over the tree (ADR 029/030). Pure and identity-
+ * preserving; a resolver may also collapse a container subtree into one control
+ * (ADR 030 §5). Wrap the consumer's resolver under the default:
+ * `present(tree, layered(defaultPresentation, consumerResolver))`. The root group
+ * is never collapsed, so the return type stays `GroupNode`.
  */
 export function present(
   root: GroupNode,
   resolve: PresentationResolver
 ): GroupNode {
-  return presentNode(root, resolve)
+  return presentNode(root, resolve) as GroupNode
 }

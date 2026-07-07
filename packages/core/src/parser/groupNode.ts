@@ -8,10 +8,16 @@ import {
   forceArrayFields,
   normalizeArrayFieldPath,
 } from './groupNode.submitUtils'
-import { type JSONSchemaObject, serializeNode, walkNode } from './utils'
+import {
+  buildValidation,
+  type JSONSchemaObject,
+  serializeNode,
+  walkNode,
+} from './utils'
 import type {
   AnyNode,
   ArrayNode,
+  ContainerFacts,
   FieldNode,
   GroupNode,
   GroupParts,
@@ -67,11 +73,26 @@ export function createGroupNode(
     }),
   }
 
+  // Container facts (ADR 030 §1): an object subtree submits an object value. No
+  // `choices`/`item` — a group is not a finite/element source — so the default
+  // rule never collapses it; a resolver may (ADR 030 §2/§5).
+  const facts: ContainerFacts = {
+    path,
+    label: schema.title || path || 'root',
+    required,
+    valueShape: 'object',
+    constraints: buildValidation(schema, required),
+    attrs: { id: path, name: path },
+    origin: { source: 'jsonschema', schema },
+  }
+  if (schema.description) facts.description = schema.description
+
   const groupNode: GroupNode = {
     nodeType: 'group',
     path,
     schema,
     widget: 'fieldset',
+    facts,
     children,
     validation: {
       required,

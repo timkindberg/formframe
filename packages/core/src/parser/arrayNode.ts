@@ -13,7 +13,9 @@ import type {
   ArrayParts,
   ArrayItemNode,
   ArrayItemParts,
+  ContainerFacts,
   FieldNode,
+  ItemDescriptor,
   WalkHandlers,
 } from './nodeTypes'
 
@@ -89,11 +91,33 @@ export function createArrayNode(
     }),
   }
 
+  // Container facts (ADR 030 §1): a subtree array submits an array value and has
+  // an open-ended element source (an `item` descriptor, NOT `choices`), so the
+  // default rule leaves it add/remove; a resolver may collapse it into one
+  // array-valued widget and supply the option source via `args` (ADR 030 §4/§5).
+  const constraints = buildValidation(schema, required)
+  if (typeof schema.minItems === 'number')
+    constraints.minItems = schema.minItems
+  if (typeof schema.maxItems === 'number')
+    constraints.maxItems = schema.maxItems
+  const facts: ContainerFacts = {
+    path,
+    label: schema.title || path || 'root',
+    required,
+    valueShape: 'array',
+    constraints,
+    attrs: { id: path, name: path },
+    origin: { source: 'jsonschema', schema },
+    item: buildItemDescriptor(itemSchemaObject),
+  }
+  if (schema.description) facts.description = schema.description
+
   const arrayNode: ArrayNode = {
     nodeType: 'array',
     path,
     schema,
     widget: 'array',
+    facts,
     itemSchema: itemSchemaObject,
     children,
     validation: {
@@ -261,6 +285,21 @@ export function createArrayItemNode(
 }
 
 export type { ArrayItemNode, ArrayItemParts }
+
+/**
+ * The neutral {@link ItemDescriptor} for one array element (ADR 030 §1) — thin by
+ * design. Object items expose their member `keys` so a resolver can name
+ * value/label identity without reading `origin.schema`.
+ */
+function buildItemDescriptor(itemSchema: JSONSchemaObject): ItemDescriptor {
+  if (itemSchema.type === 'object' && itemSchema.properties) {
+    return { valueShape: 'object', keys: Object.keys(itemSchema.properties) }
+  }
+  if (itemSchema.type === 'array') {
+    return { valueShape: 'array' }
+  }
+  return { valueShape: 'scalar' }
+}
 
 /**
  * Check if an array schema should render as multiselect (has enum or oneOf)

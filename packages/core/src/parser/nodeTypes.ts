@@ -18,26 +18,78 @@ export interface SelectOption {
 }
 
 /**
- * Neutral, front-end-agnostic facts about a leaf field (ADR 029). The parser
+ * The shape of the value a node contributes to the submitted document —
+ * independent of whether the node is currently decomposed into children (ADR 030
+ * §2). A leaf enum-array and a collapsed object-array both report `'array'`;
+ * `'object'` is the submitted shape of an object-collapsing widget (ADR 030 §2
+ * earns the member ADR 029 §1 deferred).
+ */
+export type ValueShape = 'scalar' | 'array' | 'object'
+
+/**
+ * Neutral, front-end-agnostic facts common to EVERY node — the whole-tree waist
+ * (ADR 030 §1, generalizing ADR 029's leaf-only `FieldFacts`). The parser
  * produces these instead of deciding a widget; the `present()` stage reads them
- * to assign a widget and derive control parts. `valueShape` is `'scalar' |
- * 'array'` today — `'object'` (object-collapsing widgets) is deferred until such
- * a widget earns it. `origin.schema` is the originating subschema (front-end-
+ * to assign a widget, derive parts, and (for containers) decide whether to
+ * collapse a subtree. `origin.schema` is the originating subschema (front-end-
  * specific; only front-ends and consumer resolvers read it — ADR 029 §2).
  */
-export interface FieldFacts {
+export interface NodeFacts {
   path: string
   label: string
   description?: string
   required: boolean
-  primitive: 'string' | 'number' | 'integer' | 'boolean'
-  valueShape: 'scalar' | 'array'
-  format?: string
-  choices?: SelectOption[]
+  valueShape: ValueShape
   constraints: ValidationRules
   attrs: { id: string; name: string }
   origin: { source: string; schema: JSONSchemaObject }
 }
+
+/**
+ * Facts for a leaf field (ADR 029's original `FieldFacts`, now a `NodeFacts`
+ * specialization). `valueShape` is `'scalar'` or `'array'` as built by a
+ * front-end; a leaf synthesized by collapsing an object subtree may carry
+ * `'object'` (ADR 030 §2).
+ */
+export interface LeafFacts extends NodeFacts {
+  primitive: 'string' | 'number' | 'integer' | 'boolean'
+  format?: string
+  choices?: SelectOption[]
+}
+
+/**
+ * Facts projected onto a container (`ArrayNode`/`GroupNode`) so a resolver can
+ * opt the subtree into a single collapsed widget (ADR 030 §1/§5). Carries
+ * `choices` when the schema constrains a finite set (self-identifying, in-schema),
+ * or an `item` descriptor for an open-ended element source (the resolver then
+ * supplies the runtime source + value identity via `Presentation.args`, ADR 030 §4).
+ */
+export interface ContainerFacts extends NodeFacts {
+  valueShape: 'array' | 'object'
+  choices?: SelectOption[]
+  item?: ItemDescriptor
+}
+
+/**
+ * The minimum neutral description of one array element (ADR 030 §1). Deliberately
+ * thin — its precise shape is settled by real consumers (ADR 008). Object items
+ * expose their member `keys` so a resolver can name value/label identity WITHOUT
+ * reading `origin.schema`.
+ */
+export interface ItemDescriptor {
+  valueShape: ValueShape
+  keys?: string[]
+}
+
+/**
+ * Any node's facts — the type a `PresentationResolver` receives (ADR 030 §5). The
+ * union (not the bare `NodeFacts` base) so a resolver / the default rule can read
+ * `choices` (on both members) while `primitive`/`item` stay member-specific.
+ */
+export type AnyFacts = LeafFacts | ContainerFacts
+
+/** Back-compat alias for {@link LeafFacts} (ADR 029 → ADR 030 migration). */
+export type FieldFacts = LeafFacts
 
 // Framework-neutral HTML attribute contracts, owned by Core (the IR) — they
 // model native, schema-derived attributes every renderer/UI-kit needs. NOT
@@ -243,8 +295,15 @@ export interface FieldNode extends NodeBase {
   nodeType: 'field'
   widget: WidgetName
   /** Neutral facts the `present()` stage reads to assign a widget (ADR 029). */
-  facts: FieldFacts
+  facts: LeafFacts
   parts: FieldParts
+  /**
+   * The resolver's generic per-widget config bag (ADR 029 §6), carried through
+   * when a `PresentationResolver` returns `args` — e.g. `{ optionsSource,
+   * valueKey, labelKey }` for a collapsed object-array multiselect (ADR 030 §4).
+   * Source + value identity live here, never in the neutral `facts`.
+   */
+  args?: Record<string, unknown>
   isField: true
   isGroup: false
   isArray: false
@@ -254,6 +313,9 @@ export interface FieldNode extends NodeBase {
 export interface GroupNode extends NodeBase, ContainerMethods {
   nodeType: 'group'
   widget: 'fieldset'
+  /** Neutral container facts (ADR 030 §1) — `valueShape: 'object'`. A resolver
+   * may collapse the subtree into one object-valued widget (ADR 030 §2/§5). */
+  facts: ContainerFacts
   parts: GroupParts
   isField: false
   isGroup: true
@@ -267,6 +329,10 @@ export interface GroupNode extends NodeBase, ContainerMethods {
 export interface ArrayNode extends NodeBase, ContainerMethods {
   nodeType: 'array'
   widget: 'array'
+  /** Neutral container facts (ADR 030 §1) — `valueShape: 'array'`, plus an `item`
+   * descriptor (open-ended element source). A resolver may collapse the add/remove
+   * subtree into one array-valued widget, e.g. a multiselect (ADR 030 §5). */
+  facts: ContainerFacts
   parts: ArrayParts
   itemSchema: JSONSchemaObject
   isField: false
