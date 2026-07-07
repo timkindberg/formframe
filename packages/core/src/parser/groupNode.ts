@@ -94,9 +94,6 @@ export function createGroupNode(
     widget: 'fieldset',
     facts,
     children,
-    validation: {
-      required,
-    },
 
     // Computed properties
     isRoot: path === '',

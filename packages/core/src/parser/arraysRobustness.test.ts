@@ -30,12 +30,12 @@ describe('array robustness', () => {
         Array.from({ length: n }, (_, i) => `rows.${i}`)
       )
       if (n > 0) {
-        expect(rowsNode.validation.minItems).toBe(n)
+        expect(rowsNode.facts.constraints.minItems).toBe(n)
       }
     }
   )
 
-  it('minItems on object-item arrays pins validation.minItems', () => {
+  it('minItems on object-item arrays pins facts.constraints.minItems', () => {
     const schema: JSONSchema = {
       type: 'object',
       properties: {
@@ -54,7 +54,7 @@ describe('array robustness', () => {
     const rowsNode = form.children.find((c) => c.path === 'rows')
     assertArrayNode(rowsNode)
 
-    expect(rowsNode.validation.minItems).toBe(3)
+    expect(rowsNode.facts.constraints.minItems).toBe(3)
   })
 
   it('submit assembles nested dynamic arrays of primitives', () => {

@@ -120,11 +120,6 @@ export function createArrayNode(
     facts,
     itemSchema: itemSchemaObject,
     children,
-    validation: {
-      required,
-      minItems: schema.minItems,
-      maxItems: schema.maxItems,
-    },
 
     // Computed properties
     isRoot: path === '',
@@ -233,9 +228,6 @@ export function createArrayItemNode(
     schema: itemSchema,
     widget: 'arrayItem',
     children: [child],
-    validation: {
-      required,
-    },
 
     // Computed properties
     isRoot: false,
@@ -347,12 +339,20 @@ function createMultiselectFieldNode(
       }))
   }
 
+  // Array-length constraints live as `minItems`/`maxItems` on the single
+  // `facts.constraints` home (ADR 033 §1) — not smuggled into `minLength`.
+  const constraints = buildValidation(schema, required)
+  if (typeof schema.minItems === 'number')
+    constraints.minItems = schema.minItems
+  if (typeof schema.maxItems === 'number')
+    constraints.maxItems = schema.maxItems
+
   const facts = buildFieldFacts({
     path,
     schema,
     required,
     valueShape: 'array',
-    constraints: buildValidation(schema, required),
+    constraints,
     choices: options,
   })
 
@@ -366,13 +366,6 @@ function createMultiselectFieldNode(
     schema,
     widget: wp.widget,
     facts,
-    validation: {
-      required,
-      minLength:
-        typeof schema.minItems === 'number' ? schema.minItems : undefined,
-      maxLength:
-        typeof schema.maxItems === 'number' ? schema.maxItems : undefined,
-    },
     isRoot: path === '',
     depth: path ? path.split('.').length : 0,
     parts: wp.parts,

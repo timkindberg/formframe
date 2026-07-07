@@ -70,7 +70,6 @@ export function createFieldNode(
     nodeType: 'field',
     path,
     schema,
-    validation,
     facts,
     widget: wp.widget,
     parts: wp.parts,

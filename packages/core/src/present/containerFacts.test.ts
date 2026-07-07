@@ -303,8 +303,8 @@ describe('container facts / subtree collapse — deferred (ADR 030)', () => {
     'renders the collapsed object-array multiselect via the field.control slot + async options — §7'
   )
   // §3 amendment — relocating the scalar-choice-array collapse parser→present as a
-  // default lands with the front-end extraction + node.validation removal (PR B).
+  // default lands in PR B2 (node.validation was already removed in B1, ADR 033 §1).
   it.todo(
-    'default present() collapses scalar-choice arrays (parser→present relocation) — §3 amendment (PR B)'
+    'default present() collapses scalar-choice arrays (parser→present relocation) — §3 amendment (PR B2)'
   )
 })

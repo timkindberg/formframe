@@ -85,7 +85,7 @@ function App() {
                   htmlFor={node.parts.label.attrs.for}
                 >
                   {node.parts.label.text}
-                  {node.validation.required && <span> *</span>}
+                  {node.facts.constraints.required && <span> *</span>}
                 </label>
 
                 {node.parts.description && (
@@ -134,7 +134,9 @@ function App() {
                           htmlFor={childNode.parts.label.attrs.for}
                         >
                           {childNode.parts.label.text}
-                          {childNode.validation.required && <span> *</span>}
+                          {childNode.facts.constraints.required && (
+                            <span> *</span>
+                          )}
                         </label>
                         {childNode.parts.control.kind === 'select' ? (
                           <select {...childNode.parts.control.attrs}>

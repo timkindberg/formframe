@@ -97,8 +97,8 @@ describe('jsonSchemaToTree', () => {
       const nameField = form.getField('name')
       const emailField = form.getField('email')
 
-      expect(nameField?.validation.required).toBe(true)
-      expect(emailField?.validation.required).toBe(false)
+      expect(nameField?.facts.constraints.required).toBe(true)
+      expect(emailField?.facts.constraints.required).toBe(false)
     })
   })
 
@@ -286,8 +286,8 @@ describe('jsonSchemaToTree', () => {
       const street = form.getField('address.street')
       const city = form.getField('address.city')
 
-      expect(street?.validation.required).toBe(true)
-      expect(city?.validation.required).toBe(false)
+      expect(street?.facts.constraints.required).toBe(true)
+      expect(city?.facts.constraints.required).toBe(false)
     })
 
     it('allows direct access to children on group nodes', () => {
@@ -918,7 +918,7 @@ describe('jsonSchemaToTree', () => {
       const form = jsonSchemaToTree(schema)
       const field = form.getField('country')
 
-      expect(field?.validation.required).toBe(true)
+      expect(field?.facts.constraints.required).toBe(true)
       // 3 options → radio group; `required` lands on each radio input.
       expect(choicegroupCtl(field).options[0].attrs.required).toBe(true)
       expect(field?.parts.label.showRequired).toBe(true)
@@ -973,7 +973,7 @@ describe('jsonSchemaToTree', () => {
       const priorityField = form.getField('shipping.priority')
 
       expect(methodField?.widget).toBe('radio')
-      expect(methodField?.validation.required).toBe(true)
+      expect(methodField?.facts.constraints.required).toBe(true)
       expect(methodField?.facts.choices).toHaveLength(3)
       expect(methodField?.facts.choices?.[0].label).toBe('Standard (5-7 days)')
       expect(priorityField?.widget).toBe('input')
@@ -1108,7 +1108,7 @@ describe('jsonSchemaToTree', () => {
       const form = jsonSchemaToTree(schema)
       const field = form.getField('terms')
 
-      expect(field?.validation.required).toBe(true)
+      expect(field?.facts.constraints.required).toBe(true)
       expect(inputCtl(field).attrs.required).toBe(true)
       expect(field?.parts.label.showRequired).toBe(true)
     })
@@ -1198,9 +1198,9 @@ describe('jsonSchemaToTree', () => {
       const smsField = form.getField('preferences.smsNotifications')
 
       expect(inputCtl(emailField).attrs.type).toBe('checkbox')
-      expect(emailField?.validation.required).toBe(true)
+      expect(emailField?.facts.constraints.required).toBe(true)
       expect(inputCtl(smsField).attrs.type).toBe('checkbox')
-      expect(smsField?.validation.required).toBe(false)
+      expect(smsField?.facts.constraints.required).toBe(false)
     })
   })
 
@@ -1871,8 +1871,8 @@ describe('jsonSchemaToTree', () => {
 
       expect(skillsField?.nodeType).toBe('field')
       if (skillsField?.isField) {
-        expect(skillsField.validation.minLength).toBe(2)
-        expect(skillsField.validation.maxLength).toBe(5)
+        expect(skillsField.facts.constraints.minItems).toBe(2)
+        expect(skillsField.facts.constraints.maxItems).toBe(5)
       }
     })
   })
@@ -1936,7 +1936,7 @@ describe('jsonSchemaToTree', () => {
       expect(addressesNode?.isArray).toBe(true)
       if (addressesNode?.isArray) {
         expect(addressesNode.children).toHaveLength(2)
-        expect(addressesNode.validation.minItems).toBe(2)
+        expect(addressesNode.facts.constraints.minItems).toBe(2)
       }
     })
 
@@ -2131,7 +2131,7 @@ describe('jsonSchemaToTree', () => {
       const field = form.getField('street')
 
       expect(field?.parts.label.text).toBe('Street')
-      expect(field?.validation.minLength).toBe(1)
+      expect(field?.facts.constraints.minLength).toBe(1)
     })
 
     it('resolves refs to nested object schemas', () => {

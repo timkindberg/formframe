@@ -260,13 +260,14 @@ export interface ArrayItemParts {
   removeButton: { attrs: { type: 'button' }; label: string }
 }
 
-// Fields shared by every node.
+// Fields shared by every node. Validation rules are NOT here — they live once on
+// `facts.constraints` (ADR 033 §1); nodes without facts (`ArrayItemNode`) carry no
+// constraints of their own (item requiredness rides on the array).
 interface NodeBase {
   path: string
   schema: JSONSchemaObject
   isRoot: boolean
   depth: number
-  validation: ValidationRules
   toJSON(): object
 }
 

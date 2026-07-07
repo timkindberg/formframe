@@ -85,9 +85,11 @@ export const defaultPresentation: PresentationResolver = (f) => {
   // Containers are never collapsed by default (ADR 030 §3): only a leaf gets the
   // plain-input fallback. A container has no `primitive`, so returning `undefined`
   // for it leaves the subtree decomposed unless a consumer resolver opts in.
-  // (§3 amendment — collapsing scalar-choice arrays by default — is deferred to
-  // the front-end extraction, PR B, alongside removing the redundant
-  // `node.validation` field it currently collides with.)
+  // (§3 amendment — collapsing scalar-choice ARRAYS by default — is deferred to PR
+  // B2: the parser still collapses those to a leaf today, so they arrive here as a
+  // `valueShape:'array' && choices` leaf and hit the first branch above. The
+  // `node.validation` field this once collided with is gone — `facts.constraints`
+  // is the single validation home, ADR 033 §1.)
   if (!('primitive' in f)) return undefined
   return { widget: 'input' }
 }
@@ -392,7 +394,6 @@ function collapseContainer(
     widget: wp.widget,
     facts,
     parts: wp.parts,
-    validation: node.validation,
     isRoot: node.isRoot,
     depth: node.depth,
     isField: true,

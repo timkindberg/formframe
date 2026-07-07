@@ -50,7 +50,7 @@ function App() {
             <div key={node.path}>
               <label htmlFor={node.path}>
                 {node.parts.label.text}
-                {node.validation.required && <span> *</span>}
+                {node.facts.constraints.required && <span> *</span>}
               </label>
 
               {node.parts.description && (

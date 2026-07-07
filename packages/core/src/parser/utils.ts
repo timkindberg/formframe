@@ -50,11 +50,14 @@ export function buildValidation(schema: JSONSchemaObject, required: boolean) {
 export function serializeNode(node: AnyNode): object {
   const children = 'children' in node ? node.children : undefined
   const itemSchema = 'itemSchema' in node ? node.itemSchema : undefined
+  // Validation lives once on `facts.constraints` (ADR 033 §1); nodes without facts
+  // (array items) contribute none.
+  const constraints = 'facts' in node ? node.facts.constraints : undefined
   return {
     nodeType: node.nodeType,
     path: node.path,
     widget: node.widget,
-    validation: node.validation,
+    ...(constraints ? { constraints } : {}),
     parts: node.parts,
     ...(children
       ? { children: children.map((child) => serializeNode(child)) }
