@@ -22,15 +22,15 @@ import type {
  * a front-end recurses its own structure to produce the children and derives the
  * parts. Core owns only the query/traversal/submit surface below.
  */
-export function createGroupNode(input: {
-  facts: ContainerFacts
-  children: AnyNode[]
+export function createGroupNode<S = unknown>(input: {
+  facts: ContainerFacts<S>
+  children: AnyNode<S>[]
   parts: GroupParts
-}): GroupNode {
+}): GroupNode<S> {
   const { facts, children, parts } = input
   const { path } = facts
 
-  const groupNode: GroupNode = {
+  const groupNode: GroupNode<S> = {
     nodeType: 'group',
     path,
     widget: 'fieldset',
@@ -47,7 +47,7 @@ export function createGroupNode(input: {
     // Read `this.children`/`this.path` (not the closure) so a rebuilt node from
     // the present() pass (ADR 029) — a spread with new `children` — queries its
     // own children, not the pre-present ones.
-    getField(targetPath: string): FieldNode | undefined {
+    getField(targetPath: string): FieldNode<S> | undefined {
       // Search descendants relative to this group
       // If this group has path 'address', searching for 'street' finds 'address.street'
       const fullPath = this.path ? `${this.path}.${targetPath}` : targetPath
@@ -73,8 +73,8 @@ export function createGroupNode(input: {
       return undefined
     },
 
-    getAllFields(): FieldNode[] {
-      const fields: FieldNode[] = []
+    getAllFields(): FieldNode<S>[] {
+      const fields: FieldNode<S>[] = []
 
       for (const child of this.children) {
         if (child.nodeType === 'field') {

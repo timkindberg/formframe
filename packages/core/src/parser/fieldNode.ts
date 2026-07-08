@@ -13,11 +13,13 @@ export type { ValidationRules }
  * consumer resolver on top, while a direct `jsonSchemaToTree` consumer still gets a
  * fully-formed, default-presented tree.
  */
-export function createFieldNode(input: { facts: LeafFacts }): FieldNode {
+export function createFieldNode<S = unknown>(input: {
+  facts: LeafFacts<S>
+}): FieldNode<S> {
   const { facts } = input
   const { path } = facts
   const wp = presentDefaultLeaf(facts)
-  const node: FieldNode = {
+  const node: FieldNode<S> = {
     nodeType: 'field',
     path,
     facts,

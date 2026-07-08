@@ -8,7 +8,7 @@
 // container `children` reference `AnyNode`, which references the containers —
 // a recursion that type aliases cannot express but interfaces can.
 
-import type { JSONSchemaObject, ValidationRules } from './utils'
+import type { ValidationRules } from './utils'
 
 export type NodeType = 'field' | 'group' | 'array' | 'arrayItem'
 
@@ -31,10 +31,15 @@ export type ValueShape = 'scalar' | 'array' | 'object'
  * (ADR 030 §1, generalizing ADR 029's leaf-only `FieldFacts`). The parser
  * produces these instead of deciding a widget; the `present()` stage reads them
  * to assign a widget, derive parts, and (for containers) decide whether to
- * collapse a subtree. `origin.schema` is the originating subschema (front-end-
- * specific; only front-ends and consumer resolvers read it — ADR 029 §2).
+ * collapse a subtree.
+ *
+ * Generic in the originating-schema type `S` (ADR 033 §4). `origin.schema` is the
+ * front-end's own subschema (JSON Schema → `JSONSchemaObject`; Zod → `ZodType`);
+ * Core defaults `S = unknown` and treats it as OPAQUE — it never reads it. A
+ * front-end specializes `S` so a consumer's resolver gets a properly typed
+ * `origin.schema` for the schemas it owns (ADR 029 §2).
  */
-export interface NodeFacts {
+export interface NodeFacts<S = unknown> {
   path: string
   label: string
   description?: string
@@ -42,7 +47,7 @@ export interface NodeFacts {
   valueShape: ValueShape
   constraints: ValidationRules
   attrs: { id: string; name: string }
-  origin: { source: string; schema: JSONSchemaObject }
+  origin: { source: string; schema: S }
 }
 
 /**
@@ -51,7 +56,7 @@ export interface NodeFacts {
  * front-end; a leaf synthesized by collapsing an object subtree may carry
  * `'object'` (ADR 030 §2).
  */
-export interface LeafFacts extends NodeFacts {
+export interface LeafFacts<S = unknown> extends NodeFacts<S> {
   primitive: 'string' | 'number' | 'integer' | 'boolean'
   format?: string
   choices?: SelectOption[]
@@ -64,7 +69,7 @@ export interface LeafFacts extends NodeFacts {
  * or an `item` descriptor for an open-ended element source (the resolver then
  * supplies the runtime source + value identity via `Presentation.args`, ADR 030 §4).
  */
-export interface ContainerFacts extends NodeFacts {
+export interface ContainerFacts<S = unknown> extends NodeFacts<S> {
   valueShape: 'array' | 'object'
   choices?: SelectOption[]
   item?: ItemDescriptor
@@ -86,10 +91,10 @@ export type ItemDescriptor =
  * union (not the bare `NodeFacts` base) so a resolver / the default rule can read
  * `choices` (on both members) while `primitive`/`item` stay member-specific.
  */
-export type AnyFacts = LeafFacts | ContainerFacts
+export type AnyFacts<S = unknown> = LeafFacts<S> | ContainerFacts<S>
 
 /** Back-compat alias for {@link LeafFacts} (ADR 029 → ADR 030 migration). */
-export type FieldFacts = LeafFacts
+export type FieldFacts<S = unknown> = LeafFacts<S>
 
 // Framework-neutral HTML attribute contracts, owned by Core (the IR) — they
 // model native, schema-derived attributes every renderer/UI-kit needs. NOT
@@ -276,16 +281,16 @@ interface NodeBase {
 // same *instantiated* tree — the nodes `walk` visits — including array items
 // (ADR 032). `getField`/`getAllFields` traverse arrays just like `walk`; use
 // `ArrayNode.getItem(i)` to reach an item that has not been instantiated yet.
-interface ContainerMethods {
-  children: AnyNode[]
+interface ContainerMethods<S = unknown> {
+  children: AnyNode<S>[]
   /**
    * Resolve a leaf by path relative to this node. Numeric segments select array
    * items by index (e.g. `'members.0.name'`); an out-of-range index or a
    * non-numeric segment where an index is expected yields `undefined` (ADR 032).
    */
-  getField(path: string): FieldNode | undefined
+  getField(path: string): FieldNode<S> | undefined
   /** Flat list of every instantiated leaf, arrays included — ≡ `walk({ field })` (ADR 032). */
-  getAllFields(): FieldNode[]
+  getAllFields(): FieldNode<S>[]
   walk<R>(handlers?: WalkHandlers<R>): R[]
 }
 
@@ -293,11 +298,11 @@ interface ContainerMethods {
 // variation lives in `parts.control` (discriminated on `control.kind`), NOT in the
 // node type — so nothing that handles *nodes* narrows on widget. `widget` is the
 // resolved name (a label); the adapter dispatches on `control.kind`.
-export interface FieldNode extends NodeBase {
+export interface FieldNode<S = unknown> extends NodeBase {
   nodeType: 'field'
   widget: WidgetName
   /** Neutral facts the `present()` stage reads to assign a widget (ADR 029). */
-  facts: LeafFacts
+  facts: LeafFacts<S>
   parts: FieldParts
   /**
    * The resolver's generic per-widget config bag (ADR 029 §6), carried through
@@ -312,12 +317,12 @@ export interface FieldNode extends NodeBase {
   isArrayItem: false
 }
 
-export interface GroupNode extends NodeBase, ContainerMethods {
+export interface GroupNode<S = unknown> extends NodeBase, ContainerMethods<S> {
   nodeType: 'group'
   widget: 'fieldset'
   /** Neutral container facts (ADR 030 §1) — `valueShape: 'object'`. A resolver
    * may collapse the subtree into one object-valued widget (ADR 030 §2/§5). */
-  facts: ContainerFacts
+  facts: ContainerFacts<S>
   parts: GroupParts
   isField: false
   isGroup: true
@@ -328,22 +333,24 @@ export interface GroupNode extends NodeBase, ContainerMethods {
   ): (e: { preventDefault(): void; currentTarget: EventTarget | null }) => void
 }
 
-export interface ArrayNode extends NodeBase, ContainerMethods {
+export interface ArrayNode<S = unknown> extends NodeBase, ContainerMethods<S> {
   nodeType: 'array'
   widget: 'array'
   /** Neutral container facts (ADR 030 §1) — `valueShape: 'array'`, plus an `item`
    * descriptor (open-ended element source). A resolver may collapse the add/remove
    * subtree into one array-valued widget, e.g. a multiselect (ADR 030 §5). */
-  facts: ContainerFacts
+  facts: ContainerFacts<S>
   parts: ArrayParts
   isField: false
   isGroup: false
   isArray: true
   isArrayItem: false
-  getItem(index: number): ArrayItemNode
+  getItem(index: number): ArrayItemNode<S>
 }
 
-export interface ArrayItemNode extends NodeBase, ContainerMethods {
+export interface ArrayItemNode<S = unknown>
+  extends NodeBase,
+    ContainerMethods<S> {
   nodeType: 'arrayItem'
   widget: 'arrayItem'
   parts: ArrayItemParts
@@ -354,10 +361,17 @@ export interface ArrayItemNode extends NodeBase, ContainerMethods {
 }
 
 // Every concrete node.
-export type AnyNode = FieldNode | GroupNode | ArrayNode | ArrayItemNode
+export type AnyNode<S = unknown> =
+  | FieldNode<S>
+  | GroupNode<S>
+  | ArrayNode<S>
+  | ArrayItemNode<S>
 
 // Container nodes (those with children) — used by walk plumbing.
-export type ContainerNode = GroupNode | ArrayNode | ArrayItemNode
+export type ContainerNode<S = unknown> =
+  | GroupNode<S>
+  | ArrayNode<S>
+  | ArrayItemNode<S>
 
 export interface WalkHandlers<R> {
   field?: (node: FieldNode, handlers: WalkHandlers<R>) => R

@@ -49,7 +49,9 @@ export interface Presentation {
  * can read `choices` on either; `primitive` (leaf) and `item` (container) are
  * reached by narrowing with {@link isContainerFacts}.
  */
-export type PresentationResolver = (facts: AnyFacts) => Presentation | undefined
+export type PresentationResolver<S = unknown> = (
+  facts: AnyFacts<S>
+) => Presentation | undefined
 
 /**
  * Leaf-vs-container discriminant for {@link AnyFacts}: a leaf carries a
@@ -57,7 +59,9 @@ export type PresentationResolver = (facts: AnyFacts) => Presentation | undefined
  * is encoded, so callers (and resolvers) read `isContainerFacts(f)` instead of
  * hand-rolling the `'primitive' in f` check.
  */
-export function isContainerFacts(f: AnyFacts): f is ContainerFacts {
+export function isContainerFacts<S = unknown>(
+  f: AnyFacts<S>
+): f is ContainerFacts<S> {
   return !('primitive' in f)
 }
 
@@ -106,9 +110,9 @@ export const defaultPresentation: PresentationResolver = (f) => {
 /** Compose resolvers lowest→highest precedence; later (consumer) wins, and an
  * `undefined` return defers to the layer below. Use `layered(defaultPresentation,
  * consumerResolver)`. */
-export function layered(
-  ...resolvers: PresentationResolver[]
-): PresentationResolver {
+export function layered<S = unknown>(
+  ...resolvers: PresentationResolver<S>[]
+): PresentationResolver<S> {
   return (facts) => {
     let result: Presentation | undefined
     for (const resolver of resolvers) {
@@ -337,10 +341,10 @@ export function presentDefaultLeaf(f: FieldFacts): WidgetParts {
 
 // --- The pass -------------------------------------------------------------------
 
-function presentField(
-  node: FieldNode,
-  resolve: PresentationResolver
-): FieldNode {
+function presentField<S = unknown>(
+  node: FieldNode<S>,
+  resolve: PresentationResolver<S>
+): FieldNode<S> {
   const p = resolve(node.facts)
   if (!p) return node
   // Unchanged widget (and no args) → keep identity so the memo bail holds.
@@ -349,7 +353,7 @@ function presentField(
   // Custom / raw widgets are deferred to a later tracer (ADR 029). Until the
   // catalog earns a generic control facet, an unknown widget name is a no-op.
   if (!wp) return node
-  const next: FieldNode = { ...node, widget: wp.widget, parts: wp.parts }
+  const next: FieldNode<S> = { ...node, widget: wp.widget, parts: wp.parts }
   // Carry the resolver's per-widget `args` (ADR 029 §6); clear any stale bag when
   // a later resolution drops it.
   if (p.args) next.args = p.args
@@ -365,8 +369,10 @@ function presentField(
  * option source + value identity are NOT here; they ride on the resolver's `args`
  * (ADR 030 §4).
  */
-function containerFactsToLeaf(cf: ContainerFacts): LeafFacts {
-  const leaf: LeafFacts = {
+function containerFactsToLeaf<S = unknown>(
+  cf: ContainerFacts<S>
+): LeafFacts<S> {
+  const leaf: LeafFacts<S> = {
     path: cf.path,
     label: cf.label,
     required: cf.required,
@@ -389,14 +395,14 @@ function containerFactsToLeaf(cf: ContainerFacts): LeafFacts {
  * widget is outside the built-in catalog, so an unknown widget leaves the subtree
  * decomposed rather than erasing it.
  */
-function collapseContainer(
-  node: GroupNode | ArrayNode,
+function collapseContainer<S = unknown>(
+  node: GroupNode<S> | ArrayNode<S>,
   p: Presentation
-): FieldNode | undefined {
+): FieldNode<S> | undefined {
   const facts = containerFactsToLeaf(node.facts)
   const wp = widgetParts(facts, p.widget)
   if (!wp) return undefined
-  const leaf: FieldNode = {
+  const leaf: FieldNode<S> = {
     nodeType: 'field',
     path: node.path,
     widget: wp.widget,
@@ -421,7 +427,10 @@ function collapseContainer(
 // `as AnyNode` cast on the rebuilt-container branch is the unavoidable cost of
 // rebuilding a union member via spread; it is structurally sound (a rebuilt
 // container keeps its shape and `this`-based methods, only `children` changes).
-function presentNode(node: AnyNode, resolve: PresentationResolver): AnyNode {
+function presentNode<S = unknown>(
+  node: AnyNode<S>,
+  resolve: PresentationResolver<S>
+): AnyNode<S> {
   if (node.isField) return presentField(node, resolve)
   // Offer a collapsible container (group/array) to the resolver before recursing.
   // The root is never collapsed (the whole form is not one control) and an
@@ -443,7 +452,7 @@ function presentNode(node: AnyNode, resolve: PresentationResolver): AnyNode {
   // A rebuilt container: same `this`-based methods (getField/walk/submit) now
   // read the new `children` (see groupNode/arrayNode). Structural sharing keeps
   // every unchanged subtree by reference.
-  return { ...node, children: next } as AnyNode
+  return { ...node, children: next } as AnyNode<S>
 }
 
 /**
@@ -453,11 +462,11 @@ function presentNode(node: AnyNode, resolve: PresentationResolver): AnyNode {
  * `present(tree, layered(defaultPresentation, consumerResolver))`. The root group
  * is never collapsed, so the return type stays `GroupNode`.
  */
-export function present(
-  root: GroupNode,
-  resolve: PresentationResolver
-): GroupNode {
-  return presentNode(root, resolve) as GroupNode
+export function present<S = unknown>(
+  root: GroupNode<S>,
+  resolve: PresentationResolver<S>
+): GroupNode<S> {
+  return presentNode(root, resolve) as GroupNode<S>
 }
 
 /**
@@ -470,6 +479,11 @@ export function present(
  * gets its widget. Consumer resolvers are NOT applied to runtime items (unchanged
  * from when the front-end baked the collapse in — tracked separately).
  */
-export function presentDefaultItem(item: ArrayItemNode): ArrayItemNode {
-  return presentNode(item, defaultPresentation) as ArrayItemNode
+export function presentDefaultItem<S = unknown>(
+  item: ArrayItemNode<S>
+): ArrayItemNode<S> {
+  // Explicit `<S>` so inference doesn't pit `item` (S) against the unknown-typed
+  // `defaultPresentation` (a resolver valid at any S); `defaultPresentation` is
+  // assignable to `PresentationResolver<S>` by contravariance.
+  return presentNode<S>(item, defaultPresentation) as ArrayItemNode<S>
 }

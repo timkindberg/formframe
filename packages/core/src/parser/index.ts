@@ -1,9 +1,12 @@
 import type { JSONSchema, GroupNode } from '../types'
+import type { JSONSchemaObject } from './utils'
 import { compileRoot, isObjectSchema } from './compile'
 import { resolveLocalRefs } from './resolveRefs'
 import { present, defaultPresentation } from '../present/present'
 
-export function jsonSchemaToTree(schema: JSONSchema): GroupNode {
+export function jsonSchemaToTree(
+  schema: JSONSchema
+): GroupNode<JSONSchemaObject> {
   if (!isObjectSchema(schema)) {
     throw new Error('Boolean schemas are not yet supported')
   }
@@ -16,6 +19,10 @@ export function jsonSchemaToTree(schema: JSONSchema): GroupNode {
   // collapse into one multiselect/checkboxes leaf (ADR 030 §3) and every leaf gets
   // its widget/parts. All *lowering* lives in present(), never the front-end.
   // `useSchemaForm` re-runs present() with a consumer resolver layered on top,
-  // identity-preservingly.
-  return present(compileRoot(resolvedSchema), defaultPresentation)
+  // identity-preservingly. Explicit `<JSONSchemaObject>` pins S end-to-end (the
+  // unknown-typed defaultPresentation is valid at any S by contravariance).
+  return present<JSONSchemaObject>(
+    compileRoot(resolvedSchema),
+    defaultPresentation
+  )
 }

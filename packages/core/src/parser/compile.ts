@@ -117,13 +117,18 @@ function buildItemDescriptor(itemSchema: JSONSchemaObject): ItemDescriptor {
   return { valueShape: 'scalar' }
 }
 
+// The JSON Schema front-end pins the generic `origin` type (ADR 033 §4) to
+// `JSONSchemaObject`, so a consumer resolver reading `facts.origin.schema` off a
+// JSON-Schema-built tree gets a properly typed subschema, not `unknown`.
+type JS = JSONSchemaObject
+
 /** Compile one subschema into the neutral node its structure calls for (the same
  * dispatch a group applies to each property and an array to its item). */
 function compileNode(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-): AnyNode {
+): AnyNode<JS> {
   if (schema.type === 'array') return compileArray(path, schema, required)
   if (schema.type === 'object' && schema.properties) {
     return compileGroup(path, schema, required)
@@ -135,8 +140,8 @@ function compileField(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-): FieldNode {
-  const facts: LeafFacts = {
+): FieldNode<JS> {
+  const facts: LeafFacts<JS> = {
     path,
     label: schema.title || path || 'root',
     required,
@@ -157,9 +162,9 @@ function compileGroup(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-): GroupNode {
+): GroupNode<JS> {
   const requiredFields = schema.required || []
-  const children: AnyNode[] = []
+  const children: AnyNode<JS>[] = []
   if (schema.properties) {
     for (const [key, propSchema] of Object.entries(schema.properties)) {
       if (!isObjectSchema(propSchema)) continue // Skip boolean schemas
@@ -178,7 +183,7 @@ function compileGroup(
 
   // An object subtree submits an object value; no `choices`/`item`, so the default
   // rule never collapses it — a resolver may (ADR 030 §2/§5).
-  const facts: ContainerFacts = {
+  const facts: ContainerFacts<JS> = {
     path,
     label: schema.title || path || 'root',
     required,
@@ -196,7 +201,7 @@ function compileArray(
   path: string,
   schema: JSONSchemaObject,
   required: boolean
-): ArrayNode {
+): ArrayNode<JS> {
   const itemsSchema = schema.items
   if (!itemsSchema) {
     throw new Error(`Array schema at ${path} must have 'items' property`)
@@ -216,13 +221,13 @@ function compileArray(
   // The front-end's item compiler: builds one raw (un-presented) item on demand.
   // Core wraps it in present() for getItem and folds the whole tree once for the
   // seed items, so nested scalar-choice arrays collapse consistently (ADR 030 §3).
-  const itemFactory = (index: number): ArrayItemNode =>
+  const itemFactory = (index: number): ArrayItemNode<JS> =>
     createArrayItemNode({
       child: compileNode(`${path}.${index}`, itemSchemaObject, required),
     })
 
   const minItems = typeof schema.minItems === 'number' ? schema.minItems : 0
-  const seed: ArrayItemNode[] = []
+  const seed: ArrayItemNode<JS>[] = []
   for (let i = 0; i < minItems; i++) seed.push(itemFactory(i))
 
   const parts: ArrayParts = {
@@ -246,7 +251,7 @@ function compileArray(
   // to one multiselect); an open-ended source carries an `item` descriptor and
   // stays add/remove. Choices XOR item (ADR 030 §3).
   const choices = buildArrayChoices(itemSchemaObject)
-  const facts: ContainerFacts = {
+  const facts: ContainerFacts<JS> = {
     path,
     label: schema.title || path || 'root',
     required,
@@ -263,7 +268,8 @@ function compileArray(
   return createArrayNode({ facts, parts, seed, itemFactory })
 }
 
-/** Compile a resolved root object schema into the neutral tree (a GroupNode). */
-export function compileRoot(schema: JSONSchemaObject): GroupNode {
+/** Compile a resolved root object schema into the neutral tree (a GroupNode).
+ * `S` is pinned to `JSONSchemaObject` — the JSON Schema front-end's origin type. */
+export function compileRoot(schema: JSONSchemaObject): GroupNode<JS> {
   return compileGroup('', schema, false)
 }

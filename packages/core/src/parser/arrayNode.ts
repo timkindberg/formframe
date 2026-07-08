@@ -21,16 +21,16 @@ import type {
  * scalar-choice set) or an `item` descriptor; present()'s default rule collapses a
  * scalar-choice array into one multiselect/checkboxes leaf (ADR 030 §3).
  */
-export function createArrayNode(input: {
-  facts: ContainerFacts
+export function createArrayNode<S = unknown>(input: {
+  facts: ContainerFacts<S>
   parts: ArrayParts
-  seed: AnyNode[]
-  itemFactory: (index: number) => ArrayItemNode
-}): ArrayNode {
+  seed: AnyNode<S>[]
+  itemFactory: (index: number) => ArrayItemNode<S>
+}): ArrayNode<S> {
   const { facts, parts, seed, itemFactory } = input
   const { path } = facts
 
-  const arrayNode: ArrayNode = {
+  const arrayNode: ArrayNode<S> = {
     nodeType: 'array',
     path,
     widget: 'array',
@@ -55,7 +55,7 @@ export function createArrayNode(input: {
     // index (ADR 032), e.g. '0.name' or '2'. Resolve to the instantiated item at
     // that index and delegate the remainder. Reads `this.children` (not the
     // closure) so a present()-rebuilt node (ADR 029) queries its own children.
-    getField(targetPath: string): FieldNode | undefined {
+    getField(targetPath: string): FieldNode<S> | undefined {
       if (targetPath === '') return undefined // the array itself is not a field
       const dot = targetPath.indexOf('.')
       const indexSeg = dot === -1 ? targetPath : targetPath.slice(0, dot)
@@ -73,8 +73,8 @@ export function createArrayNode(input: {
       return undefined
     },
 
-    getAllFields(): FieldNode[] {
-      const fields: FieldNode[] = []
+    getAllFields(): FieldNode<S>[] {
+      const fields: FieldNode<S>[] = []
       for (const child of this.children) {
         if (child.nodeType === 'arrayItem') {
           fields.push(...child.getAllFields())
@@ -108,7 +108,9 @@ export type { ArrayNode, ArrayParts }
  * item path and Core derives the item's path/depth from it and the structural parts
  * (a remove button). The item's path IS the child's path (both are the item path).
  */
-export function createArrayItemNode(input: { child: AnyNode }): ArrayItemNode {
+export function createArrayItemNode<S = unknown>(input: {
+  child: AnyNode<S>
+}): ArrayItemNode<S> {
   const { child } = input
   const itemPath = child.path
 
@@ -117,7 +119,7 @@ export function createArrayItemNode(input: { child: AnyNode }): ArrayItemNode {
     removeButton: { attrs: { type: 'button' }, label: 'Remove' },
   }
 
-  const itemNode: ArrayItemNode = {
+  const itemNode: ArrayItemNode<S> = {
     nodeType: 'arrayItem',
     path: itemPath,
     widget: 'arrayItem',
@@ -133,7 +135,7 @@ export function createArrayItemNode(input: { child: AnyNode }): ArrayItemNode {
     // `targetPath` is relative to this item (ADR 032). For a primitive-array
     // item the item *is* the leaf, so the empty remainder selects it; for an
     // object/array item, delegate the remainder to the wrapped child.
-    getField(targetPath: string): FieldNode | undefined {
+    getField(targetPath: string): FieldNode<S> | undefined {
       const c = this.children[0]
       if (c.nodeType === 'field') {
         return targetPath === '' ? c : undefined
@@ -143,7 +145,7 @@ export function createArrayItemNode(input: { child: AnyNode }): ArrayItemNode {
       return undefined
     },
 
-    getAllFields(): FieldNode[] {
+    getAllFields(): FieldNode<S>[] {
       const c = this.children[0]
       if (c.nodeType === 'field') {
         return [c]
