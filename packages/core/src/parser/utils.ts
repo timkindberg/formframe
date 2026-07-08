@@ -48,6 +48,10 @@ export function buildValidation(schema: JSONSchemaObject, required: boolean) {
 
 // Helper to serialize nodes without circular references or functions
 export function serializeNode(node: AnyNode): object {
+  // `node` is a discriminated union; `children`/`itemSchema`/`facts` exist only on
+  // SOME members (a FieldNode has no `children`, an ArrayItemNode no `facts`). A
+  // bare `node.children` is therefore a compile error, not `undefined` — the `in`
+  // operator narrows the union to the members that carry the property.
   const children = 'children' in node ? node.children : undefined
   const itemSchema = 'itemSchema' in node ? node.itemSchema : undefined
   // Validation lives once on `facts.constraints` (ADR 033 §1); nodes without facts
