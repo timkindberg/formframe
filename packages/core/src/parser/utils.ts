@@ -16,44 +16,15 @@ export interface ValidationRules {
   maxItems?: number
 }
 
-// Build validation object from schema
-export function buildValidation(schema: JSONSchemaObject, required: boolean) {
-  const validation: ValidationRules = {
-    required,
-  }
-
-  // String constraints
-  if (schema.minLength !== undefined) {
-    validation.minLength = schema.minLength
-  }
-  if (schema.maxLength !== undefined) {
-    validation.maxLength = schema.maxLength
-  }
-  if (schema.pattern !== undefined) {
-    validation.pattern = schema.pattern
-  }
-
-  // Number constraints
-  if (schema.minimum !== undefined) {
-    validation.minimum = schema.minimum
-  }
-  if (schema.maximum !== undefined) {
-    validation.maximum = schema.maximum
-  }
-
-  return validation
-}
-
 // Node interfaces (ContainerNode, FieldNode, …) live in ./nodeTypes.
 
 // Helper to serialize nodes without circular references or functions
 export function serializeNode(node: AnyNode): object {
-  // `node` is a discriminated union; `children`/`itemSchema`/`facts` exist only on
-  // SOME members (a FieldNode has no `children`, an ArrayItemNode no `facts`). A
-  // bare `node.children` is therefore a compile error, not `undefined` — the `in`
+  // `node` is a discriminated union; `children`/`facts` exist only on SOME members
+  // (a FieldNode has no `children`, an ArrayItemNode no `facts`). A bare
+  // `node.children` is therefore a compile error, not `undefined` — the `in`
   // operator narrows the union to the members that carry the property.
   const children = 'children' in node ? node.children : undefined
-  const itemSchema = 'itemSchema' in node ? node.itemSchema : undefined
   // Validation lives once on `facts.constraints` (ADR 033 §1); nodes without facts
   // (array items) contribute none.
   const constraints = 'facts' in node ? node.facts.constraints : undefined
@@ -66,8 +37,6 @@ export function serializeNode(node: AnyNode): object {
     ...(children
       ? { children: children.map((child) => serializeNode(child)) }
       : {}),
-    ...(itemSchema !== undefined ? { itemSchema } : {}),
-    // Omit schema to avoid circular refs
   }
 }
 

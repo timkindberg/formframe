@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { jsonSchemaToTree } from '../parser/index'
-import { createGroupNode } from '../parser/groupNode'
+import { compileRoot } from '../parser/compile'
 import {
   assertArrayNode,
   assertField,
@@ -305,11 +305,11 @@ describe('default present() leaves containers decomposed (ADR 030 §3)', () => {
 
 describe('scalar-choice-array collapse lives in present() (ADR 030 §3 / ADR 033 §2)', () => {
   it('the front-end emits an un-collapsed ArrayNode with choices; present() folds it to a leaf', () => {
-    // The front-end (createGroupNode, pre-present) is a pure STRUCTURAL transcriber:
+    // The front-end (compileRoot, pre-present) is a pure STRUCTURAL transcriber:
     // a scalar-choice array is an ArrayNode carrying `choices`, NOT a collapsed
     // leaf. The collapse is present()'s job, so the lowering decision lives in one
     // place and every front-end inherits it (ADR 033 §2).
-    const raw = createGroupNode('', enumArraySchema, false)
+    const raw = compileRoot(enumArraySchema)
     const rawTags = raw.children.find((c) => c.path === 'tags')
     assertArrayNode(rawTags)
     expect(rawTags.facts.choices?.map((o) => o.value)).toEqual(['a', 'b', 'c'])

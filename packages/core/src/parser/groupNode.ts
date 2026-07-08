@@ -1,6 +1,3 @@
-import type { JSONSchema } from 'json-schema-typed/draft-07'
-import { createArrayNode } from './arrayNode'
-import { createFieldNode } from './fieldNode'
 import {
   transformCheckboxes,
   omitEmptyFormValues,
@@ -8,12 +5,7 @@ import {
   forceArrayFields,
   normalizeArrayFieldPath,
 } from './groupNode.submitUtils'
-import {
-  buildValidation,
-  type JSONSchemaObject,
-  serializeNode,
-  walkNode,
-} from './utils'
+import { serializeNode, walkNode } from './utils'
 import type {
   AnyNode,
   ArrayNode,
@@ -24,73 +16,23 @@ import type {
   WalkHandlers,
 } from './nodeTypes'
 
-// Type guard for object schemas
-export function isObjectSchema(schema: JSONSchema): schema is JSONSchemaObject {
-  return typeof schema === 'object' && schema !== null
-}
-
-export function createGroupNode(
-  path: string,
-  schema: JSONSchemaObject,
-  required: boolean
-): GroupNode {
-  const children: AnyNode[] = []
-  const requiredFields = schema.required || []
-
-  if (schema.properties) {
-    for (const [key, propSchema] of Object.entries(schema.properties)) {
-      if (!isObjectSchema(propSchema)) continue // Skip boolean schemas
-
-      const childPath = path ? `${path}.${key}` : key // Handle root path
-      const isRequired = requiredFields.includes(key)
-
-      if (propSchema.type === 'array') {
-        // Array type - creates ArrayNode or multiselect FieldNode
-        children.push(createArrayNode(childPath, propSchema, isRequired))
-      } else if (propSchema.type === 'object' && propSchema.properties) {
-        // Nested object - creates GroupNode
-        children.push(createGroupNode(childPath, propSchema, isRequired))
-      } else {
-        // Primitive field - creates FieldNode
-        children.push(createFieldNode(childPath, propSchema, isRequired))
-      }
-    }
-  }
-
-  const parts = {
-    container: {
-      key: path,
-    },
-    ...(schema.title && {
-      label: {
-        text: schema.title,
-      },
-    }),
-    ...(schema.description && {
-      description: {
-        text: schema.description,
-      },
-    }),
-  }
-
-  // Container facts (ADR 030 §1): an object subtree submits an object value. No
-  // `choices`/`item` — a group is not a finite/element source — so the default
-  // rule never collapses it; a resolver may (ADR 030 §2/§5).
-  const facts: ContainerFacts = {
-    path,
-    label: schema.title || path || 'root',
-    required,
-    valueShape: 'object',
-    constraints: buildValidation(schema, required),
-    attrs: { id: path, name: path },
-    origin: { source: 'jsonschema', schema },
-  }
-  if (schema.description) facts.description = schema.description
+/**
+ * Neutral builder (ADR 033 §3): assemble a {@link GroupNode} from already-neutral
+ * container facts, its already-built `children`, and its `parts`. Reads NO schema —
+ * a front-end recurses its own structure to produce the children and derives the
+ * parts. Core owns only the query/traversal/submit surface below.
+ */
+export function createGroupNode(input: {
+  facts: ContainerFacts
+  children: AnyNode[]
+  parts: GroupParts
+}): GroupNode {
+  const { facts, children, parts } = input
+  const { path } = facts
 
   const groupNode: GroupNode = {
     nodeType: 'group',
     path,
-    schema,
     widget: 'fieldset',
     facts,
     children,

@@ -265,11 +265,11 @@ describe('useSchemaForm', () => {
       .element(screen.getByRole('textbox', { name: 'Name' }))
       .toBeInTheDocument()
 
-    // Check that form node has correct structure after render
+    // Check that form node has correct structure after render. The node is
+    // neutral (ADR 033) — it exposes container facts + queries, not the raw schema.
     expect(formNodeRef.current).toBeDefined()
     expect(formNodeRef.current!.nodeType).toBe('group')
-    expect((formNodeRef.current!.schema as { type: string }).type).toBe(
-      'object'
-    )
+    expect(formNodeRef.current!.facts.valueShape).toBe('object')
+    expect(formNodeRef.current!.getField('name')?.facts.label).toBe('Name')
   })
 })

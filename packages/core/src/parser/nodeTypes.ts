@@ -262,10 +262,11 @@ export interface ArrayItemParts {
 
 // Fields shared by every node. Validation rules are NOT here — they live once on
 // `facts.constraints` (ADR 033 §1); nodes without facts (`ArrayItemNode`) carry no
-// constraints of their own (item requiredness rides on the array).
+// constraints of their own (item requiredness rides on the array). No `schema` here
+// either (ADR 033 §4): the only originating-schema reference is the front-end-owned
+// `origin.schema` on facts, which Core treats as opaque.
 interface NodeBase {
   path: string
-  schema: JSONSchemaObject
   isRoot: boolean
   depth: number
   toJSON(): object
@@ -335,7 +336,6 @@ export interface ArrayNode extends NodeBase, ContainerMethods {
    * subtree into one array-valued widget, e.g. a multiselect (ADR 030 §5). */
   facts: ContainerFacts
   parts: ArrayParts
-  itemSchema: JSONSchemaObject
   isField: false
   isGroup: false
   isArray: true

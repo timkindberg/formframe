@@ -399,7 +399,6 @@ function collapseContainer(
   const leaf: FieldNode = {
     nodeType: 'field',
     path: node.path,
-    schema: node.schema,
     widget: wp.widget,
     facts,
     parts: wp.parts,
