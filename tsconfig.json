@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/input-jsonschema" },
+    { "path": "./packages/input-zod" },
     { "path": "./packages/react" },
     { "path": "./packages/vanilla" },
     { "path": "./packages/validation-ajv" },

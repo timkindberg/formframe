@@ -1,0 +1,40 @@
+{
+  "name": "@jsonschema-form/input-zod",
+  "version": "0.0.0",
+  "description": "Zod front-end for @jsonschema-form/core — compiles a Zod schema into the neutral form tree by direct introspection (ADR 034)",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "require": "./src/index.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "echo 'Build script not yet configured'",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "zod",
+    "forms"
+  ],
+  "author": "Tim Kindberg",
+  "license": "MIT",
+  "peerDependencies": {
+    "@jsonschema-form/core": "*",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@jsonschema-form/core": "*",
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.9",
+    "zod": "^4.0.0"
+  }
+}
