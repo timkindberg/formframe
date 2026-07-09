@@ -89,7 +89,7 @@ export function createArrayNode<S = unknown>(input: {
       return fields
     },
 
-    walk<R>(handlers?: WalkHandlers<R>): R[] {
+    walk<R>(handlers?: WalkHandlers<R, S>): R[] {
       return walkNode(this, handlers)
     },
 
@@ -161,7 +161,7 @@ export function createArrayItemNode<S = unknown>(input: {
       return []
     },
 
-    walk<R>(handlers?: WalkHandlers<R>): R[] {
+    walk<R>(handlers?: WalkHandlers<R, S>): R[] {
       return walkNode(this, handlers)
     },
 

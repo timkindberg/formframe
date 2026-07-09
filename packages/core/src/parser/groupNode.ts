@@ -8,7 +8,6 @@ import {
 import { serializeNode, walkNode } from './utils'
 import type {
   AnyNode,
-  ArrayNode,
   ContainerFacts,
   FieldNode,
   GroupNode,
@@ -89,7 +88,7 @@ export function createGroupNode<S = unknown>(input: {
       return fields
     },
 
-    walk<R>(handlers?: WalkHandlers<R>): R[] {
+    walk<R>(handlers?: WalkHandlers<R, S>): R[] {
       return walkNode(this, handlers)
     },
 
@@ -136,8 +135,8 @@ export function createGroupNode<S = unknown>(input: {
         // silently dropped that case.) A representative item (getItem(0)) is walked
         // so nested array leaves are found even when the array has no compiled items.
         const arrayFieldSignatures = new Set<string>()
-        const collectHandlers: WalkHandlers<void> = {
-          field(fieldNode: FieldNode) {
+        const collectHandlers: WalkHandlers<void, S> = {
+          field(fieldNode) {
             const control = fieldNode.parts.control
             const submitsArray =
               fieldNode.facts.valueShape === 'array' ||
@@ -147,7 +146,7 @@ export function createGroupNode<S = unknown>(input: {
               arrayFieldSignatures.add(normalizeArrayFieldPath(fieldNode.path))
             }
           },
-          array(arrayNode: ArrayNode) {
+          array(arrayNode) {
             arrayNode.getItem(0).walk<void>(collectHandlers)
           },
         }

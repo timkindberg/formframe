@@ -12,9 +12,9 @@ import type {
   GroupNode,
 } from '@jsonschema-form/core'
 
-export function assertArrayNode(
-  node: AnyNode | undefined
-): asserts node is ArrayNode {
+export function assertArrayNode<S = unknown>(
+  node: AnyNode<S> | undefined
+): asserts node is ArrayNode<S> {
   if (!node?.isArray) {
     throw new Error(
       `expected an array node at "${node?.path ?? 'missing'}", got "${node?.nodeType ?? 'none'}"`
@@ -22,9 +22,9 @@ export function assertArrayNode(
   }
 }
 
-export function assertGroupNode(
-  node: AnyNode | undefined
-): asserts node is GroupNode {
+export function assertGroupNode<S = unknown>(
+  node: AnyNode<S> | undefined
+): asserts node is GroupNode<S> {
   if (!node?.isGroup) {
     throw new Error(
       `expected a group node at "${node?.path ?? 'missing'}", got "${node?.nodeType ?? 'none'}"`
@@ -32,9 +32,9 @@ export function assertGroupNode(
   }
 }
 
-export function assertField(
-  node: AnyNode | undefined
-): asserts node is FieldNode {
+export function assertField<S = unknown>(
+  node: AnyNode<S> | undefined
+): asserts node is FieldNode<S> {
   if (!node?.isField) {
     throw new Error(
       `expected a field node at "${node?.path ?? 'missing'}", got "${node?.nodeType ?? 'none'}"`

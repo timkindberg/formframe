@@ -58,30 +58,30 @@ export type PartsOverrides<P, R> = {
  * `parts.control` (discriminated on `control.kind`), so nothing that handles
  * *nodes* narrows on widget — only the `field.control` renderer does.
  */
-export type EField<R> = Omit<FieldNode, 'parts'> & {
-  parts: EnrichedParts<FieldNode['parts'], R>
-  Default(opts?: { parts?: PartsOverrides<FieldNode['parts'], R> }): R
+export type EField<R, S = unknown> = Omit<FieldNode<S>, 'parts'> & {
+  parts: EnrichedParts<FieldNode<S>['parts'], R>
+  Default(opts?: { parts?: PartsOverrides<FieldNode<S>['parts'], R> }): R
 }
 
 /** Enriched container — parts + children + re-entry points. */
-type EContainerOf<N extends ContainerNode, R> = Omit<
+type EContainerOf<N extends ContainerNode<S>, R, S = unknown> = Omit<
   N,
   'parts' | 'children'
 > & {
   parts: EnrichedParts<N['parts'], R>
   /** Children keyed by last path segment — `node.children.street.Default`. */
-  children: Record<string, ENode<R>>
+  children: Record<string, ENode<R, S>>
   /** Dynamic/relative child lookup (not usable as a JSX tag). */
-  child(relativePath: string): ENode<R> | undefined
+  child(relativePath: string): ENode<R, S> | undefined
   /** Render all child nodes through the resolver. */
   Children(): R
   Default(opts?: {
     parts?: PartsOverrides<N['parts'], R>
-    renderNode?: Resolver<R>
+    renderNode?: Resolver<R, S>
   }): R
 }
-export type EGroup<R> = EContainerOf<GroupNode, R>
-export type EArray<R> = EContainerOf<ArrayNode, R> & {
+export type EGroup<R, S = unknown> = EContainerOf<GroupNode<S>, R, S>
+export type EArray<R, S = unknown> = EContainerOf<ArrayNode<S>, R, S> & {
   /**
    * Render a caller-owned item core through the active resolver — the seam a
    * stateful adapter (React) uses to mount/keep items under its own identity.
@@ -89,14 +89,23 @@ export type EArray<R> = EContainerOf<ArrayNode, R> & {
    * that core so re-renders keep DOM identity (and uncontrolled values) in
    * place. The string oracle never calls this (arrays are static there).
    */
-  renderItem(item: ArrayItemNode): R
+  renderItem(item: ArrayItemNode<S>): R
 }
-export type EArrayItem<R> = EContainerOf<ArrayItemNode, R>
+export type EArrayItem<R, S = unknown> = EContainerOf<ArrayItemNode<S>, R, S>
 
-export type ENode<R> = EField<R> | EGroup<R> | EArray<R> | EArrayItem<R>
+export type ENode<R, S = unknown> =
+  | EField<R, S>
+  | EGroup<R, S>
+  | EArray<R, S>
+  | EArrayItem<R, S>
 
 /** Per-node hijack: return a custom `R`, or re-enter via `node.Default()`. */
-export type Resolver<R> = (node: ENode<R>) => R
+export type Resolver<R, S = unknown> = (node: ENode<R, S>) => R
+
+/** Resolver at a schema-agnostic framework boundary (see {@link AnyGroupNode}). */
+/* eslint-disable @typescript-eslint/no-explicit-any -- invariant ENode<R, S> */
+export type AnySchemaResolver<R> = Resolver<R, any>
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ---------------------------------------------------------------------------
 // Adapter — the only `R`-specific surface a renderer must supply.
@@ -217,9 +226,9 @@ export function mergeAdapter<R>(
 
 export interface Continuation<R> {
   /** Wrap a Core node with the continuation re-entry points. */
-  enrich(core: AnyNode, resolver: Resolver<R>): ENode<R>
+  enrich<S = unknown>(core: AnyNode<S>, resolver: Resolver<R, S>): ENode<R, S>
   /** Run the active resolver against a Core node. */
-  resolve(core: AnyNode, resolver: Resolver<R>): R
+  resolve<S = unknown>(core: AnyNode<S>, resolver: Resolver<R, S>): R
 }
 
 /**
@@ -242,7 +251,7 @@ export interface Continuation<R> {
  * stable component type, not a per-render one. Output must match the eager fold.
  */
 export interface ContinuationOptions<R> {
-  renderChild?(core: AnyNode, resolver: Resolver<R>): R
+  renderChild?<S = unknown>(core: AnyNode<S>, resolver: Resolver<R, S>): R
   renderPart?(render: () => R): R
 }
 
@@ -257,7 +266,7 @@ function lastSegment(path: string): string {
 
 /** The kinds that own renderer entries — one per concrete node kind. */
 type PartKind = 'field' | 'group' | 'array' | 'arrayItem'
-function partKind(core: AnyNode): PartKind | null {
+function partKind<S>(core: AnyNode<S>): PartKind | null {
   if (core.isField) return 'field'
   if (core.isGroup) return 'group'
   if (core.isArray) return 'array'
@@ -308,7 +317,7 @@ export function createContinuation<R>(
   }
 
   /** Render one child — lazily (adapter-supplied) or eagerly (default fold). */
-  function renderChild(core: AnyNode, resolver: Resolver<R>): R {
+  function renderChild<S>(core: AnyNode<S>, resolver: Resolver<R, S>): R {
     return options.renderChild
       ? options.renderChild(core, resolver)
       : resolve(core, resolver)
@@ -322,15 +331,18 @@ export function createContinuation<R>(
   // segment); positional containers (array/arrayItem) by *index*. Both are unique
   // among siblings and survive a dense re-path. (Vanilla joins markup and ignores
   // keys, so conformance is indifferent to this choice.)
-  function childKey(
-    core: ContainerNode,
-    child: AnyNode,
+  function childKey<S>(
+    core: ContainerNode<S>,
+    child: AnyNode<S>,
     index: number
   ): string {
     return core.isGroup ? lastSegment(child.path) : String(index)
   }
 
-  function renderChildren(core: ContainerNode, resolver: Resolver<R>): R {
+  function renderChildren<S>(
+    core: ContainerNode<S>,
+    resolver: Resolver<R, S>
+  ): R {
     return adapter.combine({
       children: core.children.map((c, i) => ({
         key: childKey(core, c, i),
@@ -339,9 +351,9 @@ export function createContinuation<R>(
     })
   }
 
-  function renderDefault(
-    core: AnyNode,
-    resolver: Resolver<R>,
+  function renderDefault<S>(
+    core: AnyNode<S>,
+    resolver: Resolver<R, S>,
     overrides?: Overrides
   ): R {
     if (core.isField) {
@@ -371,23 +383,23 @@ export function createContinuation<R>(
     })
   }
 
-  function enrich(core: AnyNode, resolver: Resolver<R>): ENode<R> {
+  function enrich<S>(core: AnyNode<S>, resolver: Resolver<R, S>): ENode<R, S> {
     const kind = partKind(core)
     const parts = enrichParts(core.parts, kind)
     const Default = (opts?: {
       parts?: Overrides
-      renderNode?: Resolver<R>
+      renderNode?: Resolver<R, S>
     }): R => renderDefault(core, opts?.renderNode ?? resolver, opts?.parts)
 
     if (core.isField) {
-      return { ...core, parts, Default } as unknown as ENode<R>
+      return { ...core, parts, Default } as unknown as ENode<R, S>
     }
 
-    const children: Record<string, ENode<R>> = {}
+    const children: Record<string, ENode<R, S>> = {}
     for (const c of core.children) {
       children[lastSegment(c.path)] = enrich(c, resolver)
     }
-    const child = (relativePath: string): ENode<R> | undefined => {
+    const child = (relativePath: string): ENode<R, S> | undefined => {
       const full = core.path ? `${core.path}.${relativePath}` : relativePath
       const found = core.children.find((c) => c.path === full)
       return found ? enrich(found, resolver) : undefined
@@ -405,13 +417,13 @@ export function createContinuation<R>(
     if (core.isArray) {
       return {
         ...enriched,
-        renderItem: (item: ArrayItemNode): R => renderChild(item, resolver),
-      } as unknown as ENode<R>
+        renderItem: (item: ArrayItemNode<S>): R => renderChild(item, resolver),
+      } as unknown as ENode<R, S>
     }
-    return enriched as unknown as ENode<R>
+    return enriched as unknown as ENode<R, S>
   }
 
-  function resolve(core: AnyNode, resolver: Resolver<R>): R {
+  function resolve<S>(core: AnyNode<S>, resolver: Resolver<R, S>): R {
     return resolver(enrich(core, resolver))
   }
 

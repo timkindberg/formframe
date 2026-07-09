@@ -291,7 +291,7 @@ interface ContainerMethods<S = unknown> {
   getField(path: string): FieldNode<S> | undefined
   /** Flat list of every instantiated leaf, arrays included — ≡ `walk({ field })` (ADR 032). */
   getAllFields(): FieldNode<S>[]
-  walk<R>(handlers?: WalkHandlers<R>): R[]
+  walk<R>(handlers?: WalkHandlers<R, S>): R[]
 }
 
 // A field leaf (ADR 029 §5/§6, amended by bd v60): a single interface. The widget
@@ -373,9 +373,20 @@ export type ContainerNode<S = unknown> =
   | ArrayNode<S>
   | ArrayItemNode<S>
 
-export interface WalkHandlers<R> {
-  field?: (node: FieldNode, handlers: WalkHandlers<R>) => R
-  group?: (node: GroupNode, handlers: WalkHandlers<R>) => R
-  array?: (node: ArrayNode, handlers: WalkHandlers<R>) => R
-  arrayItem?: (node: ArrayItemNode, handlers: WalkHandlers<R>) => R
+export interface WalkHandlers<R, S = unknown> {
+  field?: (node: FieldNode<S>, handlers: WalkHandlers<R, S>) => R
+  group?: (node: GroupNode<S>, handlers: WalkHandlers<R, S>) => R
+  array?: (node: ArrayNode<S>, handlers: WalkHandlers<R, S>) => R
+  arrayItem?: (node: ArrayItemNode<S>, handlers: WalkHandlers<R, S>) => R
 }
+
+/**
+ * Schema-agnostic boundary aliases for adapters that never read
+ * `facts.origin.schema`. Once `S` threads through `walk`, `GroupNode<S>` is
+ * invariant in `S` — a front-end-specialized tree is not assignable to
+ * `GroupNode<unknown>`. Framework renderers accept these instead (ADR 033 §4).
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any -- invariant GroupNode<S> */
+export type AnyGroupNode = GroupNode<any>
+export type AnyTreeNode = AnyNode<any>
+/* eslint-enable @typescript-eslint/no-explicit-any */

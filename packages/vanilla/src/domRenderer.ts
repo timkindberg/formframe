@@ -16,8 +16,8 @@ import {
   type EGroup,
   type EArray,
   type EArrayItem,
-  type GroupNode,
-  type Resolver,
+  type AnyGroupNode,
+  type AnySchemaResolver,
   type FieldControl,
 } from '@jsonschema-form/core'
 
@@ -25,7 +25,7 @@ import {
 // Public types — enriched nodes at R = Node.
 // ---------------------------------------------------------------------------
 
-export type DomRenderNode = Resolver<Node>
+export type DomRenderNode = AnySchemaResolver<Node>
 export type DomAdapter = RendererAdapter<Node>
 export type DomPartialAdapter = PartialAdapter<Node>
 export type DomVNode = ENode<Node>
@@ -384,7 +384,7 @@ export function createDomRenderer(adapter: DomPartialAdapter) {
     mergeAdapter(diagnosticDomAdapter, adapter)
   )
   return function renderToDom(
-    form: GroupNode,
+    form: AnyGroupNode,
     options: RenderToDomOptions = {}
   ): Node {
     const resolver: DomRenderNode =

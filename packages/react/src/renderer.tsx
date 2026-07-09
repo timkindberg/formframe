@@ -57,15 +57,15 @@ import {
   type RendererAdapter,
   type PartialAdapter,
   type PartOverrideMap,
-  type AnyNode,
   type ArrayItemNode,
   type ENode as CoreENode,
   type EField as CoreEField,
   type EGroup as CoreEGroup,
   type EArray as CoreEArray,
   type EArrayItem as CoreEArrayItem,
-  type Resolver,
-  type GroupNode,
+  type AnySchemaResolver,
+  type AnyGroupNode,
+  type AnyTreeNode,
   type FieldControl,
   type ValidationIssue,
 } from '@jsonschema-form/core'
@@ -773,7 +773,7 @@ const helpers: RenderHelpers = { Default, Children }
 
 /** Adapt a user `RenderNode` (node + helpers) to Core's 1-arg `Resolver`. */
 const adaptResolver =
-  (rn: RenderNode): Resolver<ReactNode> =>
+  (rn: RenderNode): AnySchemaResolver<ReactNode> =>
   (node) =>
     rn(node, helpers)
 
@@ -782,7 +782,7 @@ const adaptResolver =
  * the precise per-node `parts` type still comes from `DefaultOptsOf<H>` below. */
 interface NodeDefaultOpts {
   parts?: PartOverrideMap<ReactNode>
-  renderNode?: Resolver<ReactNode>
+  renderNode?: AnySchemaResolver<ReactNode>
 }
 
 // Extract the opts the *actual* handle accepts: a node yields `{ parts, renderNode }`
@@ -839,14 +839,14 @@ export function Children({
 
 export interface SchemaFieldsProps {
   /** The Core form tree (e.g. from `jsonSchemaToTree`). */
-  form: GroupNode
+  form: AnyGroupNode
   /** Per-node hijack (ADR 010). Omit to render every node's default. */
   renderNode?: RenderNode
   /** Place-yourself at the root: receives the enriched root + injected helpers. */
   children?: (root: EGroup, helpers: RenderHelpers) => ReactNode
 }
 
-const defaultResolver: Resolver<ReactNode> = (node) => node.Default()
+const defaultResolver: AnySchemaResolver<ReactNode> = (node) => node.Default()
 
 /**
  * The floor (ADR 013): bind a renderer set and get a `SchemaFields` component.
@@ -870,8 +870,8 @@ export function createRenderer(adapter: ReactPartialAdapter) {
     core,
     resolver,
   }: {
-    core: AnyNode
-    resolver: Resolver<ReactNode>
+    core: AnyTreeNode
+    resolver: AnySchemaResolver<ReactNode>
   }): ReactNode {
     return engine.resolve(core, resolver)
   }
@@ -895,7 +895,7 @@ export function createRenderer(adapter: ReactPartialAdapter) {
     // Adapt the user's 2-arg `RenderNode` to Core's 1-arg `Resolver`, injecting
     // the handle helpers. Memoized on `renderNode` so a stable hook keeps a
     // stable resolver identity (the `memo` bail); an inlined hook re-renders.
-    const resolver = useMemo<Resolver<ReactNode>>(
+    const resolver = useMemo<AnySchemaResolver<ReactNode>>(
       () => (renderNode ? adaptResolver(renderNode) : defaultResolver),
       [renderNode]
     )

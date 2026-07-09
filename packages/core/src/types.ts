@@ -33,6 +33,8 @@ export type {
   ArrayItemNode,
   ArrayItemParts,
   WalkHandlers,
+  AnyGroupNode,
+  AnyTreeNode,
 } from './parser/nodeTypes'
 
 export type { ValidationIssue, ValidationResult, Validator } from './validation'

@@ -16,7 +16,7 @@ export interface ValidationRules {
 // Node interfaces (ContainerNode, FieldNode, …) live in ./nodeTypes.
 
 // Helper to serialize nodes without circular references or functions
-export function serializeNode(node: AnyNode): object {
+export function serializeNode<S = unknown>(node: AnyNode<S>): object {
   // `node` is a discriminated union; `children`/`facts` exist only on SOME members
   // (a FieldNode has no `children`, an ArrayItemNode no `facts`). A bare
   // `node.children` is therefore a compile error, not `undefined` — the `in`
@@ -38,13 +38,13 @@ export function serializeNode(node: AnyNode): object {
 }
 
 // Walk implementation with handler inheritance. Takes the public, per-node-typed
-// `WalkHandlers<R>` directly — the discriminated `child.nodeType` checks narrow
+// `WalkHandlers<R, S>` directly — the discriminated `child.nodeType` checks narrow
 // each child to the exact node its handler expects, so no `as any` bridging is
 // needed here or at the call sites (the node `walk()` methods just pass `this`).
-export function walkNode<R>(
-  node: ContainerNode,
-  handlers?: WalkHandlers<R>,
-  inheritedHandlers?: WalkHandlers<R>
+export function walkNode<R, S = unknown>(
+  node: ContainerNode<S>,
+  handlers?: WalkHandlers<R, S>,
+  inheritedHandlers?: WalkHandlers<R, S>
 ): R[] {
   // Use inherited handlers if no new ones provided
   const effectiveHandlers = inheritedHandlers || handlers

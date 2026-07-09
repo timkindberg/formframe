@@ -24,8 +24,8 @@ import {
   type EGroup,
   type EArray,
   type EArrayItem,
-  type GroupNode,
-  type Resolver,
+  type AnyGroupNode,
+  type AnySchemaResolver,
   type FieldControl,
 } from '@jsonschema-form/core'
 
@@ -33,7 +33,7 @@ import {
 // Public types — the enriched node handed to `renderNode`, at R = string.
 // ---------------------------------------------------------------------------
 
-export type RenderNode = Resolver<string>
+export type RenderNode = AnySchemaResolver<string>
 export type VanillaAdapter = RendererAdapter<string>
 export type VanillaPartialAdapter = PartialAdapter<string>
 export type VNode = ENode<string>
@@ -301,7 +301,7 @@ export function createRenderer(adapter: VanillaPartialAdapter) {
     mergeAdapter(diagnosticAdapter, adapter)
   )
   return function renderToString(
-    form: GroupNode,
+    form: AnyGroupNode,
     options: RenderToStringOptions = {}
   ): string {
     const resolver: RenderNode =
