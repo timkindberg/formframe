@@ -1,10 +1,31 @@
 import { describe, it, expect } from 'vitest'
-import { OPTION_COUNT_THRESHOLD } from '@jsonschema-form/core'
+import {
+  OPTION_COUNT_THRESHOLD,
+  present,
+  defaultPresentation,
+  type AnyNode,
+} from '@jsonschema-form/core'
 import { jsonSchemaToTree } from './jsonSchemaToTree'
 import type { JSONSchema } from './types'
 import { choicegroupCtl } from './controlTestUtils'
 import { assertArrayNode, assertField } from './nodeTestUtils'
 import { submitWith } from './submitTestUtils'
+
+/** Structural snapshot for comparing nodes without function identity. */
+function nodeStructure(node: AnyNode): object {
+  const base = {
+    nodeType: node.nodeType,
+    path: node.path,
+    widget: node.widget,
+  }
+  if ('facts' in node) {
+    return { ...base, facts: node.facts }
+  }
+  if ('children' in node) {
+    return { ...base, children: node.children.map(nodeStructure) }
+  }
+  return base
+}
 
 describe('array robustness', () => {
   it.each([0, 1, 2, 3, 5, 8])(
@@ -34,6 +55,32 @@ describe('array robustness', () => {
       }
     }
   )
+
+  it('after present(), getItem(i) matches children[i] for seeded minItems indices', () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      properties: {
+        rows: {
+          type: 'array',
+          minItems: 3,
+          items: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+          },
+        },
+      },
+    }
+
+    const tree = present(jsonSchemaToTree(schema), defaultPresentation)
+    const rowsNode = tree.children.find((c) => c.path === 'rows')
+    assertArrayNode(rowsNode)
+
+    for (let i = 0; i < rowsNode.children.length; i++) {
+      expect(nodeStructure(rowsNode.getItem(i))).toEqual(
+        nodeStructure(rowsNode.children[i])
+      )
+    }
+  })
 
   it('minItems on object-item arrays pins facts.constraints.minItems', () => {
     const schema: JSONSchema = {

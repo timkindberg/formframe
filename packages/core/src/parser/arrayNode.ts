@@ -30,6 +30,12 @@ export function createArrayNode<S = unknown>(input: {
   const { facts, parts, seed, itemFactory } = input
   const { path } = facts
 
+  if (facts.choices !== undefined && facts.item !== undefined) {
+    throw new Error(
+      `createArrayNode at "${path}": ContainerFacts must set choices OR item, not both (ADR 030 §3)`
+    )
+  }
+
   const arrayNode: ArrayNode<S> = {
     nodeType: 'array',
     path,
