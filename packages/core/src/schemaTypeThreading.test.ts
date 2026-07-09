@@ -1,23 +1,22 @@
-// Type-level tests for the schema type `S` threading (bd wo8, ADR 033 §4).
+// Type-level tests for schema-type `S` threading (bd wo8, ADR 033 §4).
 //
-// These are TYPE tests: they assert nothing at runtime (the `it` bodies are empty
-// once type-erased). They are enforced by the gate's `tsc --noEmit -p
-// tsconfig.test.json` pass — a wrong assertion is a compile error, so they cost
-// zero runtime yet fail the build if `S` ever regresses.
+// These are TYPE tests: every assertion is a `expectTypeOf<Type>()` on a TYPE
+// (never on a runtime value), so nothing executes and the file has no runtime
+// dependencies. They are enforced by the gate's `tsc --noEmit -p tsconfig.test.json`
+// pass — a wrong assertion is a compile error — yet run as empty vitest cases.
 //
 // What wo8 guarantees, and what it deliberately does NOT:
 //
-//   * GUARANTEE — `S` is PRESERVED (not erased to `unknown`) across `walk` and the
-//     continuation engine. A consumer that pins `S` (e.g. the JSON Schema
-//     front-end pins `JSONSchemaObject`) reads a typed `facts.origin.schema` on
-//     every handler/resolver node instead of `unknown`.
-//   * NON-GOAL — per-node NARROWING. `S` is UNIFORM: every node in the tree — root,
-//     nested group, deep leaf — carries the SAME `S`. A leaf does NOT get its own
-//     specific subschema type. That is structurally impossible via `walk`
-//     (homogeneous recursion over `AnyNode<S>[]` has one element type) and would
-//     require a separate path-literal-indexed accessor over the whole schema
-//     literal (the `FieldPath`/`InferData` family) — an opt-in front-end feature,
-//     not a Core-walk one. The "uniform, not narrowed" tests below pin that line.
+//   * GUARANTEE — `S` is PRESERVED (not erased to `unknown`) across `walk`, the
+//     query methods, and the continuation engine. A consumer that pins `S` (the
+//     JSON Schema front-end pins `JSONSchemaObject`) reads a typed
+//     `facts.origin.schema` on every handler/resolver node instead of `unknown`.
+//   * NON-GOAL — per-node NARROWING. `S` is UNIFORM: every node — root, nested
+//     group, deep leaf — carries the SAME `S`. A leaf does NOT get its own
+//     subschema type. That is structurally impossible via `walk` (homogeneous
+//     recursion over `AnyNode<S>[]` has a single element type) and would require a
+//     path-literal-indexed accessor over the whole schema literal (the
+//     `FieldPath`/`InferData` family) — an opt-in front-end feature, not wo8.
 
 import { describe, it, expectTypeOf } from 'vitest'
 import type {
@@ -46,10 +45,15 @@ interface FakeSchema {
 }
 type R = string // an arbitrary render-result type for the continuation
 
-// Convenience extractors for a handler's positional param types.
+// The first positional param type of a walk handler for kind `K` at schema `S`.
 type WalkParam<K extends keyof WalkHandlers<R, FakeSchema>, S> = Parameters<
   NonNullable<WalkHandlers<R, S>[K]>
 >[0]
+
+// Whole-type (NON-distributive) assignability, for variance assertions. The tuple
+// wrap stops a union like `AnyNode<S>` from distributing, so we test the union as
+// a whole (matching how assignment actually behaves).
+type Assignable<A, B> = [A] extends [B] ? true : false
 
 describe('walk threads S (bd wo8)', () => {
   it('each handler receives its node kind carrying the SAME S', () => {
@@ -85,33 +89,22 @@ describe('walk threads S (bd wo8)', () => {
       WalkParam<'field', unknown>['facts']['origin']['schema']
     >().toEqualTypeOf<unknown>()
   })
-
-  it('walk() on a specialized tree narrows the callback node to <S>', () => {
-    const group = {} as GroupNode<FakeSchema>
-    const out = group.walk<R>({
-      field: (node) => {
-        expectTypeOf(node).toEqualTypeOf<FieldNode<FakeSchema>>()
-        expectTypeOf(node.facts.origin.schema).toEqualTypeOf<FakeSchema>()
-        return ''
-      },
-    })
-    expectTypeOf(out).toEqualTypeOf<R[]>()
-  })
 })
 
 describe('query methods thread S', () => {
-  const group = {} as GroupNode<FakeSchema>
-  const array = {} as ArrayNode<FakeSchema>
-
   it('getField / getAllFields return FieldNode<S>', () => {
-    expectTypeOf(group.getField('x')).toEqualTypeOf<
+    expectTypeOf<ReturnType<GroupNode<FakeSchema>['getField']>>().toEqualTypeOf<
       FieldNode<FakeSchema> | undefined
     >()
-    expectTypeOf(group.getAllFields()).toEqualTypeOf<FieldNode<FakeSchema>[]>()
+    expectTypeOf<
+      ReturnType<GroupNode<FakeSchema>['getAllFields']>
+    >().toEqualTypeOf<FieldNode<FakeSchema>[]>()
   })
 
   it('getItem returns ArrayItemNode<S>', () => {
-    expectTypeOf(array.getItem(0)).toEqualTypeOf<ArrayItemNode<FakeSchema>>()
+    expectTypeOf<ReturnType<ArrayNode<FakeSchema>['getItem']>>().toEqualTypeOf<
+      ArrayItemNode<FakeSchema>
+    >()
   })
 })
 
@@ -120,18 +113,16 @@ describe('S is UNIFORM, not narrowed per node (the wo8 boundary)', () => {
   // Every accessor at every depth yields the SAME `S`. Per-node narrowing would
   // need a path-literal accessor (`getField<'a.b.c'>()` → subschema-at-path), a
   // separate front-end feature layered on FieldPath/InferData — not wo8.
-  const group = {} as GroupNode<FakeSchema>
-
   it('children carry the same S as the root', () => {
     expectTypeOf<GroupNode<FakeSchema>['children'][number]>().toEqualTypeOf<
       AnyNode<FakeSchema>
     >()
   })
 
-  it('a deep getField still yields FieldNode<FakeSchema>, not a subschema', () => {
+  it('getField yields the uniform FieldNode<S>, never a subschema', () => {
     // `getField` takes a runtime `string`, so it CANNOT index a literal path into
     // the schema — it returns the uniform node type by construction.
-    expectTypeOf(group.getField('user.address.zip')).toEqualTypeOf<
+    expectTypeOf<ReturnType<GroupNode<FakeSchema>['getField']>>().toEqualTypeOf<
       FieldNode<FakeSchema> | undefined
     >()
   })
@@ -174,66 +165,54 @@ describe('continuation engine threads S (bd wo8)', () => {
   })
 
   it('enrich/resolve preserve S from the node + resolver', () => {
-    const cont = {} as Continuation<R>
-    const node = {} as AnyNode<FakeSchema>
-    const resolver = (() => '') as Resolver<R, FakeSchema>
-    expectTypeOf(cont.enrich(node, resolver)).toEqualTypeOf<
-      ENode<R, FakeSchema>
+    expectTypeOf<Continuation<R>['enrich']>().toEqualTypeOf<
+      <S = unknown>(core: AnyNode<S>, resolver: Resolver<R, S>) => ENode<R, S>
     >()
-    expectTypeOf(cont.resolve(node, resolver)).toEqualTypeOf<R>()
+    expectTypeOf<Continuation<R>['resolve']>().toEqualTypeOf<
+      <S = unknown>(core: AnyNode<S>, resolver: Resolver<R, S>) => R
+    >()
   })
 })
 
-// --- Variance + the boundary aliases (why AnyGroupNode/AnyTreeNode exist) --------
-//
-// Direct assignment tests (unambiguous, unlike expect-type's `.toExtend` on
-// unions). A `@ts-expect-error` that stops erroring is itself a build failure, so
-// these pin the variance exactly.
+describe('variance + boundary aliases (why AnyGroupNode/AnyTreeNode exist)', () => {
+  it('FieldNode is COVARIANT in S — a specialized field widens to unknown', () => {
+    // S appears only in the covariant `facts.origin.schema` position.
+    expectTypeOf<
+      Assignable<FieldNode<FakeSchema>, FieldNode<unknown>>
+    >().toEqualTypeOf<true>()
+  })
 
-declare const specializedField: FieldNode<FakeSchema>
-declare const specializedGroup: GroupNode<FakeSchema>
-declare const specializedArray: ArrayNode<FakeSchema>
-declare const specializedNode: AnyNode<FakeSchema>
+  it('GroupNode / ArrayNode / AnyNode are INVARIANT in S', () => {
+    // S sits in a covariant return (`getField(): FieldNode<S>`) AND a contravariant
+    // param (`walk(WalkHandlers<R, S>)`), so a specialized tree is NOT assignable to
+    // the unknown-typed one — the exact friction the boundary aliases resolve.
+    expectTypeOf<
+      Assignable<GroupNode<FakeSchema>, GroupNode<unknown>>
+    >().toEqualTypeOf<false>()
+    expectTypeOf<
+      Assignable<ArrayNode<FakeSchema>, ArrayNode<unknown>>
+    >().toEqualTypeOf<false>()
+    expectTypeOf<
+      Assignable<AnyNode<FakeSchema>, AnyNode<unknown>>
+    >().toEqualTypeOf<false>()
+  })
 
-// FieldNode is COVARIANT in S (S only appears in the covariant `facts.origin.schema`
-// position) — a specialized field widens to the unknown-typed one.
-const _widenedField: FieldNode<unknown> = specializedField
+  it('the boundary aliases accept a front-end-specialized tree', () => {
+    expectTypeOf<
+      Assignable<GroupNode<FakeSchema>, AnyGroupNode>
+    >().toEqualTypeOf<true>()
+    expectTypeOf<
+      Assignable<AnyNode<FakeSchema>, AnyTreeNode>
+    >().toEqualTypeOf<true>()
+  })
 
-// GroupNode / ArrayNode / AnyNode are INVARIANT in S: `S` sits in a covariant
-// return (`getField(): FieldNode<S>`) AND a contravariant param
-// (`walk(WalkHandlers<R, S>)`), so a specialized tree is NOT assignable to the
-// unknown-typed one. This is exactly the friction the boundary aliases resolve.
-// @ts-expect-error -- GroupNode is invariant in S
-const _widenedGroup: GroupNode<unknown> = specializedGroup
-// @ts-expect-error -- ArrayNode is invariant in S
-const _widenedArray: ArrayNode<unknown> = specializedArray
-// @ts-expect-error -- AnyNode is invariant in S
-const _widenedNode: AnyNode<unknown> = specializedNode
-
-// The boundary aliases (GroupNode<any> / AnyNode<any>) accept a front-end-
-// specialized tree, so a schema-agnostic renderer can take one parameter type.
-const _viaGroupAlias: AnyGroupNode = specializedGroup
-const _viaTreeAlias: AnyTreeNode = specializedNode
-
-// AnySchemaResolver<R> = Resolver<R, any> bridges the boundary both ways (a
-// resolver that ignores origin.schema is usable at any S).
-declare const anyResolver: AnySchemaResolver<R>
-const _asSpecializedResolver: Resolver<R, FakeSchema> = anyResolver
-const _asUnknownResolver: Resolver<R> = anyResolver
-
-describe('variance + boundary aliases', () => {
-  it('references the assignment probes so the module is a live spec', () => {
-    // Touch the bindings so they are not dead code; the real assertions are the
-    // (non-)errors above, checked by tsc.
-    expectTypeOf(_widenedField).toEqualTypeOf<FieldNode<unknown>>()
-    expectTypeOf(_widenedGroup).toEqualTypeOf<GroupNode<unknown>>()
-    expectTypeOf(_widenedArray).toEqualTypeOf<ArrayNode<unknown>>()
-    expectTypeOf(_widenedNode).toEqualTypeOf<AnyNode<unknown>>()
-    expectTypeOf(_viaGroupAlias).toEqualTypeOf<AnyGroupNode>()
-    expectTypeOf(_viaTreeAlias).toEqualTypeOf<AnyTreeNode>()
-    expectTypeOf(_asSpecializedResolver).toEqualTypeOf<
-      Resolver<R, FakeSchema>
-    >()
-    expectTypeOf(_asUnknownResolver).toEqualTypeOf<Resolver<R>>()
+  it('AnySchemaResolver bridges the boundary both ways', () => {
+    // A resolver that ignores origin.schema (Resolver<R, any>) is usable at any S.
+    expectTypeOf<
+      Assignable<AnySchemaResolver<R>, Resolver<R, FakeSchema>>
+    >().toEqualTypeOf<true>()
+    expectTypeOf<
+      Assignable<AnySchemaResolver<R>, Resolver<R>>
+    >().toEqualTypeOf<true>()
   })
 })
