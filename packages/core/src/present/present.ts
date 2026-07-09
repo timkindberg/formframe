@@ -97,12 +97,12 @@ export const defaultPresentation: PresentationResolver = (f) => {
       ? { widget: 'radio' }
       : { widget: 'select' }
   }
-  // Containers are never collapsed by default (ADR 030 §3): only a leaf gets the
-  // plain-input fallback, so returning `undefined` for a container leaves the
-  // subtree decomposed unless a consumer resolver opts in. (The §3 amendment —
-  // collapsing scalar-choice ARRAYS by default — is tracked in bd 8o0: those still
-  // collapse to a leaf upstream today, so they arrive here as a
-  // `valueShape:'array' && choices` leaf and hit the first branch above.)
+  // Object and open-ended-array containers are never collapsed by the default rule
+  // (ADR 030 §3): returning `undefined` leaves the subtree decomposed unless a
+  // consumer resolver opts in. A scalar-choice ARRAY is the one container the
+  // default rule DOES collapse — it self-identifies as `valueShape:'array' &&
+  // choices` and is caught by the first branch above, whose widget present()
+  // applies to the container as a subtree collapse (a leaf multiselect/checkboxes).
   if (isContainerFacts(f)) return undefined
   return { widget: 'input' }
 }

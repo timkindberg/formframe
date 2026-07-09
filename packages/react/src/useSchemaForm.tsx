@@ -110,10 +110,10 @@ export function useSchemaForm(
   options: UseSchemaFormOptions = {}
 ) {
   const { validator, resolvePresentation } = options
-  // Parse → present (ADR 029): the default rule reproduces the parser's old
-  // widget choices (identity-preserving, so no override means the same tree),
-  // and a consumer resolver layers on top. `form` feeds both render and submit,
-  // so an overridden widget (e.g. multiselect) is honoured by submit's walk too.
+  // Parse → present (ADR 029): the default rule derives each widget from neutral
+  // facts (identity-preserving, so no override means the same tree), and a consumer
+  // resolver layers on top. `form` feeds both render and submit, so an overridden
+  // widget (e.g. multiselect) is honoured by submit's walk too.
   const form = useMemo(
     () =>
       present(

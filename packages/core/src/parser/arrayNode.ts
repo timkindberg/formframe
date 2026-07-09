@@ -24,7 +24,7 @@ import type {
 export function createArrayNode<S = unknown>(input: {
   facts: ContainerFacts<S>
   parts: ArrayParts
-  seed: AnyNode<S>[]
+  seed: ArrayItemNode<S>[]
   itemFactory: (index: number) => ArrayItemNode<S>
 }): ArrayNode<S> {
   const { facts, parts, seed, itemFactory } = input
