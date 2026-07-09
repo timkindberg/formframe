@@ -4,7 +4,7 @@
 // via $ref before jsonSchemaToTree compiles the form tree.
 import { useState } from 'react'
 import { useSchemaForm } from '@jsonschema-form/react'
-import type { JSONSchema } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 const addressDef = {
   type: 'object',

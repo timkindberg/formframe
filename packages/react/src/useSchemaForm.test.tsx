@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { useSchemaForm } from './useSchemaForm'
-import type { JSONSchema } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 // `useSchemaForm` returns `{ form, SchemaFields }`. `SchemaFields` renders the form's
 // *content only* — chrome (`<form>` + submit) is the consumer's (ADR 013), so

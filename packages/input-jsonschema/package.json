@@ -1,7 +1,7 @@
 {
-  "name": "@jsonschema-form/core",
+  "name": "@jsonschema-form/input-jsonschema",
   "version": "0.0.0",
-  "description": "Headless core logic for JSON Schema form generation",
+  "description": "JSON Schema front-end for @jsonschema-form/core — compiles JSON Schema into the neutral form tree (ADR 033)",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
@@ -19,18 +19,22 @@
     "build": "echo 'Build script not yet configured'",
     "test": "vitest",
     "test:watch": "vitest --watch",
-    "test:ui": "vitest --ui",
     "clean": "rm -rf dist"
   },
   "keywords": [
     "json-schema",
-    "forms",
-    "headless",
-    "core"
+    "forms"
   ],
   "author": "Tim Kindberg",
   "license": "MIT",
+  "peerDependencies": {
+    "@jsonschema-form/core": "*"
+  },
+  "dependencies": {
+    "json-schema-typed": "^8.0.1"
+  },
   "devDependencies": {
+    "@jsonschema-form/core": "*",
     "typescript": "^5.3.3",
     "vitest": "^4.0.9"
   }

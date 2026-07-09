@@ -30,10 +30,12 @@
   "license": "MIT",
   "peerDependencies": {
     "@jsonschema-form/core": "*",
+    "@jsonschema-form/input-jsonschema": "*",
     "ajv": "^8.0.0"
   },
   "devDependencies": {
     "@jsonschema-form/core": "*",
+    "@jsonschema-form/input-jsonschema": "*",
     "@jsonschema-form/validation-contract": "*",
     "ajv": "^8.17.1",
     "typescript": "^5.3.3",

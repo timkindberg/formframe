@@ -1,7 +1,7 @@
 # ADR 033: Core Is Schema-Agnostic — a Neutral Compile-In Seam and Per-Schema Input Packages
 
 **Date:** 2026-07-07
-**Status:** Accepted (bd `8o0`) — staged implementation (B1 ✅ → B2 ✅ → B3 pending)
+**Status:** Accepted (bd `8o0`) — staged implementation (B1 ✅ → B2 ✅ → B3 ✅ → B4 ✅)
 **Deciders:** Tim Kindberg
 **Extends:** ADR 006 (Core as the form-tree IR with adapters), ADR 029 (neutral
 `FieldFacts` + `present()`), ADR 030 (container facts + subtree collapse)
@@ -108,8 +108,10 @@ front-end-owned `origin.schema` on facts.
 
 `jsonSchemaToTree`, `resolveRefs`, and the keyword→facts mapping move to a new
 `@jsonschema-form/input-jsonschema` package that depends on `@jsonschema-form/core` and calls
-its builders. Core keeps zero dependencies and no JSON Schema import. `@jsonschema-form/core`
-re-exporting `jsonSchemaToTree` for one release is a migration convenience, not the end state.
+its builders. Core keeps zero dependencies and no JSON Schema import. Core does **not**
+re-export `jsonSchemaToTree` (that would make the dependency point back Core→front-end); every
+consumer imports it directly from `@jsonschema-form/input-jsonschema`, and the `JSONSchema` type
+now lives there too.
 
 ## Migration (staged; gate-green per PR)
 
@@ -121,8 +123,15 @@ re-exporting `jsonSchemaToTree` for one release is a migration convenience, not 
   `createMultiselectFieldNode`/`isPrimitiveArraySchema` are gone. Output is byte-identical
   (the collapsed leaf's facts match the old multiselect leaf). Nested primitive arrays now
   work as a side effect (relates to bd `ci4`).
-- **PR B3** — §3/§4/§5: neutral builders + `itemFactory`; generic `origin<S>`; drop
-  `NodeBase.schema`; extract `@jsonschema-form/input-jsonschema`.
+- **PR B3 ✅** — §3/§4: neutral builders (`createFieldNode`/`createGroupNode`/`createArrayNode`/
+  `createArrayItemNode`) + `itemFactory` closure; generic `origin<S>` (Core defaults `S=unknown`,
+  reads it as opaque); drop `NodeBase.schema` / `ArrayNode.itemSchema`. Core-internal — the JSON
+  Schema front-end (`compile.ts`) still lived in Core, now pinned to `S=JSONSchemaObject`.
+- **PR B4 ✅** — §5: extract `@jsonschema-form/input-jsonschema` (`compile`, `resolveRefs`,
+  `jsonSchemaToTree`, and the `JSONSchema`/`JSONSchemaObject` types). Core exports the neutral
+  builders + `ValidationRules` + `decodeJsonPointerSegment`, drops the `json-schema-typed`
+  dependency, and no longer imports or re-exports any JSON Schema. All consumers (react, vanilla,
+  validation-*, examples) and the schema-driven tests moved to the new package.
 
 ## Consequences
 

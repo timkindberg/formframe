@@ -1,15 +1,16 @@
 /**
  * @jsonschema-form/core
  *
- * Headless foundation for JSON Schema form generation.
- * Zero dependencies. No framework coupling.
+ * Headless, schema-agnostic form-tree IR + the present() fold (ADR 033).
+ * Zero dependencies. No framework coupling. Front-ends (e.g.
+ * @jsonschema-form/input-jsonschema) compile a schema INTO this tree via the
+ * neutral builders below; Core reads no schema language itself.
  */
 
 export const VERSION = '0.0.0'
 
 // Export types
 export type {
-  JSONSchema,
   NodeType,
   AnyNode,
   ContainerNode,
@@ -47,8 +48,12 @@ export type {
   FieldPath,
 } from './types'
 
-// Export main parser
-export { jsonSchemaToTree } from './parser/index'
+// Neutral builders (ADR 033 §3) — a front-end produces neutral facts/parts/
+// children and calls these to assemble the tree. They read NO schema language.
+export { createFieldNode } from './parser/fieldNode'
+export { createGroupNode } from './parser/groupNode'
+export { createArrayNode, createArrayItemNode } from './parser/arrayNode'
+export type { ValidationRules } from './parser/utils'
 
 // Presentation stage (ADR 029) — assigns a widget + derives control parts from
 // neutral FieldFacts via a source-agnostic layered resolver. Runs between parse
@@ -64,8 +69,13 @@ export {
 } from './present/present'
 export type { Presentation, PresentationResolver } from './present/present'
 
-// JSON Pointer ↔ tree dot-path helpers (ADR 018) — shared with validation adapters.
-export { jsonPointerToPath, joinPath } from './jsonPointer'
+// JSON Pointer ↔ tree dot-path helpers (ADR 018) — shared with validation
+// adapters and the JSON Schema front-end (its $ref resolver).
+export {
+  jsonPointerToPath,
+  joinPath,
+  decodeJsonPointerSegment,
+} from './jsonPointer'
 
 // Validation capability slot (ADR 019) — the neutral, side-loaded contract.
 // Adapters (e.g. @jsonschema-form/validation-ajv) implement `Validator`.

@@ -13,7 +13,7 @@
 import { useMemo } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import type { JSONSchema } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
 import { useSchemaForm } from './useSchemaForm'
 import { ValidationProvider, fieldControlId, fieldErrorId } from './renderer'

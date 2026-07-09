@@ -1,10 +1,7 @@
-import type { JSONSchema } from 'json-schema-typed/draft-07'
 import type { AnyNode, ContainerNode, WalkHandlers } from './nodeTypes'
 
-// JSONSchema can be a boolean in draft-07, but we only work with object schemas
-export type JSONSchemaObject = Exclude<JSONSchema, boolean>
-
-// Validation object shape (exported for type inference)
+// Neutral validation-rule bag (ADR 033 §1). A front-end maps its own schema
+// keywords into this; Core reads it to derive control attrs in present().
 export interface ValidationRules {
   required: boolean
   minLength?: number

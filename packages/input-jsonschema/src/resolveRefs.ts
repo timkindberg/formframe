@@ -1,5 +1,5 @@
-import { decodeJsonPointerSegment } from '../jsonPointer'
-import type { JSONSchemaObject } from './utils'
+import { decodeJsonPointerSegment } from '@jsonschema-form/core'
+import type { JSONSchemaObject } from './types'
 
 /**
  * Resolve same-document JSON Pointer `$ref`s before tree compilation.

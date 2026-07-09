@@ -117,13 +117,13 @@ A first-party reactive store (dependency-free live behavior without reaching for
 
 ## Type System Decisions
 
-We use **`json-schema-typed`** (draft-07) for the JSON Schema front-end's types: battle-tested (120M+ downloads), supports modern drafts, no known vulnerabilities, and stable enough that its type definitions don't need constant updates. Core re-exports the type:
+We use **`json-schema-typed`** (draft-07) for the JSON Schema front-end's types: battle-tested (120M+ downloads), supports modern drafts, no known vulnerabilities, and stable enough that its type definitions don't need constant updates. Since Core is schema-agnostic (ADR 033), this dependency and the `JSONSchema` type live in **`@jsonschema-form/input-jsonschema`**, which re-exports it:
 
 ```typescript
 export type { JSONSchema } from 'json-schema-typed/draft-07'
 ```
 
-This lets consumers import the schema type from our package without knowing our internal dependencies.
+This lets consumers import the schema type from the JSON Schema front-end without knowing its internal dependencies; Core itself imports no schema language.
 
 ## What We Decided Against
 

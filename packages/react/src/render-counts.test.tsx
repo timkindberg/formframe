@@ -9,8 +9,8 @@
 
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { jsonSchemaToTree } from '@jsonschema-form/core'
-import type { JSONSchema } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import { useState, useMemo } from 'react'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
 import {

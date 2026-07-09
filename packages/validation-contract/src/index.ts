@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import type {
-  JSONSchema,
-  Validator,
-  ValidationIssue,
-} from '@jsonschema-form/core'
+import type { Validator, ValidationIssue } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 /**
  * A validator under test. Every adapter (AJV, Zod) plus the throwaway fake

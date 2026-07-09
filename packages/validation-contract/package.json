@@ -31,10 +31,12 @@
   "license": "MIT",
   "peerDependencies": {
     "@jsonschema-form/core": "*",
+    "@jsonschema-form/input-jsonschema": "*",
     "vitest": "^4.0.0"
   },
   "devDependencies": {
     "@jsonschema-form/core": "*",
+    "@jsonschema-form/input-jsonschema": "*",
     "typescript": "^5.3.3",
     "vitest": "^4.0.9"
   }

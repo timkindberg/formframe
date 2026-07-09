@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSchemaForm } from '@jsonschema-form/react'
-import type { JSONSchema } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 // Every field below is a plain `type: 'string'` (or number/boolean/enum) — the
 // native control is chosen by the `present()` stage from neutral facts (bd 4j1):

@@ -1,5 +1,5 @@
 import { useSchemaForm } from '@jsonschema-form/react'
-import type { JSONSchema } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 const schema: JSONSchema = {
   type: 'object',

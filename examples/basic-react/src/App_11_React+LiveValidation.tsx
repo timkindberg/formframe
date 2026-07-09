@@ -11,7 +11,7 @@ import {
   ValidationSummary,
 } from '@jsonschema-form/react'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
-import type { JSONSchema } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 const schema: JSONSchema = {
   type: 'object',

@@ -31,9 +31,11 @@
   "license": "MIT",
   "peerDependencies": {
     "@jsonschema-form/core": "*",
+    "@jsonschema-form/input-jsonschema": "*",
     "react": "^18.0.0"
   },
   "devDependencies": {
+    "@jsonschema-form/input-jsonschema": "*",
     "@jsonschema-form/vanilla": "*",
     "@jsonschema-form/validation-ajv": "*",
     "@types/react": "^18.2.0",

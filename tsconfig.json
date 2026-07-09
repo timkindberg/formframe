@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/core" },
+    { "path": "./packages/input-jsonschema" },
     { "path": "./packages/react" },
     { "path": "./packages/vanilla" },
     { "path": "./packages/validation-ajv" },

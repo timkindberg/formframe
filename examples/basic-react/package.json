@@ -10,6 +10,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
     "@jsonschema-form/core": "*",
+    "@jsonschema-form/input-jsonschema": "*",
     "@jsonschema-form/react": "*",
     "@jsonschema-form/validation-ajv": "*",
     "react": "^18.3.1",

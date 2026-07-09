@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { jsonSchemaToTree } from '../parser/index'
 import {
   present,
   defaultPresentation,
   OPTION_COUNT_THRESHOLD,
   layered,
   type PresentationResolver,
-} from './present'
+} from '@jsonschema-form/core'
+import { jsonSchemaToTree } from './jsonSchemaToTree'
 import {
   inputCtl,
   selectCtl,

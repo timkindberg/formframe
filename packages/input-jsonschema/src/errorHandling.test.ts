@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { jsonSchemaToTree } from './index'
-import type { JSONSchema } from '../types'
-import { inputCtl } from '../present/controlTestUtils'
+import { jsonSchemaToTree } from './jsonSchemaToTree'
+import type { JSONSchema } from './types'
+import { inputCtl } from './controlTestUtils'
 
 describe('error handling robustness', () => {
   it('throws for boolean root schemas', () => {

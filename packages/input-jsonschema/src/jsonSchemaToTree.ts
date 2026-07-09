@@ -1,8 +1,8 @@
-import type { JSONSchema, GroupNode } from '../types'
-import type { JSONSchemaObject } from './utils'
+import type { GroupNode } from '@jsonschema-form/core'
+import { present, defaultPresentation } from '@jsonschema-form/core'
+import type { JSONSchema, JSONSchemaObject } from './types'
 import { compileRoot, isObjectSchema } from './compile'
 import { resolveLocalRefs } from './resolveRefs'
-import { present, defaultPresentation } from '../present/present'
 
 export function jsonSchemaToTree(
   schema: JSONSchema

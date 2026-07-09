@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { jsonSchemaToTree } from './index'
-import type { JSONSchema } from '../types'
+import { jsonSchemaToTree } from './jsonSchemaToTree'
+import type { JSONSchema } from './types'
 import { assertArrayNode, assertGroupNode } from './nodeTestUtils'
 import { submitWith } from './submitTestUtils'
 

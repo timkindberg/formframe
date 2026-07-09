@@ -9,7 +9,8 @@
 
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import type { JSONSchema, PresentationResolver } from '@jsonschema-form/core'
+import type { PresentationResolver } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import { useSchemaForm } from './useSchemaForm'
 
 const schema: JSONSchema = {

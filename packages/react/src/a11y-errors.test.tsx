@@ -6,8 +6,9 @@
 import { useMemo } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import type { JSONSchema, ValidationIssue } from '@jsonschema-form/core'
-import { jsonSchemaToTree } from '@jsonschema-form/core'
+import type { ValidationIssue } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import {
   SchemaFields,
   ValidationProvider,

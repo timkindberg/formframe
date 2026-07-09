@@ -11,20 +11,16 @@
 // `it.todo` below).
 
 import { describe, it, expect } from 'vitest'
-import { jsonSchemaToTree } from '../parser/index'
-import { compileRoot } from '../parser/compile'
-import {
-  assertArrayNode,
-  assertField,
-  assertGroupNode,
-} from '../parser/nodeTestUtils'
-import type { JSONSchema } from '../types'
 import {
   present,
   defaultPresentation,
   layered,
   type PresentationResolver,
-} from './present'
+} from '@jsonschema-form/core'
+import { jsonSchemaToTree } from './jsonSchemaToTree'
+import { compileRoot } from './compile'
+import { assertArrayNode, assertField, assertGroupNode } from './nodeTestUtils'
+import type { JSONSchema } from './types'
 
 // The canonical VNDLY object-array multiselect case (ADR 030 Context).
 const objectArraySchema = {

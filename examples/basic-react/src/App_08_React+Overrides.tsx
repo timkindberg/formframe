@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import { jsonSchemaToTree } from '@jsonschema-form/core'
-import type { JSONSchema } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import { SchemaFields } from '@jsonschema-form/react'
 
 // The real continuation engine (ADR 010) — the typed successor to the spike.

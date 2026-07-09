@@ -1,12 +1,12 @@
 import Ajv, { type ErrorObject, type Options as AjvOptions } from 'ajv'
 import addFormats from 'ajv-formats'
 import type {
-  JSONSchema,
   Validator,
   ValidationIssue,
   InferData,
 } from '@jsonschema-form/core'
 import { joinPath, jsonPointerToPath } from '@jsonschema-form/core'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 export interface AjvValidatorOptions {
   /**

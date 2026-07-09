@@ -1,13 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { jsonSchemaToTree } from './index'
-import type { JSONSchema, GroupNode } from '../types'
+import type { GroupNode } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from './jsonSchemaToTree'
+import type { JSONSchema } from './types'
 // The field control is a single discriminated slot now (ADR 029 §5, v60); these
 // shared helpers narrow `control.kind` to reach archetype-specific attrs/options.
-import {
-  inputCtl,
-  selectCtl,
-  choicegroupCtl,
-} from '../present/controlTestUtils'
+import { inputCtl, selectCtl, choicegroupCtl } from './controlTestUtils'
 import { submitWith } from './submitTestUtils'
 
 describe('jsonSchemaToTree', () => {

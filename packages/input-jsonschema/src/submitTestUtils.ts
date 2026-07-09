@@ -3,8 +3,8 @@
 // Runs form.submit() against a mocked FormData backed by [key, value] pairs
 // (a multimap, so duplicate keys survive — matching real FormData).
 
-import { jsonSchemaToTree } from './index'
-import type { JSONSchema } from '../types'
+import { jsonSchemaToTree } from './jsonSchemaToTree'
+import type { JSONSchema } from './types'
 
 export function submitWith(
   schema: JSONSchema,

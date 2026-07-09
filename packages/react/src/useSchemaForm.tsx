@@ -8,18 +8,14 @@ import {
   type ReactNode,
   type SyntheticEvent,
 } from 'react'
-import {
-  jsonSchemaToTree,
-  present,
-  defaultPresentation,
-  layered,
-} from '@jsonschema-form/core'
+import { present, defaultPresentation, layered } from '@jsonschema-form/core'
 import type {
-  JSONSchema,
   Validator,
   ValidationIssue,
   PresentationResolver,
 } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import {
   SchemaFields as SchemaFieldsRenderer,
   type EGroup,

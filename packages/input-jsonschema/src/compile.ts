@@ -1,16 +1,16 @@
 // The JSON Schema front-end (ADR 033). It is a pure STRUCTURAL transcriber: it
 // reads JSON Schema keywords, produces neutral facts / parts / children, and calls
 // Core's neutral builders. It NEVER decides a widget or collapses a subtree — all
-// lowering lives in present() (ADR 030 §3). This is the only module in the parser
-// that reads `schema.*`; the builders (fieldNode/groupNode/arrayNode) are neutral
-// assemblers. In a later step this file moves wholesale into
-// `@jsonschema-form/input-jsonschema`, leaving Core with zero JSON Schema imports.
+// lowering lives in present() (ADR 030 §3). This is the only module that reads
+// `schema.*`; Core's builders (createFieldNode/createGroupNode/createArrayNode)
+// are neutral assemblers. Core imports nothing from here.
 
-import type { JSONSchema } from 'json-schema-typed/draft-07'
-import { createFieldNode } from './fieldNode'
-import { createGroupNode } from './groupNode'
-import { createArrayNode, createArrayItemNode } from './arrayNode'
-import type { JSONSchemaObject, ValidationRules } from './utils'
+import {
+  createFieldNode,
+  createGroupNode,
+  createArrayNode,
+  createArrayItemNode,
+} from '@jsonschema-form/core'
 import type {
   AnyNode,
   ArrayItemNode,
@@ -23,7 +23,9 @@ import type {
   ItemDescriptor,
   LeafFacts,
   SelectOption,
-} from './nodeTypes'
+  ValidationRules,
+} from '@jsonschema-form/core'
+import type { JSONSchema, JSONSchemaObject } from './types'
 
 /** Type guard: a draft-07 schema may be a boolean; we only compile object schemas. */
 export function isObjectSchema(schema: JSONSchema): schema is JSONSchemaObject {

@@ -26,13 +26,10 @@
 
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import {
-  jsonSchemaToTree,
-  present,
-  defaultPresentation,
-  layered,
-} from '@jsonschema-form/core'
-import type { JSONSchema, PresentationResolver } from '@jsonschema-form/core'
+import { present, defaultPresentation, layered } from '@jsonschema-form/core'
+import type { PresentationResolver } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import {
   renderToString,
   type RenderNode as VanillaRenderNode,

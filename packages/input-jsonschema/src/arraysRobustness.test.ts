@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { OPTION_COUNT_THRESHOLD } from '../index'
-import { jsonSchemaToTree } from './index'
-import type { JSONSchema } from '../types'
-import { choicegroupCtl } from '../present/controlTestUtils'
+import { OPTION_COUNT_THRESHOLD } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from './jsonSchemaToTree'
+import type { JSONSchema } from './types'
+import { choicegroupCtl } from './controlTestUtils'
 import { assertArrayNode, assertField } from './nodeTestUtils'
 import { submitWith } from './submitTestUtils'
 

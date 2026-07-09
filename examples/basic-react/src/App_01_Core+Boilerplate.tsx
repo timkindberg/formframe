@@ -1,5 +1,5 @@
-import { jsonSchemaToTree } from '@jsonschema-form/core'
-import type { JSONSchema } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
+import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 const schema: JSONSchema = {
   type: 'object',

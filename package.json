@@ -11,7 +11,7 @@
     "dev": "npm run dev -w examples/basic-react",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/core/tsconfig.test.json && tsc --noEmit -p packages/react/tsconfig.src.json && tsc --noEmit -p packages/react/tsconfig.test.json && tsc --noEmit -p packages/vanilla && tsc --noEmit -p packages/vanilla/tsconfig.test.json && tsc --noEmit -p packages/validation-ajv && tsc --noEmit -p packages/validation-ajv/tsconfig.test.json && tsc --noEmit -p packages/validation-contract && tsc --noEmit -p packages/validation-zod && tsc --noEmit -p packages/validation-zod/tsconfig.test.json && tsc --noEmit -p examples/basic-react/tsconfig.json",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/core/tsconfig.test.json && tsc --noEmit -p packages/input-jsonschema && tsc --noEmit -p packages/input-jsonschema/tsconfig.test.json && tsc --noEmit -p packages/react/tsconfig.src.json && tsc --noEmit -p packages/react/tsconfig.test.json && tsc --noEmit -p packages/vanilla && tsc --noEmit -p packages/vanilla/tsconfig.test.json && tsc --noEmit -p packages/validation-ajv && tsc --noEmit -p packages/validation-ajv/tsconfig.test.json && tsc --noEmit -p packages/validation-contract && tsc --noEmit -p packages/validation-zod && tsc --noEmit -p packages/validation-zod/tsconfig.test.json && tsc --noEmit -p examples/basic-react/tsconfig.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

@@ -6,7 +6,7 @@
 // unified `parts.control` union to a specific `kind`, throwing a clear message
 // otherwise, and return it *properly typed* so `.attrs`/`.options` need no cast.
 
-import type { FieldControl, FieldNode } from '../parser/nodeTypes'
+import type { FieldControl, FieldNode } from '@jsonschema-form/core'
 
 type ControlOfKind<K extends FieldControl['kind']> = Extract<
   FieldControl,
