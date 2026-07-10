@@ -35,7 +35,7 @@ interface RendererAdapter<R> {
 }
 ```
 
-That is the whole framework-specific footprint: the default **template-set** and how to **combine** children. Root groups are transparent (their default is just their children); arrays/array-items are structural pass-throughs for now (interactivity deferred). `useSchemaForm` and `renderToString` stay as the per-framework entry points and form chrome.
+That is the whole framework-specific footprint: the default **template-set** and how to **combine** children. Root groups are transparent (their default is just their children); arrays/array-items are structural pass-throughs for now (interactivity deferred). `useFormTree` and `renderToString` stay as the per-framework entry points; form chrome remains consumer-owned.
 
 ### 3. The headline finding: React's Context was incidental, not essential
 

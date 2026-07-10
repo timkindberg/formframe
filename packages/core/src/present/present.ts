@@ -324,7 +324,7 @@ function widgetParts(f: FieldFacts, widget: string): WidgetParts | undefined {
  * Finalize a facts-only leaf via the shipped default rule — the parser calls this
  * so `present()` (this module) is the SOLE source of widget selection AND parts
  * derivation (bd 9pb closes the ADR 029 dual period). `jsonSchemaToTree`'s return
- * stays fully-formed for direct renders; `useSchemaForm` re-runs `present()` with
+ * stays fully-formed for direct renders; `useFormTree` re-runs `present()` with
  * any consumer resolver layered on top, identity-preservingly.
  */
 export function presentDefaultLeaf(f: FieldFacts): WidgetParts {

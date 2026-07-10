@@ -28,8 +28,7 @@
 // the form's *content only*; the `<form>` + submit button are the consumer's.
 //
 // Front-end-agnostic: this operates on the Core form *tree*, never a schema.
-// The JSON Schema entry point (`jsonSchemaToTree`) is imported only by the
-// `useSchemaForm` convenience hook — so a future Zod/TS front-end is a drop-in.
+// Input packages compile their source before `useFormTree` binds React behavior.
 import {
   useMemo,
   useState,
@@ -226,7 +225,7 @@ const EMPTY_TOUCHED: ReadonlySet<string> = new Set()
  * set of blurred field paths), `submitted`, and `showErrorsWhen` drive *when*
  * each field reveals its errors: the default `'touched'` gates on this field's
  * touched slice + the submit flag (RHF-style — so you must feed `touched`/
- * `submitted`, as `useSchemaForm` does, or nothing appears), `'submit'` waits for
+ * `submitted`, as `useFormTree` does, or nothing appears), `'submit'` waits for
  * a submit attempt, and `'always'` shows issues the moment they exist. Both
  * stores diff per path and notify, so a keystroke or a blur re-renders only the
  * field it concerns.

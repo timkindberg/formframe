@@ -3,7 +3,8 @@
 // The address shape lives once under $defs; shipping and billing both reuse it
 // via $ref before jsonSchemaToTree compiles the form tree.
 import { useState } from 'react'
-import { useSchemaForm } from '@jsonschema-form/react'
+import { useFormTree } from '@jsonschema-form/react'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 const addressDef = {
@@ -37,9 +38,10 @@ const schema = {
     Address: addressDef,
   },
 } as JSONSchema
+const tree = jsonSchemaToTree(schema)
 
 function App() {
-  const { SchemaFields, submit } = useSchemaForm(schema)
+  const { SchemaFields, submit } = useFormTree(tree)
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
     null
   )

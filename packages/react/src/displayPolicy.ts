@@ -21,7 +21,7 @@ export type ShowErrorsWhen = 'always' | 'touched' | 'submit'
 
 /**
  * The default policy (ADR 027): quiet until touched, RHF-style. Note this means a
- * `ValidationProvider` must be fed `touched`/`submitted` (as `useSchemaForm`
+ * `ValidationProvider` must be fed `touched`/`submitted` (as `useFormTree`
  * does) for errors to appear; pass `showErrorsWhen="always"` to report the moment
  * an issue exists regardless of touch.
  */

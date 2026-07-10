@@ -1,7 +1,7 @@
 {
   "name": "@jsonschema-form/react",
   "version": "0.0.0",
-  "description": "React adapter for JSON Schema forms",
+  "description": "React adapter for Core form trees from any schema front-end",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
@@ -31,13 +31,14 @@
   "license": "MIT",
   "peerDependencies": {
     "@jsonschema-form/core": "*",
-    "@jsonschema-form/input-jsonschema": "*",
     "react": "^18.0.0"
   },
   "devDependencies": {
     "@jsonschema-form/input-jsonschema": "*",
-    "@jsonschema-form/vanilla": "*",
+    "@jsonschema-form/input-zod": "*",
     "@jsonschema-form/validation-ajv": "*",
+    "@jsonschema-form/validation-zod": "*",
+    "@jsonschema-form/vanilla": "*",
     "@types/react": "^18.2.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/browser": "^4.0.14",
@@ -47,7 +48,8 @@
     "react-dom": "^18.2.0",
     "typescript": "^5.3.3",
     "vitest": "^4.0.14",
-    "vitest-browser-react": "^2.0.2"
+    "vitest-browser-react": "^2.0.2",
+    "zod": "^4.4.3"
   },
   "dependencies": {
     "@vitest/browser-playwright": "^4.0.14"

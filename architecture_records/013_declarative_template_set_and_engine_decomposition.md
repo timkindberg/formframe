@@ -6,7 +6,7 @@
 
 ## Context
 
-With `useSchemaForm` rewired as pure sugar over the React renderer (ADR 010) and the continuation engine extracted to Core (ADR 014), the renderer's responsibilities became visible in one place — and the old `FormRenderer` bundled **three** distinct jobs:
+With `useFormTree` established as pure sugar over the React renderer (ADR 010/035) and the continuation engine extracted to Core (ADR 014), the renderer's responsibilities became visible in one place — and the old `FormRenderer` bundled **three** distinct jobs:
 
 1. **The engine** — recursion over the IR, `renderNode` dispatch, scoping, and the re-entry handles (`node.Default`/`Children`/`child`/`parts.X.Default`). *This already moved to Core (ADR 014).*
 2. **A default template-set** — the hardcoded JSX for each node *kind* and *part* (`DefaultField`/`DefaultGroup`/`DefaultPart`).
@@ -55,11 +55,11 @@ The `<form>` element and submit button are **not** rendered by the library. The 
 </form>
 ```
 
-This keeps renderers nesting cleanly (a `SchemaFields` inside another consumer's `SchemaFields` — the VNDLY nested-form pain — needs no chrome-stripping workaround) and resolves the App_08 spike's "submit is not a part" gap: submit was never a part; it's chrome, and chrome is the consumer's. `useSchemaForm` now returns `{ form, SchemaFields }`.
+This keeps renderers nesting cleanly (a `SchemaFields` inside another consumer's `SchemaFields` — the VNDLY nested-form pain — needs no chrome-stripping workaround) and resolves the App_08 spike's "submit is not a part" gap: submit was never a part; it's chrome, and chrome is the consumer's. `useFormTree` returns `{ form, SchemaFields }`.
 
 ### 4. The rungs, top to bottom
 
-- `useSchemaForm(schema) → { form, SchemaFields }` — holds the tree; sugar.
+- `useFormTree(tree) → { form, SchemaFields }` — holds the compiled tree; sugar.
 - `SchemaFields` — batteries-included; `createRenderer(defaultAdapter)`.
 - `createRenderer(partialAdapter)` — the public floor; gaps → diagnostic markers.
 - `createContinuation(adapter)` (Core) — the mechanism; takes a complete adapter.

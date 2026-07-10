@@ -1,13 +1,20 @@
+import { useMemo } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { useSchemaForm } from './useSchemaForm'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
+import { useFormTree } from './useFormTree'
 
-// `useSchemaForm` returns `{ form, SchemaFields }`. `SchemaFields` renders the form's
+// `useFormTree` returns `{ form, SchemaFields }`. `SchemaFields` renders the form's
 // *content only* — chrome (`<form>` + submit) is the consumer's (ADR 013), so
 // these tests place it themselves where a submit is needed.
 
-describe('useSchemaForm', () => {
+function useJsonSchemaTree(schema: JSONSchema) {
+  const tree = useMemo(() => jsonSchemaToTree(schema), [schema])
+  return useFormTree(tree)
+}
+
+describe('useFormTree with a JSON Schema tree', () => {
   it('should render a simple form with a text field', async () => {
     const schema: JSONSchema = {
       type: 'object',
@@ -20,7 +27,7 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { SchemaFields } = useSchemaForm(schema)
+      const { SchemaFields } = useJsonSchemaTree(schema)
       return <SchemaFields />
     }
 
@@ -47,7 +54,7 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { SchemaFields } = useSchemaForm(schema)
+      const { SchemaFields } = useJsonSchemaTree(schema)
       return <SchemaFields />
     }
 
@@ -70,7 +77,7 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { SchemaFields } = useSchemaForm(schema)
+      const { SchemaFields } = useJsonSchemaTree(schema)
       return <SchemaFields />
     }
 
@@ -93,7 +100,7 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { SchemaFields } = useSchemaForm(schema)
+      const { SchemaFields } = useJsonSchemaTree(schema)
       return <SchemaFields />
     }
 
@@ -116,7 +123,7 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { SchemaFields } = useSchemaForm(schema)
+      const { SchemaFields } = useJsonSchemaTree(schema)
       return <SchemaFields />
     }
 
@@ -145,7 +152,7 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { SchemaFields } = useSchemaForm(schema)
+      const { SchemaFields } = useJsonSchemaTree(schema)
       return <SchemaFields />
     }
 
@@ -182,7 +189,7 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { SchemaFields } = useSchemaForm(schema)
+      const { SchemaFields } = useJsonSchemaTree(schema)
       return <SchemaFields />
     }
 
@@ -218,7 +225,7 @@ describe('useSchemaForm', () => {
     }
 
     function TestComponent() {
-      const { form, SchemaFields } = useSchemaForm(schema)
+      const { form, SchemaFields } = useJsonSchemaTree(schema)
       return (
         <form onSubmit={form.submit(handleSubmit)}>
           <SchemaFields />
@@ -247,11 +254,11 @@ describe('useSchemaForm', () => {
     }
 
     const formNodeRef = {
-      current: null as ReturnType<typeof useSchemaForm>['form'] | null,
+      current: null as ReturnType<typeof useJsonSchemaTree>['form'] | null,
     }
 
     function TestComponent() {
-      const { form, SchemaFields } = useSchemaForm(schema)
+      const { form, SchemaFields } = useJsonSchemaTree(schema)
 
       // Capture form node via ref pattern (safe for testing)
       // eslint-disable-next-line react-hooks/immutability

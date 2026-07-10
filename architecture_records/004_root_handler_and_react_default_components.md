@@ -201,7 +201,7 @@ Added comprehensive tests for root handler behavior:
 
 ## Future Considerations
 
-1. **Higher-level composition API**: Next step toward `useSchemaForm()` hook
+1. **Higher-level composition API**: Later realized as `useFormTree()` (ADR 035)
    - Return `Form` component with `.children` accessor
    - Support `render` prop overrides per field
    - Enable `<Form.children.name />` style JSX

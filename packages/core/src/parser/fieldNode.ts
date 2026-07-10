@@ -9,7 +9,7 @@ export type { ValidationRules }
  * Neutral builder (ADR 033 §3): assemble a leaf {@link FieldNode} from already-
  * neutral {@link LeafFacts}. It reads NO schema — a front-end produces the facts.
  * Widget + control parts come solely from the present stage's default rule and
- * Core widget catalog (bd 9pb); `useSchemaForm` re-runs `present()` with any
+ * Core widget catalog (bd 9pb); `useFormTree` re-runs `present()` with any
  * consumer resolver on top, while a direct `jsonSchemaToTree` consumer still gets a
  * fully-formed, default-presented tree.
  */

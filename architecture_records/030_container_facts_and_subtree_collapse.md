@@ -189,7 +189,7 @@ Uncollapsed containers recurse exactly as today. **Collapse is memoized the same
 rest of `present()` is** — this is not new machinery, it inherits ADR 029 §3:
 
 - `present()` is a pure fold keyed on `(tree, resolver)`, run **once** and cached upstream
-  (`useSchemaForm`'s `useMemo`), so collapse does **not** re-run on value changes /
+  (`useFormTree`'s `useMemo`), so collapse does **not** re-run on value changes /
   keystrokes — only if the schema or resolver identity changes.
 - collapse is **identity-preserving**: a container whose facts and resolver decision are
   unchanged returns the *same* collapsed node reference (structural sharing), so even when

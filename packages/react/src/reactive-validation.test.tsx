@@ -13,9 +13,10 @@
 import { useMemo } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
-import { useSchemaForm } from './useSchemaForm'
+import { useFormTree } from './useFormTree'
 import { ValidationProvider, fieldControlId, fieldErrorId } from './renderer'
 
 const schema: JSONSchema = {
@@ -26,10 +27,11 @@ const schema: JSONSchema = {
     zip: { type: 'string', title: 'Zip', pattern: '^[0-9]{5}$' },
   },
 }
+const tree = jsonSchemaToTree(schema)
 
 function InputHarness() {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, revalidate, errors } = useSchemaForm(schema, {
+  const { SchemaFields, revalidate, errors } = useFormTree(tree, {
     validator,
   })
   return (
@@ -43,7 +45,7 @@ function InputHarness() {
 
 function ChangeHarness() {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, revalidate, errors } = useSchemaForm(schema, {
+  const { SchemaFields, revalidate, errors } = useFormTree(tree, {
     validator,
   })
   return (
@@ -57,7 +59,7 @@ function ChangeHarness() {
 
 function SubmitOnlyHarness() {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, submit, errors } = useSchemaForm(schema, { validator })
+  const { SchemaFields, submit, errors } = useFormTree(tree, { validator })
   return (
     <form noValidate onSubmit={submit(() => {})}>
       <ValidationProvider issues={errors} showErrorsWhen="always">
@@ -167,10 +169,11 @@ describe('reactive validation (ADR 021)', () => {
         handle: { type: 'string', title: 'Handle', maxLength: 20 },
       },
     }
+    const handleTree = jsonSchemaToTree(handleSchema)
 
     function Harness() {
       const validator = useMemo(() => createAjvValidator(handleSchema), [])
-      const { SchemaFields, revalidate, errors } = useSchemaForm(handleSchema, {
+      const { SchemaFields, revalidate, errors } = useFormTree(handleTree, {
         validator,
       })
       return (

@@ -64,7 +64,7 @@ re-render to reveal all errors is acceptable and intended.
 
 ### 3. React binding
 
-- `useSchemaForm` owns `touched`/`submitted` alongside `errors` (form-state lives
+- `useFormTree` owns `touched`/`submitted` alongside `errors` (form-state lives
   in one place), exposes a **form-level** `handleBlur` — wire
   `<form onBlur={handleBlur}>` and it marks `event.target.name` (which *is* the
   field's dot-path) touched, one handler for the whole form — and flips
@@ -88,7 +88,7 @@ anything that surfaces issues eagerly).
 
 The consequence of the default being `'touched'` is that display now *depends on
 state the provider must be fed*: a `ValidationProvider` only reveals a field's
-error once that field is in `touched` or `submitted` is set. `useSchemaForm`
+error once that field is in `touched` or `submitted` is set. `useFormTree`
 supplies both (`handleBlur` marks touched; `submit` flips `submitted`), so the
 common wiring "just works". But a bare `<ValidationProvider issues={errors}>`
 with no `touched`/`submitted` will now show **nothing** — pass those props (the

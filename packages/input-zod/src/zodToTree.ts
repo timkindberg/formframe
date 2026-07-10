@@ -11,7 +11,7 @@ import { compileRoot } from './compile'
  * builders (ADR 033 §3) — then the shipped default presentation runs over it:
  * scalar-choice array containers collapse into one multiselect/checkboxes leaf
  * (ADR 030 §3) and every leaf gets its widget/parts. All *lowering* lives in
- * present(), never the front-end. `useSchemaForm` re-runs present() with a consumer
+ * present(), never the front-end. `useFormTree` re-runs present() with a consumer
  * resolver layered on top, identity-preservingly. Explicit `<ZodType>` pins S
  * end-to-end (the unknown-typed defaultPresentation is valid at any S by
  * contravariance).

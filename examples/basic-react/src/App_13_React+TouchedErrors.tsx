@@ -9,16 +9,17 @@
 //               the library default, ADR 027)
 //   • submit  — nothing until a submit attempt
 //
-// `useSchemaForm` owns the touched/submitted state. You wire one `onBlur` at the
+// `useFormTree` owns the touched/submitted state. You wire one `onBlur` at the
 // form (focusout bubbles, so a single handler covers every field) and pass
 // `touched`/`submitted`/`showErrorsWhen` to `ValidationProvider`.
 import { useMemo, useState } from 'react'
 import {
-  useSchemaForm,
+  useFormTree,
   ValidationProvider,
   type ShowErrorsWhen,
 } from '@jsonschema-form/react'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 const schema: JSONSchema = {
@@ -39,6 +40,7 @@ const schema: JSONSchema = {
     },
   },
 }
+const tree = jsonSchemaToTree(schema)
 
 const policies: ShowErrorsWhen[] = ['always', 'touched', 'submit']
 
@@ -52,7 +54,7 @@ function App() {
     handleBlur,
     touched,
     submitted,
-  } = useSchemaForm(schema, { validator })
+  } = useFormTree(tree, { validator })
   const [mode, setMode] = useState<ShowErrorsWhen>('touched')
   const [submittedData, setSubmittedData] = useState<Record<
     string,

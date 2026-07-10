@@ -1,6 +1,6 @@
 // Submit-time validation wiring (ADR 019, slice 2).
 //
-// A side-loaded `Validator` (here AJV) passed to `useSchemaForm` gates submit:
+// A side-loaded `Validator` (here AJV) passed to `useFormTree` gates submit:
 // invalid data surfaces per-field issues and blocks the handler; valid data
 // clears them and calls through. Crucially, showing errors must NOT remount the
 // uncontrolled inputs — typed values survive a failed submit. (Conformance, in
@@ -10,9 +10,10 @@
 import { useMemo } from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
-import { useSchemaForm } from './useSchemaForm'
+import { useFormTree } from './useFormTree'
 import { ValidationProvider } from './renderer'
 
 const schema: JSONSchema = {
@@ -23,6 +24,7 @@ const schema: JSONSchema = {
     zip: { type: 'string', title: 'Zip', pattern: '^[0-9]{5}$' },
   },
 }
+const tree = jsonSchemaToTree(schema)
 
 function Harness({
   onValid,
@@ -30,7 +32,7 @@ function Harness({
   onValid: (data: Record<string, unknown>) => void
 }) {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, submit, errors, submitted } = useSchemaForm(schema, {
+  const { SchemaFields, submit, errors, submitted } = useFormTree(tree, {
     validator,
   })
   // `noValidate`: the schema renders native `required`/`pattern` attrs (ADR 012),

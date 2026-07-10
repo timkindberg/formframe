@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A schema-driven form library built as a better-architected alternative to React JSON Schema Form (RJSF). A schema generates the form automatically; you customize in JSX, not in more schema. **Core is the form-tree IR** (intermediate representation) plus the recursive fold over it — stateless, framework-agnostic, imports nothing. Front-ends (JSON Schema today) compile *into* the tree; consumers (validation, framework binding, form-state, presentation) fold *over* it as adapters filling capability slots. See `README.md` and `ARCHITECTURE.md` for the full model, and `architecture_records/006`–`011` for the decisions behind it. Don't describe this as "five layers" — that framing is superseded.
+A schema-driven form library built as a better-architected alternative to React JSON Schema Form (RJSF). A schema generates the form automatically; you customize in JSX, not in more schema. **Core is the form-tree IR** (intermediate representation) plus the recursive fold over it — stateless, framework-agnostic, imports nothing. Front-ends (JSON Schema and Zod today) compile *into* the tree; consumers (validation, framework binding, form-state, presentation) fold *over* it as adapters filling capability slots. React binds behavior to any compiled tree through `useFormTree(tree)` (ADR 035). See `README.md` and `ARCHITECTURE.md` for the full model, and `architecture_records/006`–`011` for the decisions behind it. Don't describe this as "five layers" — that framing is superseded.
 
 ## Commands
 
@@ -24,7 +24,7 @@ npm test -w packages/react     # React tests (Vitest browser mode with Playwrigh
 
 # Run single test file
 npx vitest packages/core/src/parser/parser.test.ts
-npx vitest packages/react/src/useSchemaForm.test.tsx
+npx vitest packages/react/src/useFormTree.test.tsx
 
 # Example app
 npm run dev -w examples/basic-react   # Start example app on localhost
@@ -49,7 +49,7 @@ Core is **stateless** — it only compiles a schema into the form-tree structure
 Tree traversal: Nodes have `walk(handlers)` for recursive traversal with `field` and `group` handlers. Queries (`getField`, `getAllFields`) use **relative paths** from the calling group.
 
 ### React Layer (`@jsonschema-form/react`)
-- `useSchemaForm(schema)` → Returns `{ form, SchemaFields }` where `SchemaFields` is a ready-to-render component (content only — you own the `<form>` + submit, ADR 013)
+- `useFormTree(tree)` → Binds source-agnostic React behavior to a tree from `jsonSchemaToTree`, `zodToTree`, or another front-end; returns `{ form, SchemaFields, submit, … }` (content only — you own the `<form>` + submit, ADR 013/035)
 - `SchemaFields` (batteries-included) / `createRenderer` (the public floor that takes a partial renderer set) / `defaultAdapter` + `diagnosticAdapter` (the two built-in renderer sets you spread over) — ADR 013
 - Customization is the recursive continuation primitive (ADR 010), re-entered via stable JSX components (ADR 017): `renderNode(node, { Default, Children })` to hijack a node, `<Default of={node}/>` / `<Children of={node}/>` / `<Default of={node.children.x}/>` to re-enter the engine, `<Default of={node} parts={{…}}/>` to override individual field parts (a part is itself a handle: `<Default of={part}/>`). The callables (`node.Default()`) remain the low-level primitive the components delegate to (ADR 016). Fractal from `<SchemaFields>` down to a single part.
 

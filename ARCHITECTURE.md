@@ -6,7 +6,7 @@ This document captures the architecture of the JSON Schema Form library: what Co
 
 **Core is the form tree** — an intermediate representation (IR) — plus the recursive fold over it. It is stateless, framework-agnostic, and imports nothing ([ADR 006](./architecture_records/006_core_as_form_tree_ir_with_adapters.md)).
 
-Earlier drafts described Core as a JSON Schema *parser* inside a five-layer linear stack. That framing is superseded: JSON Schema is only one possible **front-end** — a Zod schema or a TypeScript type carries the same shape information and is an equally valid source. The entry point is named `jsonSchemaToTree`, not `parseSchema`, so the seam stays honest about what Core's identity actually is.
+Earlier drafts described Core as a JSON Schema *parser* inside a five-layer linear stack. That framing is superseded: JSON Schema and Zod are separate **front-ends** (`jsonSchemaToTree` / `zodToTree`) that compile into the same tree; a TypeScript type could do the same. React then binds source-agnostic behavior with `useFormTree(tree)` (ADR 035).
 
 We deliberately do not commit to a layered-stack vs. hub-and-spoke diagram. The dependency reality is more hub-and-spoke than linear — validation is framework-agnostic and rides directly on Core, not "above" React; a UI kit may ship its own form-state. The one firm invariant is the **stubborn Core boundary**: Core imports nothing, holds no state, touches no DOM or framework.
 
@@ -14,7 +14,7 @@ We deliberately do not commit to a layered-stack vs. hub-and-spoke diagram. The 
 
 Everything outside Core is an adapter, and adapters are first-class and **user-writable** — the extension model is "write an adapter," never "fork Core."
 
-- **Front-end** — compiles a source schema *into* the tree (the JSON Schema front-end today).
+- **Front-end** — compiles a source schema *into* the tree (JSON Schema and Zod today).
 - **Consumer** — folds *over* the tree to produce something: a framework binding, validation, form-state, rendered UI.
 
 ### Capability slots

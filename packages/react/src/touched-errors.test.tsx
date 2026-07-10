@@ -3,16 +3,17 @@
 // Orthogonal to *when* validation runs (ADR 021): here the validator produces
 // issues live, but a field's error stays hidden until the field is touched
 // (focus→blur), and a submit attempt reveals everything — React Hook Form's
-// default UX, and now the library default (ADR 027). `useSchemaForm` owns
+// default UX, and now the library default (ADR 027). `useFormTree` owns
 // touched/submitted; `showErrorsWhen` on the provider picks the policy.
 // `'always'` is the opt-out that reports immediately.
 
 import { useMemo } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
-import { useSchemaForm } from './useSchemaForm'
+import { useFormTree } from './useFormTree'
 import { ValidationProvider, fieldControlId, fieldErrorId } from './renderer'
 import type { ShowErrorsWhen } from './displayPolicy'
 
@@ -24,6 +25,7 @@ const schema: JSONSchema = {
     zip: { type: 'string', title: 'Zip', pattern: '^[0-9]{5}$' },
   },
 }
+const tree = jsonSchemaToTree(schema)
 
 // `mode` is optional: omitting it exercises the provider's default policy
 // (ADR 027 makes that `'touched'`).
@@ -37,7 +39,7 @@ function Harness({ mode }: { mode?: ShowErrorsWhen }) {
     handleBlur,
     touched,
     submitted,
-  } = useSchemaForm(schema, { validator })
+  } = useFormTree(tree, { validator })
   return (
     <form
       noValidate

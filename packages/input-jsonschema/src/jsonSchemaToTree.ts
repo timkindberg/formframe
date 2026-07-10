@@ -18,7 +18,7 @@ export function jsonSchemaToTree(
   // shipped default presentation runs over it: scalar-choice array containers
   // collapse into one multiselect/checkboxes leaf (ADR 030 §3) and every leaf gets
   // its widget/parts. All *lowering* lives in present(), never the front-end.
-  // `useSchemaForm` re-runs present() with a consumer resolver layered on top,
+  // `useFormTree` re-runs present() with a consumer resolver layered on top,
   // identity-preservingly. Explicit `<JSONSchemaObject>` pins S end-to-end (the
   // unknown-typed defaultPresentation is valid at any S by contravariance).
   return present<JSONSchemaObject>(

@@ -10,8 +10,9 @@
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import type { PresentationResolver } from '@jsonschema-form/core'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
-import { useSchemaForm } from './useSchemaForm'
+import { useFormTree } from './useFormTree'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -21,8 +22,9 @@ const schema: JSONSchema = {
   },
   required: ['tags'],
 }
+const tree = jsonSchemaToTree(schema)
 
-// Module-scope (stable) so useSchemaForm's memo does not re-present each render.
+// Module-scope (stable) so useFormTree's memo does not re-present each render.
 const toMultiselect: PresentationResolver = (facts) =>
   facts.path === 'tags' ? { widget: 'multiselect' } : undefined
 
@@ -31,7 +33,7 @@ function Harness({
 }: {
   onValid?: (data: Record<string, unknown>) => void
 }) {
-  const { SchemaFields, submit } = useSchemaForm(schema, {
+  const { SchemaFields, submit } = useFormTree(tree, {
     resolvePresentation: toMultiselect,
   })
   return (

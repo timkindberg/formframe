@@ -55,7 +55,7 @@ export type { ValidationRules } from './parser/utils'
 
 // Presentation stage (ADR 029) — assigns a widget + derives control parts from
 // neutral FieldFacts via a source-agnostic layered resolver. Runs between parse
-// and render (wired by `useSchemaForm`).
+// and render (wired by `useFormTree`).
 export {
   present,
   defaultPresentation,

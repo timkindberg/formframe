@@ -62,16 +62,14 @@ function App() {
 
   return (
     <div>
-      <h1>JSON Schema Form - SchemaFields (de-sugared useSchemaForm)</h1>
+      <h1>JSON Schema Form - SchemaFields (below useFormTree)</h1>
       <p>
         Same altitude as example 06, one notch more explicit: instead of the{' '}
-        <code>useSchemaForm</code> hook holding the tree for you, you call{' '}
-        <code>jsonSchemaToTree</code> yourself and hand the tree to{' '}
-        <code>SchemaFields</code> (the ADR-010 continuation). With no{' '}
-        <code>renderNode</code> override it renders every {"node's"} default.{' '}
-        <code>SchemaFields</code> renders content only — the{' '}
-        <code>&lt;form&gt;</code> + submit are yours (ADR 013).{' '}
-        <code>useSchemaForm</code> wraps exactly this.
+        <code>useFormTree</code> hook binding React behavior, you hand the
+        compiled tree directly to <code>SchemaFields</code> (the ADR-010
+        continuation). With no <code>renderNode</code> override it renders every{' '}
+        {"node's"} default. <code>SchemaFields</code> renders content only — the{' '}
+        <code>&lt;form&gt;</code> + submit are yours (ADR 013).
       </p>
 
       <form onSubmit={handleSubmit}>

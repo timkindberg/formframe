@@ -48,7 +48,7 @@ export function createTouchedStore(
       }
     },
     sync(nextTouched, nextSubmitted) {
-      // Cheap identity guard: `useSchemaForm` mints a new Set on each mark, so an
+      // Cheap identity guard: `useFormTree` mints a new Set on each mark, so an
       // actual change flips the reference. Unchanged fields bail via `Object.is`
       // on their boolean snapshot regardless; this just avoids a no-op notify.
       if (nextTouched === touched && nextSubmitted === submitted) return

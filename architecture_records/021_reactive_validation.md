@@ -7,7 +7,7 @@
 ## Context
 
 ADR 019 carved a side-loaded, **submit-time** `Validator` seam and wired it into
-`useSchemaForm`. ADR 011 asked whether native `<form>`+FormData form-state is
+`useFormTree`. ADR 011 asked whether native `<form>`+FormData form-state is
 enough, or whether a **reactive form-state adapter** (React Hook Form, TanStack
 Form, …) is needed — noting that live error display was the main reason you'd
 want reactivity.
@@ -18,7 +18,7 @@ on every change while keeping inputs **uncontrolled** and the consumer owning th
 
 ## Decision
 
-**Expose an opt-in `revalidate` handler from `useSchemaForm` that the consumer
+**Expose an opt-in `revalidate` handler from `useFormTree` that the consumer
 wires to their form's event handler.** On each event:
 
 1. Read `new FormData(event.currentTarget)` via Core's existing submit assembler
@@ -37,7 +37,8 @@ Submit-time validation is unchanged. Without live handlers wired, behaviour
 stays submit-only (ADR 019).
 
 ```tsx
-const { SchemaFields, submit, revalidate, errors } = useSchemaForm(schema, {
+const tree = jsonSchemaToTree(schema)
+const { SchemaFields, submit, revalidate, errors } = useFormTree(tree, {
   validator: createAjvValidator(schema),
 })
 return (

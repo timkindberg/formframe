@@ -21,7 +21,7 @@ import {
   fieldErrorId,
   type ReactPartialAdapter,
 } from './renderer'
-import { useSchemaForm } from './useSchemaForm'
+import { useFormTree } from './useFormTree'
 import type { FieldControl } from '@jsonschema-form/core'
 
 type Counts = Record<string, number>
@@ -245,6 +245,7 @@ const validationSchema: JSONSchema = {
     note: { type: 'string', title: 'Note' },
   },
 }
+const validationTree = jsonSchemaToTree(validationSchema)
 
 function ValidationCountingHarness({
   Counting,
@@ -252,7 +253,7 @@ function ValidationCountingHarness({
   Counting: ReturnType<typeof createRenderer>
 }) {
   const validator = useMemo(() => createAjvValidator(validationSchema), [])
-  const { form, revalidate, errors } = useSchemaForm(validationSchema, {
+  const { form, revalidate, errors } = useFormTree(validationTree, {
     validator,
   })
   // This suite is about issue-store fan-out (ADR 023), not the touched display
@@ -304,6 +305,7 @@ const touchedGateSchema: JSONSchema = {
     zip: { type: 'string', title: 'Zip', pattern: '^[0-9]{5}$' },
   },
 }
+const touchedGateTree = jsonSchemaToTree(touchedGateSchema)
 
 function dispatchInput(input: HTMLInputElement, value: string) {
   input.value = value
@@ -317,7 +319,7 @@ function TouchedCountingHarness({
 }) {
   const validator = useMemo(() => createAjvValidator(touchedGateSchema), [])
   const { form, revalidate, errors, handleBlur, touched, submitted } =
-    useSchemaForm(touchedGateSchema, { validator })
+    useFormTree(touchedGateTree, { validator })
   return (
     <form noValidate onInput={revalidate} onBlur={handleBlur}>
       <ValidationProvider

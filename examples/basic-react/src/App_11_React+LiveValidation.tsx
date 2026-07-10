@@ -6,11 +6,12 @@
 // uncontrolled.
 import { useMemo, useState } from 'react'
 import {
-  useSchemaForm,
+  useFormTree,
   ValidationProvider,
   ValidationSummary,
 } from '@jsonschema-form/react'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 const schema: JSONSchema = {
@@ -39,10 +40,11 @@ const schema: JSONSchema = {
     },
   },
 }
+const tree = jsonSchemaToTree(schema)
 
 function App() {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, submit, revalidate, errors } = useSchemaForm(schema, {
+  const { SchemaFields, submit, revalidate, errors } = useFormTree(tree, {
     validator,
   })
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(

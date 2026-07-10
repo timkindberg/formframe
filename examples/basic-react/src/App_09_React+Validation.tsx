@@ -1,17 +1,18 @@
 // Side-loaded, submit-time validation (ADR 019).
 //
 // Validation is a capability slot: Core names the `Validator` shape, an adapter
-// (here @jsonschema-form/validation-ajv) implements it, and `useSchemaForm`
+// (here @jsonschema-form/validation-ajv) implements it, and `useFormTree`
 // runs it. Pass `{ validator }`, submit through `submit(onValid)`, and the
 // returned `SchemaFields` surfaces each issue under its own field — no schema
 // annotations, no IR change, and the validator stays swappable (AJV → Zod).
 import { useMemo, useState } from 'react'
 import {
-  useSchemaForm,
+  useFormTree,
   ValidationProvider,
   ValidationSummary,
 } from '@jsonschema-form/react'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 const schema: JSONSchema = {
@@ -38,6 +39,7 @@ const schema: JSONSchema = {
     },
   },
 }
+const tree = jsonSchemaToTree(schema)
 
 function App() {
   // Compile the schema once; the validator is the side-loaded slot.
@@ -49,7 +51,7 @@ function App() {
     submit,
     errors,
     submitted: submitAttempted,
-  } = useSchemaForm(schema, { validator })
+  } = useFormTree(tree, { validator })
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
     null
   )
@@ -60,8 +62,8 @@ function App() {
     <div>
       <h1>JSON Schema Form — Side-loaded Validation (ADR 019)</h1>
       <p>
-        <code>useSchemaForm(schema, {'{ validator }'})</code> runs the validator
-        at submit. Invalid data shows an issue under each field and blocks the
+        <code>useFormTree(tree, {'{ validator }'})</code> runs the validator at
+        submit. Invalid data shows an issue under each field and blocks the
         handler; valid data clears the issues and submits. The validator is a
         plain <code>Validator</code> from <code>validation-ajv</code> — swap it
         for Zod/Valibot without touching the form.

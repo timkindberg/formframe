@@ -271,7 +271,7 @@ presentation vocabulary.)
   `{ widget: string; args?: Record<string, unknown> }` (the product owner accepts
   that Mode-1/runtime typing is loose).
 - The typed `{ widget, args }` pairing is threaded as a **generic on the hook**
-  (`useSchemaForm<S, const W>(schema, { widgets, resolvePresentation })` →
+  (`useFormTree<S, const W>(tree, { widgets, resolvePresentation })` →
   `PresentationResolver<W>`), **not** through Core's heterogeneous tree.
   `present(root, resolve, catalog)` narrows on `widget` at runtime and does not try
   to keep per-widget part types across the tree.
@@ -294,7 +294,7 @@ too large to bundle with the seam's introduction).
 2. Add Core `present()` + `defaultPresentation` + Core derivers for `input`,
    `select`, `multiselect` (extracted from `buildInputAttrs`/select attrs in
    `fieldNode.ts` and `createMultiselectFieldNode` in `arrayNode.ts`).
-3. Wire `useSchemaForm` → `present()`.
+3. Wire `useFormTree` → `present()`.
 4. Flip conformance to compare the **post-`present`** tree.
 
 **PR 2 — bd `9pb` (dual period closed):** delete the parser's widget/parts
@@ -305,7 +305,7 @@ facts** and delegate widget selection + parts to the Core catalog via
 the facts→parts logic lives in exactly one place (`present.ts`). `jsonSchemaToTree`'s
 return stays **fully-formed** (default-presented) — every direct consumer (the
 `@jsonschema-form/vanilla` package, conformance, arrays/render-stability tests) is
-unchanged, and `useSchemaForm` still layers a consumer resolver on top identity-
+unchanged, and `useFormTree` still layers a consumer resolver on top identity-
 preservingly. The array→`multiselect` *collapse* remains a structural (facts)
 decision the parser owns; only the leaf's widget/parts derivation moved.
 

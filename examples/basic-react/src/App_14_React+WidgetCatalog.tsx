@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useSchemaForm } from '@jsonschema-form/react'
+import { useFormTree } from '@jsonschema-form/react'
+import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 // Every field below is a plain `type: 'string'` (or number/boolean/enum) — the
@@ -102,9 +103,10 @@ const schema: JSONSchema = {
   },
   required: ['fullName', 'email'],
 }
+const tree = jsonSchemaToTree(schema)
 
 function App() {
-  const { form, SchemaFields } = useSchemaForm(schema)
+  const { form, SchemaFields } = useFormTree(tree)
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
     null
   )

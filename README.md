@@ -18,11 +18,11 @@ A serializable customization path also exists for genuinely DB-driven cases (Mod
 
 Earlier drafts of this library described "five decoupled layers" in a linear stack (Core → Validation → Framework → Form Library → UI). That framing has been superseded — see [ADR 006](./architecture_records/006_core_as_form_tree_ir_with_adapters.md).
 
-**Core is the form tree** — an intermediate representation (IR) — plus the recursive fold over it. It is stateless, framework-agnostic, and imports nothing. JSON Schema parsing is just *one front-end* that compiles a schema into the tree (the entry point is `jsonSchemaToTree`); a Zod schema or TypeScript type would be equally valid front-ends.
+**Core is the form tree** — an intermediate representation (IR) — plus the recursive fold over it. It is stateless, framework-agnostic, and imports nothing. JSON Schema and Zod are separate front-ends that compile into the same tree (`jsonSchemaToTree` / `zodToTree`); React binds behavior to either with `useFormTree(tree)`.
 
 Everything else hangs off Core as an **adapter**, filling one or more **capability slots**:
 
-- **Front-end** — compiles a source schema into the tree (JSON Schema today; Zod/TS are plausible future front-ends).
+- **Front-end** — compiles a source schema into the tree (JSON Schema and Zod today; TypeScript is a plausible future front-end).
 - **Structure / framework-binding** — renders the tree (React today).
 - **Validation** — side-loaded, framework-agnostic, rides directly on Core.
 - **Form-state** — holds values + reactivity. The default is a *headless* adapter wrapping nothing: native `<form>` + FormData. RHF/TanStack Form are optional wrapped adapters for teams that need live reactivity or want to plug into existing form infrastructure.
@@ -47,7 +47,9 @@ Designing every swap seam up front tends to produce speculative, wrong abstracti
 
 ## Monorepo structure
 
-- `packages/core` — headless foundation: the form-tree IR, the JSON Schema front-end, the recursive fold
+- `packages/core` — headless foundation: the form-tree IR and recursive fold (schema-agnostic)
+- `packages/input-jsonschema` — JSON Schema front-end (`jsonSchemaToTree`)
+- `packages/input-zod` — Zod v4 front-end (`zodToTree`)
 - `packages/react` — React framework-binding adapter (hooks, default templates, the continuation renderer)
 - `packages/validation-ajv` / `packages/validation-zod` — validation adapters (Standard-Schema-shaped; maintained packages)
 - `examples/basic-react` — example app exercising the library end to end

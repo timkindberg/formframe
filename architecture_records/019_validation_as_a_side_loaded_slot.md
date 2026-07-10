@@ -90,7 +90,7 @@ throwaway test fixture, exactly as Phase B prescribes.
 - **Stubborn boundary intact.** Core gained pure types and one pure helper, zero
   dependencies.
 - **Explicitly out of scope (next slices):** rendering errors in React, running the
-  validator from `useSchemaForm`/`form.submit`, live/reactive validation, async
+  validator from `useFormTree`/`form.submit`, live/reactive validation, async
   validators, and per-keyword message customization.
 
 ## Alternatives Considered
