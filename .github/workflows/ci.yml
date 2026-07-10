@@ -58,3 +58,31 @@ jobs:
 
       - name: Test (all workspaces)
         run: npm run test
+
+  # Separate from the fast `gate` job (which stays build-free — ADR 009): this
+  # builds every package with tsup and proves the published artifacts are
+  # actually consumable from OUTSIDE the workspace. It packs each package,
+  # runs publint + are-the-types-wrong on the tarballs, then installs them into
+  # a throwaway consumer and asserts dual ESM+CJS runtime + a clean typecheck
+  # (see scripts/smoke-external.mjs, ADR 036).
+  build-and-smoke:
+    name: build-and-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all packages (tsup ESM + CJS + d.ts)
+        run: npm run build
+
+      - name: External-consumer smoke test (pack + publint + attw + dual runtime)
+        run: npm run smoke

@@ -2,21 +2,37 @@
   "name": "@jsonschema-form/core",
   "version": "0.0.0",
   "description": "Headless core logic for JSON Schema form generation",
-  "main": "./src/index.ts",
-  "module": "./src/index.ts",
-  "types": "./src/index.ts",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts",
-      "require": "./src/index.ts"
+      "development": "./src/index.ts",
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!**/*.test.ts",
+    "!**/*.test.tsx",
+    "!**/*.spec.ts",
+    "!**/*TestUtils.ts"
   ],
   "scripts": {
-    "build": "echo 'Build script not yet configured'",
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --sourcemap --tsconfig ../../tsconfig.tsup.json",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",

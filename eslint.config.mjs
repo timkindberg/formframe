@@ -45,6 +45,16 @@ export default tseslint.config(
     },
   },
   {
+    // Node tooling scripts (build/smoke) run on Node, not in the browser.
+    files: ['**/*.mjs', 'scripts/**/*.js'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+      },
+    },
+  },
+  {
     ignores: [
       '**/node_modules/**',
       '**/dist/**',

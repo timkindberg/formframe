@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "dev": "npm run dev -w examples/basic-react",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build -w @jsonschema-form/core -w @jsonschema-form/input-jsonschema -w @jsonschema-form/input-zod -w @jsonschema-form/input-conformance -w @jsonschema-form/validation-contract -w @jsonschema-form/validation-ajv -w @jsonschema-form/validation-zod -w @jsonschema-form/vanilla -w @jsonschema-form/react",
+    "smoke": "node scripts/smoke-external.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/core/tsconfig.test.json && tsc --noEmit -p packages/input-jsonschema && tsc --noEmit -p packages/input-jsonschema/tsconfig.test.json && tsc --noEmit -p packages/input-zod && tsc --noEmit -p packages/input-zod/tsconfig.test.json && tsc --noEmit -p packages/input-conformance && tsc --noEmit -p packages/react/tsconfig.src.json && tsc --noEmit -p packages/react/tsconfig.test.json && tsc --noEmit -p packages/vanilla && tsc --noEmit -p packages/vanilla/tsconfig.test.json && tsc --noEmit -p packages/validation-ajv && tsc --noEmit -p packages/validation-ajv/tsconfig.test.json && tsc --noEmit -p packages/validation-contract && tsc --noEmit -p packages/validation-zod && tsc --noEmit -p packages/validation-zod/tsconfig.test.json && tsc --noEmit -p examples/basic-react/tsconfig.json",
     "lint": "eslint .",
@@ -29,6 +30,7 @@
   "author": "Tim Kindberg",
   "license": "MIT",
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^9.39.1",
     "@types/eslint__js": "^8.42.3",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
@@ -38,6 +40,8 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "prettier": "^3.6.2",
+    "publint": "^0.3.21",
+    "tsup": "^8.5.1",
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.46.4"
   },
