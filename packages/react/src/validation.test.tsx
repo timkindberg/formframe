@@ -23,7 +23,7 @@ const schema = {
     username: { type: 'string', title: 'Username', minLength: 3 },
     zip: { type: 'string', title: 'Zip', pattern: '^[0-9]{5}$' },
   },
-} satisfies JSONSchema
+} as const satisfies JSONSchema
 const tree = jsonSchemaToTree(schema)
 
 function Harness({

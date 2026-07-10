@@ -38,7 +38,7 @@ const schema = {
       minimum: 18,
     },
   },
-} satisfies JSONSchema
+} as const satisfies JSONSchema
 const tree = jsonSchemaToTree(schema)
 
 function App() {

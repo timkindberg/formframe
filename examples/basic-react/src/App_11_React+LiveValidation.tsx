@@ -39,7 +39,7 @@ const schema = {
       pattern: '^[0-9]{5}$',
     },
   },
-} satisfies JSONSchema
+} as const satisfies JSONSchema
 const tree = jsonSchemaToTree(schema)
 
 function App() {
