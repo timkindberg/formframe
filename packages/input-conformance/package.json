@@ -1,7 +1,8 @@
 {
-  "name": "@jsonschema-form/input-jsonschema",
+  "name": "@jsonschema-form/input-conformance",
   "version": "0.0.0",
-  "description": "JSON Schema front-end for @jsonschema-form/core — compiles JSON Schema into the neutral form tree (ADR 033)",
+  "private": true,
+  "description": "The shared input-conformance oracle — expected neutral trees every @jsonschema-form/input-* front-end must produce for equivalent schemas (ADR 033/034). Test-only; imports nothing from any input-* package.",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
@@ -12,30 +13,21 @@
       "require": "./src/index.ts"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
-    "build": "echo 'Build script not yet configured'",
-    "test": "vitest",
-    "test:watch": "vitest --watch",
     "clean": "rm -rf dist"
   },
   "keywords": [
-    "json-schema",
+    "conformance",
     "forms"
   ],
   "author": "Tim Kindberg",
   "license": "MIT",
   "peerDependencies": {
-    "@jsonschema-form/core": "*"
-  },
-  "dependencies": {
-    "json-schema-typed": "^8.0.1"
+    "@jsonschema-form/core": "*",
+    "vitest": "^4"
   },
   "devDependencies": {
     "@jsonschema-form/core": "*",
-    "@jsonschema-form/input-conformance": "*",
     "typescript": "^5.3.3",
     "vitest": "^4.0.9"
   }
