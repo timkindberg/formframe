@@ -26,18 +26,22 @@ describe('createZodValidator — Zod specifics', () => {
     )
     const result = validate({ code: 'abc' })
     expect(result.valid).toBe(false)
-    expect(result.issues.find((i) => i.path === 'code')?.keyword).toBeDefined()
+    expect(
+      result.errors.find((error) => error.path === 'code')?.keyword
+    ).toBeDefined()
   })
 
   it('maps Zod issue codes through as keywords', () => {
     const minLength = createZodValidator(z.object({ name: z.string().min(2) }))
     expect(
-      minLength({ name: 'T' }).issues.find((i) => i.path === 'name')?.keyword
+      minLength({ name: 'T' }).errors.find((error) => error.path === 'name')
+        ?.keyword
     ).toBe('too_small')
 
     const wrongType = createZodValidator(z.object({ name: z.string() }))
     expect(
-      wrongType({ name: 1 }).issues.find((i) => i.path === 'name')?.keyword
+      wrongType({ name: 1 }).errors.find((error) => error.path === 'name')
+        ?.keyword
     ).toBe('invalid_type')
   })
 
@@ -49,13 +53,15 @@ describe('createZodValidator — Zod specifics', () => {
       })
     )
     const result = validate({ a: 1, b: 2 })
-    expect(result.issues.length).toBeGreaterThanOrEqual(2)
+    expect(result.errors.length).toBeGreaterThanOrEqual(2)
   })
 
   it('carries Zod-authored messages through unchanged', () => {
     const validate = createZodValidator(z.object({ name: z.string().min(2) }))
-    const issue = validate({ name: 'T' }).issues.find((i) => i.path === 'name')
-    expect(issue?.message.length).toBeGreaterThan(0)
+    const error = validate({ name: 'T' }).errors.find(
+      (error) => error.path === 'name'
+    )
+    expect(error?.message.length).toBeGreaterThan(0)
   })
 
   it('returns the parsed output as result.data, including coercion (ADR 025)', () => {

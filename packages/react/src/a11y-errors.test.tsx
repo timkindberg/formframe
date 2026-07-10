@@ -6,7 +6,7 @@
 import { useMemo } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import type { ValidationIssue } from '@jsonschema-form/core'
+import type { ValidationError } from '@jsonschema-form/core'
 import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 import {
@@ -26,7 +26,7 @@ const schema: JSONSchema = {
   },
 }
 
-const errors: ValidationIssue[] = [
+const errors: ValidationError[] = [
   { path: 'username', message: 'Username is too short' },
   { path: 'zip', message: 'Zip must be 5 digits' },
 ]
@@ -53,17 +53,17 @@ const nestedSchema: JSONSchema = {
   },
 }
 
-const nestedErrors: ValidationIssue[] = [
+const nestedErrors: ValidationError[] = [
   { path: 'address.street', message: 'Street is required' },
   { path: 'contacts.0.email', message: 'Email is invalid' },
 ]
 
 function FormWithValidation({
-  issues,
+  errors,
   showSummary = false,
   formSchema = schema,
 }: {
-  issues: ValidationIssue[]
+  errors: ValidationError[]
   showSummary?: boolean
   formSchema?: JSONSchema
 }) {
@@ -71,7 +71,7 @@ function FormWithValidation({
   // a11y wiring is about how a *shown* error is announced, not the touched
   // display policy (ADR 027) — so report immediately here.
   return (
-    <ValidationProvider issues={issues} showErrorsWhen="always">
+    <ValidationProvider errors={errors} showErrorsWhen="always">
       {showSummary && <ValidationSummary />}
       <SchemaFields form={form} />
     </ValidationProvider>
@@ -80,7 +80,7 @@ function FormWithValidation({
 
 describe('validation a11y wiring', () => {
   it('with errors: control gets aria-invalid and aria-describedby to role=alert list', async () => {
-    await render(<FormWithValidation issues={errors} />)
+    await render(<FormWithValidation errors={errors} />)
 
     const username = document.getElementById(fieldControlId('username'))
     expect(username).not.toBeNull()
@@ -101,7 +101,7 @@ describe('validation a11y wiring', () => {
 
   it('ValidationSummary lists all errors with links to field control ids', async () => {
     const screen = await render(
-      <FormWithValidation issues={errors} showSummary />
+      <FormWithValidation errors={errors} showSummary />
     )
 
     const summary = document.querySelector('.jsf-validation-summary')
@@ -127,7 +127,7 @@ describe('validation a11y wiring', () => {
   })
 
   it('with no errors: no aria attrs, no error lists, no summary', async () => {
-    await render(<FormWithValidation issues={[]} showSummary />)
+    await render(<FormWithValidation errors={[]} showSummary />)
 
     const username = document.getElementById(fieldControlId('username'))
     expect(username?.hasAttribute('aria-invalid')).toBe(false)
@@ -140,7 +140,7 @@ describe('validation a11y wiring', () => {
   it('nested paths: control id, aria-describedby, error id, and summary href align', async () => {
     await render(
       <FormWithValidation
-        issues={nestedErrors}
+        errors={nestedErrors}
         showSummary
         formSchema={nestedSchema}
       />
@@ -171,9 +171,9 @@ describe('validation a11y wiring', () => {
 // under 'always' it reports immediately; under 'touched'/'submit' it stays quiet
 // until the submit attempt reveals everything, matching the inline field gate.
 describe('ValidationSummary display policy (ADR 027)', () => {
-  it("'always': shows as soon as issues exist, no submit needed", async () => {
+  it("'always': shows as soon as errors exist, no submit needed", async () => {
     await render(
-      <ValidationProvider issues={errors} showErrorsWhen="always">
+      <ValidationProvider errors={errors} showErrorsWhen="always">
         <ValidationSummary />
       </ValidationProvider>
     )
@@ -189,7 +189,7 @@ describe('ValidationSummary display policy (ADR 027)', () => {
     const touched = new Set(['username', 'zip'])
     const screen = await render(
       <ValidationProvider
-        issues={errors}
+        errors={errors}
         touched={touched}
         showErrorsWhen="touched"
       >
@@ -200,7 +200,7 @@ describe('ValidationSummary display policy (ADR 027)', () => {
 
     await screen.rerender(
       <ValidationProvider
-        issues={errors}
+        errors={errors}
         touched={touched}
         showErrorsWhen="touched"
         submitted

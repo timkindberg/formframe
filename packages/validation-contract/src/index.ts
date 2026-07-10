@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { Validator, ValidationIssue } from '@jsonschema-form/core'
+import type { Validator, ValidationError } from '@jsonschema-form/core'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
 
 /**
@@ -33,7 +33,7 @@ export const contractSchema: JSONSchema = {
 
 /**
  * The seam contract (ADR 019 / ADR 020). Asserts only the validator-agnostic
- * surface — `valid`, each issue's `path`, and a non-empty `message`. Paths are
+ * surface — `valid`, each error's `path`, and a non-empty `message`. Paths are
  * the cross-implementation guarantee (they must match `node.path`); `keyword`
  * is intentionally not pinned to JSON Schema vocabulary — Zod emits
  * `invalid_type`/`too_small` where AJV emits `required`/`minLength`, and Core
@@ -42,49 +42,49 @@ export const contractSchema: JSONSchema = {
 export function runValidatorContract(target: ValidatorContractTarget): void {
   describe(`Validator contract — ${target.name}`, () => {
     const validate = target.validate
-    const at = (issues: ValidationIssue[], path: string) =>
-      issues.filter((issue) => issue.path === path)
+    const at = (errors: ValidationError[], path: string) =>
+      errors.filter((error) => error.path === path)
 
-    it('reports valid data with no issues', () => {
+    it('reports valid data with no errors', () => {
       const result = validate({ name: 'Tim', contacts: [{ email: 'a@b' }] })
       expect(result.valid).toBe(true)
-      expect(result.issues).toEqual([])
+      expect(result.errors).toEqual([])
     })
 
     it("flags a missing required field on the field's own path", () => {
       const result = validate({ contacts: [] })
       expect(result.valid).toBe(false)
-      const nameIssues = at(result.issues, 'name')
-      expect(nameIssues).toHaveLength(1)
-      expect(nameIssues[0].keyword).toBeTruthy()
+      const nameErrors = at(result.errors, 'name')
+      expect(nameErrors).toHaveLength(1)
+      expect(nameErrors[0].keyword).toBeTruthy()
     })
 
     it('flags a too-short string at the field path', () => {
       const result = validate({ name: 'T' })
       expect(result.valid).toBe(false)
-      expect(at(result.issues, 'name').length).toBeGreaterThan(0)
+      expect(at(result.errors, 'name').length).toBeGreaterThan(0)
     })
 
     it('keys a nested array-item required error by dot+index path', () => {
       const result = validate({ name: 'Tim', contacts: [{}] })
       expect(result.valid).toBe(false)
-      const issues = at(result.issues, 'contacts.0.email')
-      expect(issues).toHaveLength(1)
-      expect(issues[0].keyword).toBeTruthy()
+      const errors = at(result.errors, 'contacts.0.email')
+      expect(errors).toHaveLength(1)
+      expect(errors[0].keyword).toBeTruthy()
     })
 
     it('keys a nested array-item constraint error by dot+index path', () => {
       const result = validate({ name: 'Tim', contacts: [{ email: 'a' }] })
       expect(result.valid).toBe(false)
-      expect(at(result.issues, 'contacts.0.email').length).toBeGreaterThan(0)
+      expect(at(result.errors, 'contacts.0.email').length).toBeGreaterThan(0)
     })
 
-    it('gives every issue a non-empty, human-readable message', () => {
+    it('gives every error a non-empty, human-readable message', () => {
       const result = validate({})
-      expect(result.issues.length).toBeGreaterThan(0)
-      for (const issue of result.issues) {
-        expect(typeof issue.message).toBe('string')
-        expect(issue.message.length).toBeGreaterThan(0)
+      expect(result.errors.length).toBeGreaterThan(0)
+      for (const error of result.errors) {
+        expect(typeof error.message).toBe('string')
+        expect(error.message.length).toBeGreaterThan(0)
       }
     })
 

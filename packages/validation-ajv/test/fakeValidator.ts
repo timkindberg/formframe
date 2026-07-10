@@ -1,4 +1,4 @@
-import type { Validator, ValidationIssue } from '@jsonschema-form/core'
+import type { Validator, ValidationError } from '@jsonschema-form/core'
 
 // A throwaway, hand-rolled validator (ADR 008 / ADR 019): a tiny schema-walking
 // checker for `required` + `minLength`. Its only job is to prove the Core
@@ -19,9 +19,9 @@ interface WalkableSchema {
 export function createFakeValidator(schema: unknown): Validator {
   const root = schema as WalkableSchema
   return (data: unknown) => {
-    const issues: ValidationIssue[] = []
-    check(root, data, '', issues)
-    return { valid: issues.length === 0, issues }
+    const errors: ValidationError[] = []
+    check(root, data, '', errors)
+    return { valid: errors.length === 0, errors }
   }
 }
 
@@ -29,13 +29,13 @@ function check(
   schema: WalkableSchema,
   value: unknown,
   base: string,
-  issues: ValidationIssue[]
+  errors: ValidationError[]
 ): void {
   if (schema.type === 'object') {
     const obj = (value ?? {}) as Record<string, unknown>
     for (const key of schema.required ?? []) {
       if (!(key in obj)) {
-        issues.push({
+        errors.push({
           path: join(base, key),
           message: `must have required property '${key}'`,
           keyword: 'required',
@@ -43,14 +43,14 @@ function check(
       }
     }
     for (const [key, sub] of Object.entries(schema.properties ?? {})) {
-      check(sub, obj[key], join(base, key), issues)
+      check(sub, obj[key], join(base, key), errors)
     }
     return
   }
 
   if (schema.type === 'array' && Array.isArray(value) && schema.items) {
     value.forEach((item, index) =>
-      check(schema.items as WalkableSchema, item, `${base}.${index}`, issues)
+      check(schema.items as WalkableSchema, item, `${base}.${index}`, errors)
     )
     return
   }
@@ -61,7 +61,7 @@ function check(
     typeof schema.minLength === 'number' &&
     value.length < schema.minLength
   ) {
-    issues.push({
+    errors.push({
       path: base,
       message: `must NOT have fewer than ${schema.minLength} characters`,
       keyword: 'minLength',

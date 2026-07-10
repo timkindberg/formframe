@@ -12,7 +12,7 @@ import { present, defaultPresentation, layered } from '@jsonschema-form/core'
 import type {
   GroupNode,
   Validator,
-  ValidationIssue,
+  ValidationError,
   ValidationResult,
   PresentationResolver,
 } from '@jsonschema-form/core'
@@ -39,7 +39,7 @@ export interface BoundSchemaFieldsProps {
  * `ValidationProvider` without omitting touched or submitted state (ADR 036).
  */
 export interface FormTreeValidation {
-  issues: ValidationIssue[]
+  errors: ValidationError[]
   touched: ReadonlySet<string>
   submitted: boolean
 }
@@ -51,7 +51,7 @@ export interface UseFormTreeOptions<
 > {
   /**
    * A side-loaded validator (ADR 019), normally from the same source adapter as
-   * the tree. When set, `submit` runs it, exposes `issues`, and only calls the
+   * the tree. When set, `submit` runs it, exposes `errors`, and only calls the
    * consumer handler when the data is valid.
    */
   validator?: Validator<Output>
@@ -68,7 +68,7 @@ export interface UseFormTreeOptions<
  *
  * A front-end such as `jsonSchemaToTree` or `zodToTree` owns schema compilation.
  * This hook owns the React-facing behavior shared by every front-end: layered
- * presentation, a bound `SchemaFields`, native submission, validation issues,
+ * presentation, a bound `SchemaFields`, native submission, validation errors,
  * live revalidation, and touched/submit state.
  */
 export function useFormTree<S = unknown, Output = Record<string, unknown>>(
@@ -87,7 +87,7 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
     [tree, resolvePresentation]
   )
 
-  const [issues, setIssues] = useState<ValidationIssue[]>([])
+  const [errors, setErrors] = useState<ValidationError[]>([])
   const [touched, setTouched] = useState<ReadonlySet<string>>(() => new Set())
   const [submitted, setSubmitted] = useState(false)
 
@@ -105,8 +105,8 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
     (data: Record<string, unknown>): ValidationResult<Output> => {
       const result: ValidationResult<Output> = validator
         ? validator(data)
-        : { valid: true, issues: [] as ValidationIssue[] }
-      setIssues(result.issues)
+        : { valid: true, errors: [] as ValidationError[] }
+      setErrors(result.errors)
       return result
     },
     [validator]
@@ -158,8 +158,8 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
   }, [form])
 
   const validation = useMemo<FormTreeValidation>(
-    () => ({ issues, touched, submitted }),
-    [issues, touched, submitted]
+    () => ({ errors, touched, submitted }),
+    [errors, touched, submitted]
   )
 
   return {
@@ -168,7 +168,7 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
     submit,
     revalidate,
     validation,
-    issues,
+    errors,
     handleBlur,
     touched,
     submitted,

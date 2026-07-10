@@ -1,6 +1,6 @@
 import Ajv, { type ErrorObject, type Options as AjvOptions } from 'ajv'
 import addFormats from 'ajv-formats'
-import type { Validator, ValidationIssue } from '@jsonschema-form/core'
+import type { Validator, ValidationError } from '@jsonschema-form/core'
 import { joinPath, jsonPointerToPath } from '@jsonschema-form/core'
 import type { InferData, JSONSchema } from '@jsonschema-form/input-jsonschema'
 
@@ -21,8 +21,8 @@ export interface AjvValidatorOptions {
 
 /**
  * Build a {@link Validator} (ADR 019) backed by AJV. The schema is compiled once;
- * the returned function validates data and returns issues keyed by the same
- * dot-path as `node.path`, so a renderer can map each issue straight to its field.
+ * the returned function validates data and returns errors keyed by the same
+ * dot-path as `node.path`, so a renderer can map each error straight to its field.
  *
  * Defaults suit form data: `allErrors` (collect every problem, not just the
  * first), `strict: false` (form schemas lean on annotations like
@@ -72,13 +72,13 @@ export function createAjvValidator<const S extends JSONSchema>(
   return (data: unknown) => {
     if (!mutates) {
       const valid = validate(data) === true
-      const issues = valid ? [] : (validate.errors ?? []).map(toIssue)
-      return { valid, issues }
+      const errors = valid ? [] : (validate.errors ?? []).map(toError)
+      return { valid, errors }
     }
     const coerced = cloneJsonish(data)
     const valid = validate(coerced) === true
-    const issues = valid ? [] : (validate.errors ?? []).map(toIssue)
-    return { valid, issues, data: coerced as InferData<S> }
+    const errors = valid ? [] : (validate.errors ?? []).map(toError)
+    return { valid, errors, data: coerced as InferData<S> }
   }
 }
 
@@ -99,12 +99,12 @@ function cloneJsonish(value: unknown): unknown {
   return value
 }
 
-/** Map one AJV error to a neutral issue, landing it on the offending field. */
-function toIssue(error: ErrorObject): ValidationIssue {
+/** Map one AJV error to a neutral validation error on the offending field. */
+function toError(error: ErrorObject): ValidationError {
   const base = jsonPointerToPath(error.instancePath)
 
   // `required` (and `dependentRequired`) report the *parent* object's path; the
-  // offending key lives in `params.missingProperty`. Append it so the issue lands
+  // offending key lives in `params.missingProperty`. Append it so the error lands
   // on the missing field itself rather than its container.
   const missing = (error.params as { missingProperty?: string }).missingProperty
   const path =

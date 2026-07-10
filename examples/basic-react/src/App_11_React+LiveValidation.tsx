@@ -59,7 +59,7 @@ function App() {
         or <code>onChange={'{revalidate}'}</code> to validate on blur (native{' '}
         <code>change</code> semantics for text fields). Each event reads native
         FormData, runs the side-loaded <code>Validator</code>, and updates
-        per-field issues — no controlled inputs, no form-state adapter.
+        per-field errors — no controlled inputs, no form-state adapter.
       </p>
       <p>
         <strong>When to wire which:</strong> <code>onInput</code> = validate

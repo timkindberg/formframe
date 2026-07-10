@@ -9,11 +9,12 @@
 //  1. Our `Validator` seam (ADR 019) survives unchanged — handed to RHF as a
 //     Standard Schema via `toStandardSchema` (ADR 026). `@hookform/resolvers`'s
 //     `standardSchemaResolver` calls `schema['~standard'].validate()` and maps
-//     issues into RHF's nested error shape (no bespoke resolver shim). AJV/Zod/
+//     Standard Schema's `issues` into RHF's nested error shape (no bespoke
+//     resolver shim). AJV/Zod/
 //     Valibot all slot in because they already implement `Validator`. RHF does
 //     NOT make our validation layer redundant — it *consumes* it.
 //  2. RHF owns form *state* (values, touched, submit) — it replaces the ADR-023
-//     issue store, which is exactly the swappable form-state slot. Our Core tree
+//     error store, which is exactly the swappable form-state slot. Our Core tree
 //     + `renderNode` seam (ADR 010/013) render the structure; one `register()`
 //     call wires any control (input AND select) through the seam, no engine change.
 //  3. Touched-gated error UX is FREE and we must NOT hand-roll it. RHF
@@ -24,7 +25,7 @@
 //     version of this file gated display on `touched` by hand; that was both
 //     redundant AND wrong — under the default `onSubmit` mode it swallowed every
 //     submit-time error. KEY INPUT for the native touched policy: mirror RHF —
-//     commit only the validated field's issues to the store, don't add a display
+//     commit only the validated field's errors to the store, don't add a display
 //     gate on top.
 //
 // Bugs this shook out (now fixed)

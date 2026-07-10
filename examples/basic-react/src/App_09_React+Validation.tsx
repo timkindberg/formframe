@@ -3,7 +3,7 @@
 // Validation is a capability slot: Core names the `Validator` shape, an adapter
 // (here @jsonschema-form/validation-ajv) implements it, and `useFormTree`
 // runs it. Pass `{ validator }`, submit through `submit(onValid)`, and the
-// returned `SchemaFields` surfaces each issue under its own field — no schema
+// returned `SchemaFields` surfaces each error under its own field — no schema
 // annotations, no IR change, and the validator stays swappable (AJV → Zod).
 import { useMemo, useState } from 'react'
 import {
@@ -44,7 +44,7 @@ const tree = jsonSchemaToTree(schema)
 function App() {
   // Compile the schema once; the validator is the side-loaded slot.
   const validator = useMemo(() => createAjvValidator(schema), [])
-  // The complete validation capability carries issues, touched paths, and the
+  // The complete validation capability carries errors, touched paths, and the
   // submit flag required by the default touched-gated display policy.
   const { SchemaFields, submit, validation } = useFormTree(tree, { validator })
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
@@ -58,8 +58,8 @@ function App() {
       <h1>JSON Schema Form — Side-loaded Validation (ADR 019)</h1>
       <p>
         <code>useFormTree(tree, {'{ validator }'})</code> runs the validator at
-        submit. Invalid data shows an issue under each field and blocks the
-        handler; valid data clears the issues and submits. The validator is a
+        submit. Invalid data shows an error under each field and blocks the
+        handler; valid data clears the errors and submits. The validator is a
         plain <code>Validator</code> from <code>validation-ajv</code> — swap it
         for Zod/Valibot without touching the form.
       </p>
@@ -72,7 +72,7 @@ function App() {
         <code>&lt;ValidationSummary /&gt;</code> lists all errors with anchor
         links to each field; fields automatically receive{' '}
         <code>aria-invalid</code> and <code>aria-describedby</code> when they
-        have issues.
+        have errors.
       </p>
 
       <form noValidate onSubmit={submit(handleValid)}>
@@ -83,9 +83,9 @@ function App() {
         <button type="submit">Submit</button>
       </form>
 
-      {validation.issues.length > 0 && (
+      {validation.errors.length > 0 && (
         <p style={{ color: 'crimson' }}>
-          {validation.issues.length} issue(s) — see the fields above.
+          {validation.errors.length} error(s) — see the fields above.
         </p>
       )}
       {submitted && (

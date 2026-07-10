@@ -6,7 +6,7 @@ import {
   jsonSchemaToTree,
   type JSONSchema,
 } from '@jsonschema-form/input-jsonschema'
-import type { ValidationIssue } from '@jsonschema-form/core'
+import type { ValidationError } from '@jsonschema-form/core'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
 import { createZodValidator } from '@jsonschema-form/validation-zod'
 import {
@@ -52,12 +52,14 @@ describe('useFormTree', () => {
           <ValidationProvider {...validation}>
             <SchemaFields />
           </ValidationProvider>
+          <output data-testid="error-count">{validation.errors.length}</output>
           <button type="submit">Submit</button>
         </form>
       )
     }
 
     const screen = await render(<Harness />)
+    expect(screen.getByTestId('error-count').element().textContent).toBe('0')
     const submit = screen.getByRole('button', { name: 'Submit' })
     const name = screen.getByRole('textbox', { name: 'Name' })
     const inputBeforeValidation = name.element()
@@ -135,11 +137,11 @@ describe('useFormTree', () => {
       })
       expectTypeOf(bound.validation).toEqualTypeOf<FormTreeValidation>()
       expectTypeOf(bound.validation).toEqualTypeOf<{
-        issues: ValidationIssue[]
+        errors: ValidationError[]
         touched: ReadonlySet<string>
         submitted: boolean
       }>()
-      expectTypeOf(bound.issues).toEqualTypeOf<ValidationIssue[]>()
+      expectTypeOf(bound.errors).toEqualTypeOf<ValidationError[]>()
 
       useFormTree(numberTree, { validator: numberValidator }).submit((data) => {
         expectTypeOf(data).toMatchObjectType<{ age: number }>()

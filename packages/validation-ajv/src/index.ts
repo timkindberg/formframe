@@ -12,6 +12,6 @@ export type { AjvValidatorOptions } from './ajvValidator'
 // the slot without a separate import from Core.
 export type {
   Validator,
-  ValidationIssue,
+  ValidationError,
   ValidationResult,
 } from '@jsonschema-form/core'

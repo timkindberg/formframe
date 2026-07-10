@@ -4,7 +4,7 @@
 // The SAME live validator (ADR 021) runs on every keystroke; `showErrorsWhen`
 // only decides *when each field reveals* the error it already has. Toggle the
 // policy below to feel the difference:
-//   • always  — report the moment the validator produces an issue (opt-out)
+//   • always  — report the moment the validator produces an error (opt-out)
 //   • touched — stay quiet until the field blurs; submit reveals all (RHF-like;
 //               the library default, ADR 027)
 //   • submit  — nothing until a submit attempt

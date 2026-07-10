@@ -18,7 +18,7 @@ describe('createAjvValidator — AJV specifics', () => {
     })
     const result = validate({ code: 'abc' })
     expect(result.valid).toBe(false)
-    expect(result.issues.find((i) => i.path === 'code')?.keyword).toBe(
+    expect(result.errors.find((error) => error.path === 'code')?.keyword).toBe(
       'pattern'
     )
   })
@@ -30,7 +30,7 @@ describe('createAjvValidator — AJV specifics', () => {
       properties: { a: { type: 'string' }, b: { type: 'string' } },
     })
     const result = validate({})
-    expect(result.issues.map((i) => i.path).sort()).toEqual(['a', 'b'])
+    expect(result.errors.map((error) => error.path).sort()).toEqual(['a', 'b'])
   })
 
   it('un-escapes JSON Pointer segments (~1 → /) in paths', () => {
@@ -39,7 +39,7 @@ describe('createAjvValidator — AJV specifics', () => {
       properties: { 'a/b': { type: 'string', minLength: 2 } },
     })
     const result = validate({ 'a/b': 'x' })
-    expect(result.issues.map((i) => i.path)).toContain('a/b')
+    expect(result.errors.map((error) => error.path)).toContain('a/b')
   })
 
   it('coerces stringly-typed FormData values (number from a string) by default', () => {
@@ -90,7 +90,7 @@ describe('createAjvValidator — AJV specifics', () => {
     // AJV v8 ignores `format` unless ajv-formats is registered — this must fail.
     const result = validate({ email: 'notanemail' })
     expect(result.valid).toBe(false)
-    expect(result.issues.find((i) => i.path === 'email')?.keyword).toBe(
+    expect(result.errors.find((error) => error.path === 'email')?.keyword).toBe(
       'format'
     )
     expect(validate({ email: 'a@b.com' }).valid).toBe(true)
@@ -113,7 +113,7 @@ describe('createAjvValidator — AJV specifics', () => {
       required: ['name'],
       properties: { name: { type: 'string' } },
     })
-    const issue = validate({}).issues.find((i) => i.path === 'name')
-    expect(issue?.message).toMatch(/required property/i)
+    const error = validate({}).errors.find((error) => error.path === 'name')
+    expect(error?.message).toMatch(/required property/i)
   })
 })

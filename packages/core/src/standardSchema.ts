@@ -55,7 +55,7 @@ export interface StandardSchemaV1Issue {
  *
  * Mappings: our `result.data` (the coerced value, ADR 025) becomes Standard's
  * required success `value` — falling back to the input when the validator
- * transforms nothing; our dot-path `issue.path` becomes Standard's segment array
+ * transforms nothing; our dot-path `error.path` becomes Standard's segment array
  * (`'contacts.0.email'` → `['contacts','0','email']`, root `''` → no path). Our
  * `keyword` is intentionally dropped: Standard Schema has no keyword vocabulary.
  */
@@ -73,9 +73,9 @@ export function toStandardSchema<T>(
           return { value: (result.data ?? value) as T }
         }
         return {
-          issues: result.issues.map((issue) => ({
-            message: issue.message,
-            path: dotPathToStandardPath(issue.path),
+          issues: result.errors.map((error) => ({
+            message: error.message,
+            path: dotPathToStandardPath(error.path),
           })),
         }
       },
@@ -91,7 +91,7 @@ export function toStandardSchema<T>(
  * The Validator seam is synchronous (ADR 019), so a schema that validates
  * asynchronously (returns a `Promise`) throws — async is a separate seam
  * evolution. Standard's segment-array path is collapsed to our dot-path; Standard
- * carries no keyword, so `issue.keyword` is left unset (a dedicated adapter like
+ * carries no keyword, so `error.keyword` is left unset (a dedicated adapter like
  * `createZodValidator` preserves more — e.g. Zod's issue `code`).
  */
 export function fromStandardSchema<O>(
@@ -109,13 +109,13 @@ export function fromStandardSchema<O>(
     if (result.issues) {
       return {
         valid: false,
-        issues: result.issues.map((issue) => ({
+        errors: result.issues.map((issue) => ({
           path: standardPathToDotPath(issue.path),
           message: issue.message,
         })),
       }
     }
-    return { valid: true, issues: [], data: result.value }
+    return { valid: true, errors: [], data: result.value }
   }
 }
 

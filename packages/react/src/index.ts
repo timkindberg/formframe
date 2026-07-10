@@ -24,10 +24,10 @@ export {
   defaultAdapter,
   diagnosticAdapter,
   ValidationProvider,
-  useFieldIssues,
+  useFieldErrors,
   useFieldErrorDisplay,
   useDisplayPolicy,
-  useValidationIssues,
+  useValidationErrors,
   fieldControlId,
   fieldErrorId,
 } from './renderer'

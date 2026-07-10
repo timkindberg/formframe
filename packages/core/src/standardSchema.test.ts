@@ -18,7 +18,7 @@ function runSync<O>(
 
 describe('toStandardSchema (emit)', () => {
   it('advertises version 1 and a vendor (default + custom)', () => {
-    const v: Validator = () => ({ valid: true, issues: [] })
+    const v: Validator = () => ({ valid: true, errors: [] })
     expect(toStandardSchema(v)['~standard'].version).toBe(1)
     expect(toStandardSchema(v)['~standard'].vendor).toBe('jsonschema-form')
     expect(toStandardSchema(v, 'acme')['~standard'].vendor).toBe('acme')
@@ -27,7 +27,7 @@ describe('toStandardSchema (emit)', () => {
   it('returns the coerced data as the success `value`', () => {
     const coercing: Validator<{ age: number }> = () => ({
       valid: true,
-      issues: [],
+      errors: [],
       data: { age: 25 },
     })
     expect(runSync(toStandardSchema(coercing), { age: '25' })).toEqual({
@@ -36,7 +36,7 @@ describe('toStandardSchema (emit)', () => {
   })
 
   it('falls back to the input as `value` when nothing is transformed', () => {
-    const passthrough: Validator = () => ({ valid: true, issues: [] })
+    const passthrough: Validator = () => ({ valid: true, errors: [] })
     expect(runSync(toStandardSchema(passthrough), { a: 1 })).toEqual({
       value: { a: 1 },
     })
@@ -45,7 +45,7 @@ describe('toStandardSchema (emit)', () => {
   it('maps dot-paths to segment arrays and drops keyword; root => no path', () => {
     const invalid: Validator = () => ({
       valid: false,
-      issues: [
+      errors: [
         { path: 'name', message: 'required', keyword: 'required' },
         {
           path: 'contacts.0.email',
@@ -81,15 +81,15 @@ describe('fromStandardSchema (consume)', () => {
   it('returns valid + the parsed value as data on success', () => {
     expect(fromStandardSchema(ageSchema)({ age: 21 })).toEqual({
       valid: true,
-      issues: [],
+      errors: [],
       data: { age: 21 },
     })
   })
 
-  it('maps Standard issues back to dot-path issues', () => {
+  it('maps Standard issues back to dot-path errors', () => {
     expect(fromStandardSchema(ageSchema)({ age: 5 })).toEqual({
       valid: false,
-      issues: [{ path: 'age', message: 'must be >= 18' }],
+      errors: [{ path: 'age', message: 'must be >= 18' }],
     })
   })
 
@@ -108,7 +108,7 @@ describe('fromStandardSchema (consume)', () => {
         }),
       },
     }
-    expect(fromStandardSchema(schema)({}).issues[0].path).toBe(
+    expect(fromStandardSchema(schema)({}).errors[0].path).toBe(
       'contacts.0.email'
     )
   })
@@ -121,7 +121,7 @@ describe('fromStandardSchema (consume)', () => {
         validate: () => ({ issues: [{ message: 'root' }] }),
       },
     }
-    expect(fromStandardSchema(schema)({}).issues[0].path).toBe('')
+    expect(fromStandardSchema(schema)({}).errors[0].path).toBe('')
   })
 
   it('throws on an async (Promise-returning) schema — the seam is sync', () => {
@@ -141,11 +141,11 @@ describe('round trip', () => {
     const original: Validator = (data) => {
       const v = data as { name?: unknown }
       if (typeof v.name === 'string' && v.name.length >= 2) {
-        return { valid: true, issues: [], data: v }
+        return { valid: true, errors: [], data: v }
       }
       return {
         valid: false,
-        issues: [{ path: 'name', message: 'too short', keyword: 'minLength' }],
+        errors: [{ path: 'name', message: 'too short', keyword: 'minLength' }],
       }
     }
     const roundTripped = fromStandardSchema(toStandardSchema(original))
@@ -153,7 +153,7 @@ describe('round trip', () => {
     // keyword does not survive the Standard Schema hop (no keyword vocabulary).
     expect(roundTripped({ name: 'T' })).toEqual({
       valid: false,
-      issues: [{ path: 'name', message: 'too short' }],
+      errors: [{ path: 'name', message: 'too short' }],
     })
   })
 })

@@ -11,6 +11,6 @@ export { createZodValidator } from './zodValidator'
 // the slot without a separate import from Core.
 export type {
   Validator,
-  ValidationIssue,
+  ValidationError,
   ValidationResult,
 } from '@jsonschema-form/core'

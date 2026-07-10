@@ -42,7 +42,7 @@ import {
   Fragment,
   type ReactNode,
 } from 'react'
-import { createIssueStore, EMPTY_ISSUES, type IssueStore } from './issueStore'
+import { createErrorStore, EMPTY_ERRORS, type ErrorStore } from './errorStore'
 import { createTouchedStore, type TouchedStore } from './touchedStore'
 import {
   shouldDisplayFieldErrors,
@@ -66,7 +66,7 @@ import {
   type AnyGroupNode,
   type AnyTreeNode,
   type FieldControl,
-  type ValidationIssue,
+  type ValidationError,
 } from '@jsonschema-form/core'
 
 // ---------------------------------------------------------------------------
@@ -121,7 +121,7 @@ function DefaultDescription({ text }: { text: string }): ReactNode {
   return <small className="jsf-description">{text}</small>
 }
 
-/** When a field has issues, the root wraps its control in this provider. */
+/** When a field has errors, the root wraps its control in this provider. */
 interface FieldA11yState {
   errorId: string
 }
@@ -191,22 +191,22 @@ function DefaultGroupLabel({ text }: { text: string }): ReactNode {
 // ---------------------------------------------------------------------------
 // Validation display (ADR 019 + ADR 023) — runtime state, NOT an IR part.
 //
-// Validation issues are produced by a side-loaded `Validator` (at submit or live)
+// Validation errors are produced by a side-loaded `Validator` (at submit or live)
 // and are pure runtime state, so they never live in the schema-derived `parts`.
 // They are held in an external per-path store (ADR 023) read through
 // `useSyncExternalStore`, NOT a single Context value: a Context update re-renders
 // every consumer (the whole form on one keystroke — the RJSF perf trap), whereas
 // the store hands each field a stable per-path snapshot, so a validation pass
-// re-renders only the fields whose issues actually changed. With no
+// re-renders only the fields whose errors actually changed. With no
 // `ValidationProvider` (the store is `null` — e.g. the conformance oracle) every
-// field reads `EMPTY_ISSUES` and emits NO error markup, so React still matches
+// field reads `EMPTY_ERRORS` and emits NO error markup, so React still matches
 // the vanilla oracle.
 // ---------------------------------------------------------------------------
 
-const ValidationStoreContext = createContext<IssueStore | null>(null)
+const ValidationStoreContext = createContext<ErrorStore | null>(null)
 
 /** The touched store + chosen display policy (ADR 027) for the fields below.
- * Null (no provider) means no gating — a field always shows whatever issues it
+ * Null (no provider) means no gating — a field always shows whatever errors it
  * has, exactly as before ADR 027. */
 interface DisplayPolicy {
   store: TouchedStore
@@ -218,26 +218,26 @@ const DisplayPolicyContext = createContext<DisplayPolicy | null>(null)
 const EMPTY_TOUCHED: ReadonlySet<string> = new Set()
 
 /**
- * Provide validation issues to the fields below (ADR 019/023) and, optionally, a
+ * Provide validation errors to the fields below (ADR 019/023) and, optionally, a
  * touched/submit-aware error *display* policy (ADR 027).
  *
- * `issues` is mirrored into the per-path issue store as before. `touched` (the
+ * `errors` is mirrored into the per-path error store as before. `touched` (the
  * set of blurred field paths), `submitted`, and `showErrorsWhen` drive *when*
  * each field reveals its errors: the default `'touched'` gates on this field's
  * touched slice + the submit flag (RHF-style — so you must feed `touched`/
  * `submitted`, as `useFormTree` does, or nothing appears), `'submit'` waits for
- * a submit attempt, and `'always'` shows issues the moment they exist. Both
+ * a submit attempt, and `'always'` shows errors the moment they exist. Both
  * stores diff per path and notify, so a keystroke or a blur re-renders only the
  * field it concerns.
  */
 export function ValidationProvider({
-  issues,
+  errors,
   touched = EMPTY_TOUCHED,
   submitted = false,
   showErrorsWhen = DEFAULT_SHOW_ERRORS_WHEN,
   children,
 }: {
-  issues: ValidationIssue[]
+  errors: ValidationError[]
   touched?: ReadonlySet<string>
   submitted?: boolean
   showErrorsWhen?: ShowErrorsWhen
@@ -245,14 +245,14 @@ export function ValidationProvider({
 }): ReactNode {
   // One store per provider instance — lazy-init via useState so each is created
   // once and stays referentially stable across renders (no ref-in-render).
-  const [store] = useState(() => createIssueStore(issues))
+  const [store] = useState(() => createErrorStore(errors))
   const [touchedStore] = useState(() => createTouchedStore(touched, submitted))
   // Push new state into the stores after commit (never during render). Each
   // store preserves per-path identity for unchanged paths, so this notifies only
   // the fields that actually changed.
   useLayoutEffect(() => {
-    store.setResult(issues)
-  }, [store, issues])
+    store.setResult(errors)
+  }, [store, errors])
   useLayoutEffect(() => {
     touchedStore.sync(touched, submitted)
   }, [touchedStore, touched, submitted])
@@ -270,30 +270,30 @@ export function ValidationProvider({
 }
 
 const NEVER_SUBSCRIBE = () => () => {}
-const getEmptyIssues = () => EMPTY_ISSUES
+const getEmptyErrors = () => EMPTY_ERRORS
 
 /**
- * The issues for one field path (empty array when none) — for custom renderers.
+ * The errors for one field path (empty array when none) — for custom renderers.
  * Subscribes to ONLY this path's slice via `useSyncExternalStore`, so this field
- * re-renders only when its own issues change (ADR 023). No provider → always
- * `EMPTY_ISSUES`, no subscription.
+ * re-renders only when its own errors change (ADR 023). No provider → always
+ * `EMPTY_ERRORS`, no subscription.
  */
-export function useFieldIssues(path: string): ValidationIssue[] {
+export function useFieldErrors(path: string): ValidationError[] {
   const store = useContext(ValidationStoreContext)
   return useSyncExternalStore(
     store ? store.subscribe : NEVER_SUBSCRIBE,
-    store ? () => store.getIssues(path) : getEmptyIssues,
-    store ? () => store.getIssues(path) : getEmptyIssues
+    store ? () => store.getErrors(path) : getEmptyErrors,
+    store ? () => store.getErrors(path) : getEmptyErrors
   )
 }
 
-/** All current issues (flat) — for summaries and custom UX. */
-export function useValidationIssues(): ValidationIssue[] {
+/** All current errors (flat) — for summaries and custom UX. */
+export function useValidationErrors(): ValidationError[] {
   const store = useContext(ValidationStoreContext)
   return useSyncExternalStore(
     store ? store.subscribe : NEVER_SUBSCRIBE,
-    store ? store.getAll : getEmptyIssues,
-    store ? store.getAll : getEmptyIssues
+    store ? store.getAll : getEmptyErrors,
+    store ? store.getAll : getEmptyErrors
   )
 }
 
@@ -302,7 +302,7 @@ const alwaysShow = () => true
 /**
  * Whether a field's errors should be *displayed* right now (ADR 027): the chosen
  * policy applied to this field's touched slice + the submit flag. No provider or
- * the default `'always'` policy → always `true` (issues show as soon as they
+ * the default `'always'` policy → always `true` (errors show as soon as they
  * exist). Under `'touched'`/`'submit'` it subscribes to only this path's touched
  * state, so the field re-renders only when its own display decision flips (e.g.
  * on its own blur, or once on submit) — never when a sibling is touched.
@@ -360,16 +360,16 @@ export function fieldErrorId(path: string): string {
   return `${path}-errors`
 }
 
-/** A field's own issues, or nothing. Isolated consumer: re-renders on validation
+/** A field's own errors, or nothing. Isolated consumer: re-renders on validation
  * without disturbing its sibling input (so typed values survive a failed submit). */
 function DefaultFieldErrors({ path }: { path: string }): ReactNode {
-  const issues = useFieldIssues(path)
+  const errors = useFieldErrors(path)
   const show = useFieldErrorDisplay(path)
-  if (!show || issues.length === 0) return null
+  if (!show || errors.length === 0) return null
   return (
     <ul id={fieldErrorId(path)} className="jsf-field-errors" role="alert">
-      {issues.map((issue, i) => (
-        <li key={i}>{issue.message}</li>
+      {errors.map((error, i) => (
+        <li key={i}>{error.message}</li>
       ))}
     </ul>
   )
@@ -395,10 +395,10 @@ function DefaultFieldRoot({
   // One unified control slot (ADR 029 §5, v60) — no widget narrowing here; the
   // archetype lives in `control.kind`, read only by the control renderer.
   const control = renderSlot(node.parts.control, 'control')
-  const issues = useFieldIssues(node.path)
+  const errors = useFieldErrors(node.path)
   const show = useFieldErrorDisplay(node.path)
   const a11y =
-    show && issues.length > 0 ? { errorId: fieldErrorId(node.path) } : null
+    show && errors.length > 0 ? { errorId: fieldErrorId(node.path) } : null
   return (
     <div className="jsf-field">
       {renderSlot(node.parts.label, 'label')}

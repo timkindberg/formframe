@@ -104,7 +104,7 @@ export type InferData<S> = InferSchemaData<S>
 
 /**
  * Schema-relative dot-path union aligned with runtime `node.path` / validation
- * `issue.path` (ADR 018). Object keys use dot notation; each array segment is a
+ * `error.path` (ADR 018/037). Object keys use dot notation; each array segment is a
  * `${number}` placeholder matching concrete indexed paths at runtime (e.g.
  * `contacts.0.email`, not `contacts.email`).
  *

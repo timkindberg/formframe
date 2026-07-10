@@ -1,7 +1,7 @@
 // Touched-gated error display (ADR 027).
 //
 // Orthogonal to *when* validation runs (ADR 021): here the validator produces
-// issues live, but a field's error stays hidden until the field is touched
+// errors live, but a field's error stays hidden until the field is touched
 // (focus→blur), and a submit attempt reveals everything — React Hook Form's
 // default UX, and now the library default (ADR 027). `useFormTree` owns
 // touched/submitted; `showErrorsWhen` on the provider picks the policy.
@@ -39,7 +39,7 @@ function Harness({ mode }: { mode?: ShowErrorsWhen }) {
       onSubmit={submit(() => {})}
       onInput={revalidate}
       // Blur marks touched AND revalidates (ADR 027 pairing), so a field tabbed
-      // through without typing still gets its issue computed on blur.
+      // through without typing still gets its error computed on blur.
       onBlur={(e) => {
         handleBlur(e)
         revalidate(e)
@@ -83,7 +83,7 @@ describe('touched-gated error display (ADR 027)', () => {
 
   it("'touched': blurring an empty required field (no typing) reveals its error", async () => {
     // The exact confusion: tab into a required field, tab out without typing.
-    // Because blur revalidates, the issue is computed on blur and — the field
+    // Because blur revalidates, the error is computed on blur and — the field
     // now being touched — shown, without needing a keystroke elsewhere first.
     await render(<Harness mode="touched" />)
 
@@ -103,7 +103,7 @@ describe('touched-gated error display (ADR 027)', () => {
 
     const username = control('username')
     username.focus()
-    dispatchInput(username, 'a') // invalid (minLength 3): issue is produced live
+    dispatchInput(username, 'a') // invalid (minLength 3): error is produced live
 
     // …but not displayed — the field has not been touched yet.
     await new Promise((r) => setTimeout(r, 30))
@@ -120,7 +120,7 @@ describe('touched-gated error display (ADR 027)', () => {
     await render(<Harness mode="touched" />)
 
     // One keystroke in username runs the whole-form validator, so BOTH username
-    // (minLength) and the empty required zip gain issues — both hidden (untouched).
+    // (minLength) and the empty required zip gain errors — both hidden (untouched).
     const username = control('username')
     username.focus()
     dispatchInput(username, 'a')

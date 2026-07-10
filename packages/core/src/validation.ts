@@ -9,18 +9,18 @@
 /**
  * One validation problem, keyed to a field by the **same dot-path as
  * `node.path`** (`name`, `contacts.0.email`; `""` = the root value). Carrying the
- * path here is what lets a renderer map an issue back to the field that owns it
+ * path here is what lets a renderer map an error back to the field that owns it
  * with no translation layer. `keyword` is an optional machine code — typically
  * the JSON Schema keyword that failed (`required`, `minLength`, `pattern`).
  */
-export interface ValidationIssue {
+export interface ValidationError {
   path: string
   message: string
   keyword?: string
 }
 
 /**
- * The outcome of validating one data value: a verdict, the flat issue list, and
+ * The outcome of validating one data value: a verdict, the flat error list, and
  * optionally the validated data after any validator-applied coercion (ADR 025).
  *
  * `T` is the shape of {@link ValidationResult.data}; it defaults to `unknown`, so
@@ -29,7 +29,7 @@ export interface ValidationIssue {
  */
 export interface ValidationResult<T = unknown> {
   valid: boolean
-  issues: ValidationIssue[]
+  errors: ValidationError[]
   /**
    * The validated value after any coercion/normalization the validator applied
    * (e.g. AJV `coerceTypes` turning `"18"` into `18`, Zod `coerce`/transforms).
@@ -61,17 +61,17 @@ export interface ValidationResult<T = unknown> {
 export type Validator<T = unknown> = (data: unknown) => ValidationResult<T>
 
 /**
- * Group issues by their `path` for O(1) per-field lookup — the shape a renderer
- * wants ("does this field have issues?"). Pure and order-preserving within a path.
+ * Group errors by their `path` for O(1) per-field lookup — the shape a renderer
+ * wants ("does this field have errors?"). Pure and order-preserving within a path.
  */
-export function groupIssuesByPath(
-  issues: ValidationIssue[]
-): Map<string, ValidationIssue[]> {
-  const byPath = new Map<string, ValidationIssue[]>()
-  for (const issue of issues) {
-    const existing = byPath.get(issue.path)
-    if (existing) existing.push(issue)
-    else byPath.set(issue.path, [issue])
+export function groupErrorsByPath(
+  errors: ValidationError[]
+): Map<string, ValidationError[]> {
+  const byPath = new Map<string, ValidationError[]>()
+  for (const error of errors) {
+    const existing = byPath.get(error.path)
+    if (existing) existing.push(error)
+    else byPath.set(error.path, [error])
   }
   return byPath
 }

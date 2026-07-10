@@ -1,7 +1,7 @@
 // Submit-time validation wiring (ADR 019, slice 2).
 //
 // A side-loaded `Validator` (here AJV) passed to `useFormTree` gates submit:
-// invalid data surfaces per-field issues and blocks the handler; valid data
+// invalid data surfaces per-field errors and blocks the handler; valid data
 // clears them and calls through. Crucially, showing errors must NOT remount the
 // uncontrolled inputs — typed values survive a failed submit. (Conformance, in
 // conformance.test.tsx, separately proves the error slot is invisible when there
@@ -54,7 +54,7 @@ function Harness({
 const errorEls = () => document.querySelectorAll('.jsf-field-errors')
 
 describe('submit-time validation (ADR 019)', () => {
-  it('shows per-field issues and blocks the handler on invalid submit', async () => {
+  it('shows per-field errors and blocks the handler on invalid submit', async () => {
     const onValid = vi.fn()
     const screen = await render(<Harness onValid={onValid} />)
 
@@ -83,7 +83,7 @@ describe('submit-time validation (ADR 019)', () => {
     expect(onValid).not.toHaveBeenCalled()
   })
 
-  it('clears issues and calls the handler once valid', async () => {
+  it('clears errors and calls the handler once valid', async () => {
     const onValid = vi.fn()
     const screen = await render(<Harness onValid={onValid} />)
 

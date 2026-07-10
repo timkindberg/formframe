@@ -43,7 +43,7 @@ export type {
   GroupParts,
   ArrayParts,
   ArrayItemParts,
-  ValidationIssue,
+  ValidationError,
   ValidationResult,
   Validator,
 } from './types'
@@ -79,7 +79,7 @@ export {
 
 // Validation capability slot (ADR 019) — the neutral, side-loaded contract.
 // Adapters (e.g. @jsonschema-form/validation-ajv) implement `Validator`.
-export { groupIssuesByPath } from './validation'
+export { groupErrorsByPath } from './validation'
 
 // Standard Schema interop (ADR 026) — let the Validator seam emit/consume the
 // cross-library https://standardschema.dev interface (RHF, TanStack Form, Zod…).

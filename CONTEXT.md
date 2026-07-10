@@ -58,7 +58,7 @@ Serializable conditional logic (e.g. conditionally required/hidden fields), used
 See ADR 010 for the full model. One recursive primitive, two granularities (node, part), three moves (take default / swap sub-pieces / place yourself), fractal from `<SchemaFields>` to `part.Default`.
 
 **`useFormTree`** (the React behavior binding):
-The source-agnostic hook that binds a compiled form tree to presentation, a stable `SchemaFields`, native submission, validation issues, revalidation, and touched/submitted state. Input packages compile first (`jsonSchemaToTree` / `zodToTree`); React never accepts or recognizes a source schema (ADR 035).
+The source-agnostic hook that binds a compiled form tree to presentation, a stable `SchemaFields`, native submission, validation errors, revalidation, and touched/submitted state. Input packages compile first (`jsonSchemaToTree` / `zodToTree`); React never accepts or recognizes a source schema (ADR 035).
 _Avoid_: source-specific React hooks that hide compilation and privilege one front-end.
 
 **`SchemaFields`** (the rendering entry point):

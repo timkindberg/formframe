@@ -7,7 +7,7 @@
 //
 // These tests assert *when validation runs* (the ADR 021 seam), not the ADR 027
 // touched display policy — so they use `showErrorsWhen="always"` to render any
-// issue the instant it exists. Touched-gating has its own suite
+// error the instant it exists. Touched-gating has its own suite
 // (touched-errors.test.tsx).
 
 import { useMemo } from 'react'

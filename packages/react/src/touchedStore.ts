@@ -1,13 +1,13 @@
 // Per-path touched store (ADR 027) — the fan-out-free sibling of the ADR 023
-// issue store. It holds *which field paths have been touched* (focus→blur) plus
+// error store. It holds *which field paths have been touched* (focus→blur) plus
 // a single `submitted` flag, and hands each field its own boolean through
 // `useSyncExternalStore`. Because a field's snapshot is a primitive boolean,
 // React's `Object.is` bail skips every field whose touched/submitted-derived
 // state didn't change — so blurring one field re-renders only that field, and
 // flipping `submitted` re-renders exactly the fields whose display state flips.
 //
-// Kept parallel to (not folded into) the issue store on purpose (ADR 027):
-// touched is monotonic per session, issues churn every validation pass. Two
+// Kept parallel to (not folded into) the error store on purpose (ADR 027):
+// touched is monotonic per session, errors churn every validation pass. Two
 // stores keep each store's invariant trivial.
 
 /**

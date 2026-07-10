@@ -230,18 +230,18 @@ describe('render-count contract', () => {
   })
 })
 
-// The validation fan-out contract (ADR 023): producing a new issue set must
-// re-render ONLY the fields whose issues changed — never their siblings. This is
+// The validation fan-out contract (ADR 023): producing a new error set must
+// re-render ONLY the fields whose errors changed — never their siblings. This is
 // the perf claim the maintainer flagged ("we can never re-render nodes if it was
 // preventable"). We drive a real live-validation pass and read the same counting
-// adapter: a sibling with no issue (and no issue change) must stay at zero.
+// adapter: a sibling with no error (and no error change) must stay at zero.
 const validationSchema: JSONSchema = {
   type: 'object',
   required: ['username'],
   properties: {
-    // gains an issue the moment you type fewer than 3 chars
+    // gains an error the moment you type fewer than 3 chars
     username: { type: 'string', title: 'Username', minLength: 3 },
-    // unconstrained → never has an issue, so its snapshot never changes
+    // unconstrained → never has an error, so its snapshot never changes
     note: { type: 'string', title: 'Note' },
   },
 }
@@ -256,8 +256,8 @@ function ValidationCountingHarness({
   const { form, revalidate, validation } = useFormTree(validationTree, {
     validator,
   })
-  // This suite is about issue-store fan-out (ADR 023), not the touched display
-  // policy (ADR 027) — report immediately so a new issue renders on change.
+  // This suite is about error-store fan-out (ADR 023/037), not the touched display
+  // policy (ADR 027) — report immediately so a new error renders on change.
   return (
     <form noValidate onChange={revalidate}>
       <ValidationProvider {...validation} showErrorsWhen="always">
@@ -268,7 +268,7 @@ function ValidationCountingHarness({
 }
 
 describe('validation render-count contract (ADR 023)', () => {
-  it('a field gaining an issue re-renders only that field, not its siblings', async () => {
+  it('a field gaining an error re-renders only that field, not its siblings', async () => {
     const counts: Counts = {}
     const Counting = createRenderer(countingAdapter(counts))
     const screen = await render(
@@ -282,7 +282,7 @@ describe('validation render-count contract (ADR 023)', () => {
       .poll(() => document.querySelectorAll('.jsf-field-errors').length)
       .toBe(1)
 
-    // the sibling never had/has an issue → its snapshot is referentially stable,
+    // the sibling never had/has an error → its snapshot is referentially stable,
     // so it must not have re-rendered at all (no Context fan-out)
     expect(counts['field.root:note'] ?? 0).toBe(0)
     expect(counts['field.control:note'] ?? 0).toBe(0)
@@ -292,11 +292,11 @@ describe('validation render-count contract (ADR 023)', () => {
 })
 
 // The touched-gating fan-out contract (ADR 027): the same "no preventable
-// re-render" rule applied to the *display* dimension. Both fields carry an issue
+// re-render" rule applied to the *display* dimension. Both fields carry an error
 // (both hidden under 'touched'); blurring ONE must reveal only that field's error
 // and re-render only that field — the untouched sibling, whose display decision
 // did not flip, must stay at zero. This proves the touched store (a boolean
-// per-path snapshot) does not fan out any more than the issue store did.
+// per-path snapshot) does not fan out any more than the error store did.
 const touchedGateSchema: JSONSchema = {
   type: 'object',
   required: ['username', 'zip'],
@@ -332,13 +332,13 @@ function TouchedCountingHarness({
 }
 
 describe('touched-gating render-count contract (ADR 027)', () => {
-  it('blurring a field reveals only its own error, not an untouched sibling with an issue', async () => {
+  it('blurring a field reveals only its own error, not an untouched sibling with an error', async () => {
     const counts: Counts = {}
     const Counting = createRenderer(countingAdapter(counts))
     await render(<TouchedCountingHarness Counting={Counting} />)
 
     // One keystroke in username runs the whole-form validator, so BOTH username
-    // (minLength) and the empty required zip gain issues — both hidden (untouched).
+    // (minLength) and the empty required zip gain errors — both hidden (untouched).
     const username = document.getElementById(
       fieldControlId('username')
     ) as HTMLInputElement
@@ -354,7 +354,7 @@ describe('touched-gating render-count contract (ADR 027)', () => {
       .poll(() => document.getElementById(fieldErrorId('username')))
       .not.toBeNull()
 
-    // zip also has an issue but was never touched → its display decision is
+    // zip also has an error but was never touched → its display decision is
     // unchanged (still hidden), so it must not have re-rendered at all.
     expect(counts['field.root:zip'] ?? 0).toBe(0)
     expect(counts['field.control:zip'] ?? 0).toBe(0)
