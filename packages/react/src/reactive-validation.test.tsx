@@ -31,12 +31,12 @@ const tree = jsonSchemaToTree(schema)
 
 function InputHarness() {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, revalidate, errors } = useFormTree(tree, {
+  const { SchemaFields, revalidate, validation } = useFormTree(tree, {
     validator,
   })
   return (
     <form noValidate onInput={revalidate}>
-      <ValidationProvider issues={errors} showErrorsWhen="always">
+      <ValidationProvider {...validation} showErrorsWhen="always">
         <SchemaFields />
       </ValidationProvider>
     </form>
@@ -45,12 +45,12 @@ function InputHarness() {
 
 function ChangeHarness() {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, revalidate, errors } = useFormTree(tree, {
+  const { SchemaFields, revalidate, validation } = useFormTree(tree, {
     validator,
   })
   return (
     <form noValidate onChange={revalidate}>
-      <ValidationProvider issues={errors} showErrorsWhen="always">
+      <ValidationProvider {...validation} showErrorsWhen="always">
         <SchemaFields />
       </ValidationProvider>
     </form>
@@ -59,10 +59,10 @@ function ChangeHarness() {
 
 function SubmitOnlyHarness() {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, submit, errors } = useFormTree(tree, { validator })
+  const { SchemaFields, submit, validation } = useFormTree(tree, { validator })
   return (
     <form noValidate onSubmit={submit(() => {})}>
-      <ValidationProvider issues={errors} showErrorsWhen="always">
+      <ValidationProvider {...validation} showErrorsWhen="always">
         <SchemaFields />
       </ValidationProvider>
       <button type="submit">Submit</button>
@@ -173,12 +173,12 @@ describe('reactive validation (ADR 021)', () => {
 
     function Harness() {
       const validator = useMemo(() => createAjvValidator(handleSchema), [])
-      const { SchemaFields, revalidate, errors } = useFormTree(handleTree, {
+      const { SchemaFields, revalidate, validation } = useFormTree(handleTree, {
         validator,
       })
       return (
         <form noValidate onInput={revalidate}>
-          <ValidationProvider issues={errors} showErrorsWhen="always">
+          <ValidationProvider {...validation} showErrorsWhen="always">
             <SchemaFields />
           </ValidationProvider>
         </form>

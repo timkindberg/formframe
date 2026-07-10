@@ -34,6 +34,16 @@ export interface BoundSchemaFieldsProps {
   children?: (root: EGroup) => ReactNode
 }
 
+/**
+ * Validation state returned by {@link useFormTree}, ready to spread into
+ * `ValidationProvider` without omitting touched or submitted state (ADR 036).
+ */
+export interface FormTreeValidation {
+  issues: ValidationIssue[]
+  touched: ReadonlySet<string>
+  submitted: boolean
+}
+
 /** Options for {@link useFormTree}. */
 export interface UseFormTreeOptions<
   S = unknown,
@@ -147,11 +157,17 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
     }
   }, [form])
 
+  const validation = useMemo<FormTreeValidation>(
+    () => ({ issues: errors, touched, submitted }),
+    [errors, touched, submitted]
+  )
+
   return {
     form,
     SchemaFields,
     submit,
     revalidate,
+    validation,
     errors,
     handleBlur,
     touched,

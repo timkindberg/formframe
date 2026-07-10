@@ -44,14 +44,9 @@ const tree = jsonSchemaToTree(schema)
 function App() {
   // Compile the schema once; the validator is the side-loaded slot.
   const validator = useMemo(() => createAjvValidator(schema), [])
-  // `submitAttempted` is the hook's submit flag; the default display policy is
-  // `'touched'` (ADR 027), so a submit attempt is what reveals these errors.
-  const {
-    SchemaFields,
-    submit,
-    errors,
-    submitted: submitAttempted,
-  } = useFormTree(tree, { validator })
+  // The complete validation capability carries issues, touched paths, and the
+  // submit flag required by the default touched-gated display policy.
+  const { SchemaFields, submit, validation } = useFormTree(tree, { validator })
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
     null
   )
@@ -81,16 +76,16 @@ function App() {
       </p>
 
       <form noValidate onSubmit={submit(handleValid)}>
-        <ValidationProvider issues={errors} submitted={submitAttempted}>
+        <ValidationProvider {...validation}>
           <ValidationSummary />
           <SchemaFields />
         </ValidationProvider>
         <button type="submit">Submit</button>
       </form>
 
-      {errors.length > 0 && (
+      {validation.issues.length > 0 && (
         <p style={{ color: 'crimson' }}>
-          {errors.length} issue(s) — see the fields above.
+          {validation.issues.length} issue(s) — see the fields above.
         </p>
       )}
       {submitted && (

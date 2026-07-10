@@ -253,14 +253,14 @@ function ValidationCountingHarness({
   Counting: ReturnType<typeof createRenderer>
 }) {
   const validator = useMemo(() => createAjvValidator(validationSchema), [])
-  const { form, revalidate, errors } = useFormTree(validationTree, {
+  const { form, revalidate, validation } = useFormTree(validationTree, {
     validator,
   })
   // This suite is about issue-store fan-out (ADR 023), not the touched display
   // policy (ADR 027) — report immediately so a new issue renders on change.
   return (
     <form noValidate onChange={revalidate}>
-      <ValidationProvider issues={errors} showErrorsWhen="always">
+      <ValidationProvider {...validation} showErrorsWhen="always">
         <Counting form={form} />
       </ValidationProvider>
     </form>
@@ -318,16 +318,13 @@ function TouchedCountingHarness({
   Counting: ReturnType<typeof createRenderer>
 }) {
   const validator = useMemo(() => createAjvValidator(touchedGateSchema), [])
-  const { form, revalidate, errors, handleBlur, touched, submitted } =
-    useFormTree(touchedGateTree, { validator })
+  const { form, revalidate, handleBlur, validation } = useFormTree(
+    touchedGateTree,
+    { validator }
+  )
   return (
     <form noValidate onInput={revalidate} onBlur={handleBlur}>
-      <ValidationProvider
-        issues={errors}
-        touched={touched}
-        submitted={submitted}
-        showErrorsWhen="touched"
-      >
+      <ValidationProvider {...validation} showErrorsWhen="touched">
         <Counting form={form} />
       </ValidationProvider>
     </form>

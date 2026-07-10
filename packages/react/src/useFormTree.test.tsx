@@ -6,9 +6,14 @@ import {
   jsonSchemaToTree,
   type JSONSchema,
 } from '@jsonschema-form/input-jsonschema'
+import type { ValidationIssue } from '@jsonschema-form/core'
 import { createAjvValidator } from '@jsonschema-form/validation-ajv'
 import { createZodValidator } from '@jsonschema-form/validation-zod'
-import { useFormTree, ValidationProvider } from './index'
+import {
+  useFormTree,
+  ValidationProvider,
+  type FormTreeValidation,
+} from './index'
 
 const schema = z.object({
   name: z.string().min(2).meta({ title: 'Name' }),
@@ -32,17 +37,19 @@ const numberTree = jsonSchemaToTree(numberSchema)
 const numberValidator = createAjvValidator(numberSchema)
 
 describe('useFormTree', () => {
-  it('binds rendering, submission, and validation to a Zod-built tree', async () => {
+  it('spreads complete validation state without remounting bound fields', async () => {
     const onValid = vi.fn()
+    const schemaFieldsIdentities = new Set<unknown>()
 
     function Harness() {
-      const { SchemaFields, submit, errors, submitted } = useFormTree(tree, {
+      const { SchemaFields, submit, validation } = useFormTree(tree, {
         validator,
       })
+      schemaFieldsIdentities.add(SchemaFields)
 
       return (
         <form noValidate onSubmit={submit(onValid)}>
-          <ValidationProvider issues={errors} submitted={submitted}>
+          <ValidationProvider {...validation}>
             <SchemaFields />
           </ValidationProvider>
           <button type="submit">Submit</button>
@@ -52,12 +59,17 @@ describe('useFormTree', () => {
 
     const screen = await render(<Harness />)
     const submit = screen.getByRole('button', { name: 'Submit' })
+    const inputBeforeValidation = document.querySelector('input[name="name"]')
 
     await submit.click()
     await expect
       .poll(() => document.querySelectorAll('.jsf-field-errors').length)
       .toBe(1)
     expect(onValid).not.toHaveBeenCalled()
+    expect(schemaFieldsIdentities.size).toBe(1)
+    expect(document.querySelector('input[name="name"]')).toBe(
+      inputBeforeValidation
+    )
 
     await screen.getByRole('textbox', { name: 'Name' }).fill('Ada')
     await submit.click()
@@ -118,9 +130,16 @@ describe('useFormTree', () => {
     // Type-only fixture: the gate's `tsc --noEmit` checks the callback bodies.
     // It is intentionally never rendered because calling it would invoke hooks.
     function TypeHarness() {
-      useFormTree(tree, { validator: transformedValidator }).submit((data) => {
+      const bound = useFormTree(tree, { validator: transformedValidator })
+      bound.submit((data) => {
         expectTypeOf(data).toEqualTypeOf<{ name: string }>()
       })
+      expectTypeOf(bound.validation).toEqualTypeOf<FormTreeValidation>()
+      expectTypeOf(bound.validation).toEqualTypeOf<{
+        issues: ValidationIssue[]
+        touched: ReadonlySet<string>
+        submitted: boolean
+      }>()
 
       useFormTree(numberTree, { validator: numberValidator }).submit((data) => {
         expectTypeOf(data).toMatchObjectType<{ age: number }>()

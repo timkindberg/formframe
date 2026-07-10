@@ -6,7 +6,11 @@
 
 // Source-agnostic React hook
 export { useFormTree } from './useFormTree'
-export type { BoundSchemaFieldsProps, UseFormTreeOptions } from './useFormTree'
+export type {
+  BoundSchemaFieldsProps,
+  FormTreeValidation,
+  UseFormTreeOptions,
+} from './useFormTree'
 
 // Continuation renderer (ADR 010/013) — typed, front-end-agnostic (operates on
 // the Core tree). Schema compilation lives in separate input packages.

@@ -31,15 +31,8 @@ const tree = jsonSchemaToTree(schema)
 // (ADR 027 makes that `'touched'`).
 function Harness({ mode }: { mode?: ShowErrorsWhen }) {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const {
-    SchemaFields,
-    submit,
-    revalidate,
-    errors,
-    handleBlur,
-    touched,
-    submitted,
-  } = useFormTree(tree, { validator })
+  const { SchemaFields, submit, revalidate, handleBlur, validation } =
+    useFormTree(tree, { validator })
   return (
     <form
       noValidate
@@ -52,12 +45,7 @@ function Harness({ mode }: { mode?: ShowErrorsWhen }) {
         revalidate(e)
       }}
     >
-      <ValidationProvider
-        issues={errors}
-        touched={touched}
-        submitted={submitted}
-        showErrorsWhen={mode}
-      >
+      <ValidationProvider {...validation} showErrorsWhen={mode}>
         <SchemaFields />
       </ValidationProvider>
       <button type="submit">Submit</button>

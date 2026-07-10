@@ -44,7 +44,7 @@ const tree = jsonSchemaToTree(schema)
 
 function App() {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, submit, revalidate, errors } = useFormTree(tree, {
+  const { SchemaFields, submit, revalidate, validation } = useFormTree(tree, {
     validator,
   })
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
@@ -94,7 +94,7 @@ function App() {
         onInput={revalidate}
         onChange={revalidate}
       >
-        <ValidationProvider issues={errors} showErrorsWhen="always">
+        <ValidationProvider {...validation} showErrorsWhen="always">
           <ValidationSummary />
           <SchemaFields />
         </ValidationProvider>

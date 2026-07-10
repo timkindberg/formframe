@@ -21,9 +21,10 @@ export type ShowErrorsWhen = 'always' | 'touched' | 'submit'
 
 /**
  * The default policy (ADR 027): quiet until touched, RHF-style. Note this means a
- * `ValidationProvider` must be fed `touched`/`submitted` (as `useFormTree`
- * does) for errors to appear; pass `showErrorsWhen="always"` to report the moment
- * an issue exists regardless of touch.
+ * `ValidationProvider` must be fed `touched`/`submitted` (normally by spreading
+ * `useFormTree`'s `validation` capability) for errors to appear; pass
+ * `showErrorsWhen="always"` to report the moment an issue exists regardless of
+ * touch.
  */
 export const DEFAULT_SHOW_ERRORS_WHEN: ShowErrorsWhen = 'touched'
 

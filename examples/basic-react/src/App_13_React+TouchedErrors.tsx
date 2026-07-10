@@ -10,8 +10,8 @@
 //   • submit  — nothing until a submit attempt
 //
 // `useFormTree` owns the touched/submitted state. You wire one `onBlur` at the
-// form (focusout bubbles, so a single handler covers every field) and pass
-// `touched`/`submitted`/`showErrorsWhen` to `ValidationProvider`.
+// form (focusout bubbles, so a single handler covers every field) and spread its
+// complete validation capability into `ValidationProvider`.
 import { useMemo, useState } from 'react'
 import {
   useFormTree,
@@ -46,15 +46,8 @@ const policies: ShowErrorsWhen[] = ['always', 'touched', 'submit']
 
 function App() {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const {
-    SchemaFields,
-    submit,
-    revalidate,
-    errors,
-    handleBlur,
-    touched,
-    submitted,
-  } = useFormTree(tree, { validator })
+  const { SchemaFields, submit, revalidate, handleBlur, validation } =
+    useFormTree(tree, { validator })
   const [mode, setMode] = useState<ShowErrorsWhen>('touched')
   const [submittedData, setSubmittedData] = useState<Record<
     string,
@@ -100,12 +93,7 @@ function App() {
           revalidate(e)
         }}
       >
-        <ValidationProvider
-          issues={errors}
-          touched={touched}
-          submitted={submitted}
-          showErrorsWhen={mode}
-        >
+        <ValidationProvider {...validation} showErrorsWhen={mode}>
           <SchemaFields />
         </ValidationProvider>
         <button type="submit">Submit</button>
