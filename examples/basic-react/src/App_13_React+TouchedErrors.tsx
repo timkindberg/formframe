@@ -39,7 +39,7 @@ const schema = {
       format: 'email',
     },
   },
-} satisfies JSONSchema
+} as const satisfies JSONSchema
 const tree = jsonSchemaToTree(schema)
 
 const policies: ShowErrorsWhen[] = ['always', 'touched', 'submit']

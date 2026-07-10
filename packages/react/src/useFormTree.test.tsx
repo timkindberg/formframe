@@ -27,7 +27,7 @@ const numberSchema = {
     age: { type: 'number', title: 'Age' },
   },
   required: ['age'],
-} satisfies JSONSchema
+} as const satisfies JSONSchema
 const numberTree = jsonSchemaToTree(numberSchema)
 const numberValidator = createAjvValidator(numberSchema)
 
@@ -114,10 +114,16 @@ describe('useFormTree', () => {
     expect(onValid).toHaveBeenCalledWith({ age: 25 })
   })
 
-  it('infers validated output while keeping no-validator submission honest', () => {
+  it('infers output at type-check time while keeping no-validator submission honest', () => {
+    // Type-only fixture: the gate's `tsc --noEmit` checks the callback bodies.
+    // It is intentionally never rendered because calling it would invoke hooks.
     function TypeHarness() {
       useFormTree(tree, { validator: transformedValidator }).submit((data) => {
         expectTypeOf(data).toEqualTypeOf<{ name: string }>()
+      })
+
+      useFormTree(numberTree, { validator: numberValidator }).submit((data) => {
+        expectTypeOf(data).toMatchObjectType<{ age: number }>()
       })
 
       useFormTree(tree).submit((data) => {
