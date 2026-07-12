@@ -9,13 +9,13 @@
 // 7. One continuation customization; everything else stays default.
 import { useState } from 'react'
 import { z } from 'zod'
-import { fromStandardSchema } from '@jsonschema-form/core'
-import { zodToTree } from '@jsonschema-form/input-zod'
+import { fromStandardSchema } from '@formframe/core'
+import { zodToTree } from '@formframe/input-zod'
 import {
   useFormTree,
   ValidationProvider,
   ValidationSummary,
-} from '@jsonschema-form/react'
+} from '@formframe/react'
 
 const schema = z.object({
   name: z

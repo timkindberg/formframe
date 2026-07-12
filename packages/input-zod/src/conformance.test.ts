@@ -1,6 +1,6 @@
 // input-zod's half of the shared input-conformance oracle (ADR 039).
 //
-// The oracle (@jsonschema-form/input-conformance) defines schema-language-NEUTRAL
+// The oracle (@formframe/input-conformance) defines schema-language-NEUTRAL
 // expected trees; here we express each scenario in Zod and assert zodToTree
 // produces the oracle's tree. The exhaustive `Record<ScenarioId, ZodType>` makes
 // TypeScript fail the build if a scenario is left uncovered, so this front-end
@@ -15,7 +15,7 @@ import { z } from 'zod'
 import {
   runInputConformance,
   type ScenarioId,
-} from '@jsonschema-form/input-conformance'
+} from '@formframe/input-conformance'
 import { zodToTree } from './zodToTree'
 
 const schemas: Record<ScenarioId, z.ZodType> = {

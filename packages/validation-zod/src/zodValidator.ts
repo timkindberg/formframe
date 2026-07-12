@@ -1,5 +1,5 @@
 import type { ZodType, ZodError, TypeOf } from 'zod'
-import type { Validator, ValidationError } from '@jsonschema-form/core'
+import type { Validator, ValidationError } from '@formframe/core'
 
 /**
  * Build a {@link Validator} (ADR 019) backed by Zod. The schema is fixed at

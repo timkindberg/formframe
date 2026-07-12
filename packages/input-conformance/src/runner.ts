@@ -10,7 +10,7 @@
 // (bd wo8); the runner reads only neutral facts and parts, never `origin.schema`.
 
 import { describe, it, expect } from 'vitest'
-import type { AnyNode, GroupNode, ValidationRules } from '@jsonschema-form/core'
+import type { AnyNode, GroupNode, ValidationRules } from '@formframe/core'
 import {
   conformanceScenarios,
   type NodeSpec,

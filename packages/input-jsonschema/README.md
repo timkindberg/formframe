@@ -1,11 +1,11 @@
-# @jsonschema-form/input-jsonschema
+# @formframe/input-jsonschema
 
-JSON Schema (draft-07) **front-end** for `@jsonschema-form/core` (ADR 033). Compiles a schema into the neutral form-tree IR, then runs the shipped default presentation.
+JSON Schema (draft-07) **front-end** for `@formframe/core` (ADR 033). Compiles a schema into the neutral form-tree IR, then runs the shipped default presentation.
 
 ## Usage
 
 ```typescript
-import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 
 const tree = jsonSchemaToTree({
   type: 'object',
@@ -26,7 +26,7 @@ Update the catalog when compiler behavior changes.
 
 1. `resolveLocalRefs` — inline local `$ref`s
 2. `compileRoot` — structural transcription (`compile.ts`)
-3. `present(defaultPresentation)` — default widgets (`@jsonschema-form/core`)
+3. `present(defaultPresentation)` — default widgets (`@formframe/core`)
 
 See [ADR 033](../../architecture_records/033_core_is_schema_agnostic_input_packages.md).
 

@@ -1,6 +1,6 @@
 // The input-conformance oracle (ADR 039).
 //
-// Every @jsonschema-form/input-* front-end (JSON Schema, Zod, …) is a STRUCTURAL
+// Every @formframe/input-* front-end (JSON Schema, Zod, …) is a STRUCTURAL
 // transcriber into the same neutral Core tree, so for equivalent input schemas
 // they must all produce the same tree. This file is that reference — the "oracle"
 // (mirroring the render-side vanilla string oracle in packages/react's
@@ -25,7 +25,7 @@ import type {
   ValidationRules,
   ValueShape,
   WidgetName,
-} from '@jsonschema-form/core'
+} from '@formframe/core'
 
 /** Every scenario the oracle defines. A front-end must supply an equivalent input
  * schema for each (its per-package map is typed `Record<ScenarioId, Schema>`, so

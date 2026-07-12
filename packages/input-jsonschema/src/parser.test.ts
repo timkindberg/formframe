@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { GroupNode } from '@jsonschema-form/core'
+import type { GroupNode } from '@formframe/core'
 import { jsonSchemaToTree } from './jsonSchemaToTree'
 import type { JSONSchema } from './types'
 // The field control is a single discriminated slot now (ADR 029 §5, v60); these

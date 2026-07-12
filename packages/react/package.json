@@ -1,7 +1,7 @@
 {
-  "name": "@jsonschema-form/react",
+  "name": "@formframe/react",
   "version": "0.0.0",
-  "description": "React adapter for Core form trees from any schema front-end",
+  "description": "React adapter for FormFrame trees from any schema front-end",
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -46,15 +46,15 @@
   "author": "Tim Kindberg",
   "license": "MIT",
   "peerDependencies": {
-    "@jsonschema-form/core": "*",
+    "@formframe/core": "*",
     "react": "^18.0.0"
   },
   "devDependencies": {
-    "@jsonschema-form/input-jsonschema": "*",
-    "@jsonschema-form/input-zod": "*",
-    "@jsonschema-form/validation-ajv": "*",
-    "@jsonschema-form/validation-zod": "*",
-    "@jsonschema-form/vanilla": "*",
+    "@formframe/input-jsonschema": "*",
+    "@formframe/input-zod": "*",
+    "@formframe/validation-ajv": "*",
+    "@formframe/validation-zod": "*",
+    "@formframe/vanilla": "*",
     "@types/react": "^18.2.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/browser": "^4.0.14",

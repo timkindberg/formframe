@@ -10,7 +10,7 @@ input packages), ADR 029 (`present()` over neutral facts), ADR 030 (container fa
 ## Context
 
 ADR 033 made Core schema-agnostic and proved the seam with a single front-end,
-`@jsonschema-form/input-jsonschema`. The whole point of that work was to let a
+`@formframe/input-jsonschema`. The whole point of that work was to let a
 *second* schema language compile into the same neutral tree without touching Core.
 Zod (bd `4qe`) is that second front-end — and the one that validates the seam,
 because Zod is not a document format like JSON Schema: it is a runtime object graph
@@ -31,7 +31,7 @@ There are two ways to turn a Zod schema into the neutral tree:
 
 ## Decision
 
-**`@jsonschema-form/input-zod` compiles by direct introspection of Zod's internal
+**`@formframe/input-zod` compiles by direct introspection of Zod's internal
 schema definition — no Zod → JSON Schema conversion.** It mirrors
 `input-jsonschema` structurally: a pure transcriber that reads a schema, produces
 neutral `facts`/`parts`/`children`, and calls Core's neutral builders

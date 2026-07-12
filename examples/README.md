@@ -1,6 +1,6 @@
 # Examples
 
-This directory contains example applications demonstrating the JSON Schema Form library.
+This directory contains example applications demonstrating FormFrame.
 
 ## Purpose
 
@@ -23,7 +23,7 @@ npm run dev
 ```
 
 **What's in it:**
-- Direct usage of `@jsonschema-form/core`
+- Direct usage of `@formframe/core`
 - Basic React integration patterns
 - Exploration of the tree traversal API
 

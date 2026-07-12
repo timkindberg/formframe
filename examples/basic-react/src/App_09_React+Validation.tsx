@@ -1,7 +1,7 @@
 // Side-loaded, submit-time validation (ADR 019).
 //
 // Validation is a capability slot: Core names the `Validator` shape, an adapter
-// (here @jsonschema-form/validation-ajv) implements it, and `useFormTree`
+// (here @formframe/validation-ajv) implements it, and `useFormTree`
 // runs it. Pass `{ validator }`, submit through `submit(onValid)`, and the
 // returned `SchemaFields` surfaces each error under its own field — no schema
 // annotations, no IR change, and the validator stays swappable (AJV → Zod).
@@ -10,10 +10,10 @@ import {
   useFormTree,
   ValidationProvider,
   ValidationSummary,
-} from '@jsonschema-form/react'
-import { createAjvValidator } from '@jsonschema-form/validation-ajv'
-import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
-import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
+} from '@formframe/react'
+import { createAjvValidator } from '@formframe/validation-ajv'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
+import type { JSONSchema } from '@formframe/input-jsonschema'
 
 const schema = {
   type: 'object',

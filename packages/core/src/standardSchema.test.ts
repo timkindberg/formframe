@@ -20,7 +20,7 @@ describe('toStandardSchema (emit)', () => {
   it('advertises version 1 and a vendor (default + custom)', () => {
     const v: Validator = () => ({ valid: true, errors: [] })
     expect(toStandardSchema(v)['~standard'].version).toBe(1)
-    expect(toStandardSchema(v)['~standard'].vendor).toBe('jsonschema-form')
+    expect(toStandardSchema(v)['~standard'].vendor).toBe('formframe')
     expect(toStandardSchema(v, 'acme')['~standard'].vendor).toBe('acme')
   })
 

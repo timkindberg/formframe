@@ -1,28 +1,29 @@
-# @jsonschema-form/core
+# @formframe/core
 
-**Headless foundation for JSON Schema form generation**
+FormFrame's schema-agnostic form-tree IR and recursive fold.
 
 ## Overview
 
-The Core package provides the fundamental logic for interpreting JSON Schema and managing form state with zero framework dependencies.
+Core is the neutral waist of FormFrame. Source-specific front-ends compile JSON
+Schema, Zod, or another schema language into the same tree; framework,
+validation, form-state, and presentation adapters consume that tree.
 
 ## Features
 
-- Schema traversal and parsing
-- Widget/component type registry and mapping rules
-- Form state management (values, touched, dirty state)
-- Field metadata computation
-- Schema resolution (`$ref`, `allOf`, `anyOf`, `oneOf`, conditionals)
-- Default value computation
-- Dependency tracking
-- Abstract event system (onChange, onBlur, etc.)
-- Data path utilities for nested access
+- Framework- and schema-language-neutral form-tree nodes
+- Recursive traversal, queries, and continuation rendering primitive
+- Neutral field facts, parts, presentation, and widget catalog
+- Submission assembly and nested path utilities
+- Shared validation boundary types
 
 ## Philosophy
 
-The Core knows *what* needs to be rendered and *when*, but has no knowledge of React, HTML, or CSS.
+Core imports no schema language, framework, form-state library, or DOM API. It
+does not compile schemas or manage values. Use `@formframe/input-jsonschema` or
+`@formframe/input-zod` to build a tree, then bind it with a consumer such as
+`@formframe/react` or `@formframe/vanilla`.
 
 ## Status
 
-🚧 **Under Development** - This package is in early exploration phase.
+🚧 **Under development** — public APIs may still change before v1.
 

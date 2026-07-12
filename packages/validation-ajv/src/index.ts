@@ -1,5 +1,5 @@
 /**
- * @jsonschema-form/validation-ajv
+ * @formframe/validation-ajv
  *
  * AJV-backed implementation of the Core validation slot (ADR 019). Side-loaded:
  * pass `createAjvValidator(schema)` wherever a `Validator` is accepted.
@@ -14,4 +14,4 @@ export type {
   Validator,
   ValidationError,
   ValidationResult,
-} from '@jsonschema-form/core'
+} from '@formframe/core'

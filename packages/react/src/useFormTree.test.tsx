@@ -1,14 +1,11 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { z } from 'zod'
-import { zodToTree } from '@jsonschema-form/input-zod'
-import {
-  jsonSchemaToTree,
-  type JSONSchema,
-} from '@jsonschema-form/input-jsonschema'
-import type { ValidationError } from '@jsonschema-form/core'
-import { createAjvValidator } from '@jsonschema-form/validation-ajv'
-import { createZodValidator } from '@jsonschema-form/validation-zod'
+import { zodToTree } from '@formframe/input-zod'
+import { jsonSchemaToTree, type JSONSchema } from '@formframe/input-jsonschema'
+import type { ValidationError } from '@formframe/core'
+import { createAjvValidator } from '@formframe/validation-ajv'
+import { createZodValidator } from '@formframe/validation-zod'
 import {
   useFormTree,
   ValidationProvider,

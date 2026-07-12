@@ -57,7 +57,7 @@ export interface WalkHandlers<R> {
 
 ### 2. Create React Default Components
 
-**Created three foundational components in `@jsonschema-form/react`:**
+**Created three foundational components in `@formframe/react`:**
 
 **`DefaultRootTemplate`:**
 - Renders `<form>` wrapper
@@ -82,7 +82,7 @@ export interface WalkHandlers<R> {
 - Created `packages/react/tsconfig.json` with JSX support
 - Added React package to monorepo references in root `tsconfig.json`
 - Added dependency in example app `package.json`
-- Exported all components from `@jsonschema-form/react`
+- Exported all components from `@formframe/react`
 
 ### 3. Updated Example App Pattern
 
@@ -217,8 +217,8 @@ Added comprehensive tests for root handler behavior:
    - Validation display
 
 4. **UI package layers**: Styled component libraries
-   - `@jsonschema-form/ui-tailwind`
-   - `@jsonschema-form/ui-shadcn`
+   - `@formframe/ui-tailwind`
+   - `@formframe/ui-shadcn`
    - Styled versions of Default* components
 
 5. **Root handler utilities**: Helper to prevent recursion

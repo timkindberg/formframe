@@ -18,7 +18,7 @@
 // above. It is also the seam a form-library adapter (RHF/TanStack) will later
 // implement — kept internal until a second consumer earns the public shape
 // (ADR 008).
-import { groupErrorsByPath, type ValidationError } from '@jsonschema-form/core'
+import { groupErrorsByPath, type ValidationError } from '@formframe/core'
 
 /** Shared empty snapshot — one stable reference so "no errors" never re-renders. */
 export const EMPTY_ERRORS: ValidationError[] = Object.freeze(

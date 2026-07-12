@@ -1,10 +1,10 @@
-import type { GroupNode } from '@jsonschema-form/core'
-import { present, defaultPresentation } from '@jsonschema-form/core'
+import type { GroupNode } from '@formframe/core'
+import { present, defaultPresentation } from '@formframe/core'
 import type { ZodType } from 'zod'
 import { compileRoot } from './compile'
 
 /**
- * Compile a Zod schema into the neutral @jsonschema-form/core tree (ADR 034).
+ * Compile a Zod schema into the neutral @formframe/core tree (ADR 034).
  *
  * The Zod front-end transcribes the schema into the neutral tree by DIRECT
  * introspection (no Zod → JSON Schema round-trip) — it calls Core's neutral

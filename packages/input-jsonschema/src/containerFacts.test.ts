@@ -16,7 +16,7 @@ import {
   defaultPresentation,
   layered,
   type PresentationResolver,
-} from '@jsonschema-form/core'
+} from '@formframe/core'
 import { jsonSchemaToTree } from './jsonSchemaToTree'
 import { compileRoot } from './compile'
 import { assertArrayNode, assertField, assertGroupNode } from './nodeTestUtils'

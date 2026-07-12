@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useFormTree } from '@jsonschema-form/react'
-import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
-import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
+import { useFormTree } from '@formframe/react'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
+import type { JSONSchema } from '@formframe/input-jsonschema'
 
 // Dynamic arrays on the continuation engine (ADR 015 + 018). Two array shapes:
 //   • multiselect — primitive arrays with enum/oneOf render as <select multiple>

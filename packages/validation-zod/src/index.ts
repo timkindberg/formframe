@@ -1,5 +1,5 @@
 /**
- * @jsonschema-form/validation-zod
+ * @formframe/validation-zod
  *
  * Zod-backed implementation of the Core validation slot (ADR 019). Side-loaded:
  * pass `createZodValidator(schema)` wherever a `Validator` is accepted.
@@ -13,4 +13,4 @@ export type {
   Validator,
   ValidationError,
   ValidationResult,
-} from '@jsonschema-form/core'
+} from '@formframe/core'

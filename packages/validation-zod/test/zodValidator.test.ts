@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createZodValidator } from '../src'
-import { runValidatorContract } from '@jsonschema-form/validation-contract'
+import { runValidatorContract } from '@formframe/validation-contract'
 
 /** Zod schema mirroring {@link contractSchema}'s intent (see validation-contract). */
 const contractZodSchema = z.object({

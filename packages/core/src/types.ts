@@ -1,6 +1,6 @@
 // Core type definitions. The node interfaces live in ./parser/nodeTypes; this
 // file is the public type surface. Core is schema-agnostic (ADR 033) — the
-// JSONSchema type lives in @jsonschema-form/input-jsonschema, not here.
+// JSONSchema type lives in @formframe/input-jsonschema, not here.
 
 export type {
   NodeType,

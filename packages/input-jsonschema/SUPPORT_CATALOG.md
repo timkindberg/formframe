@@ -1,9 +1,9 @@
 # JSON Schema front-end support catalog
 
-**Package:** `@jsonschema-form/input-jsonschema`  
-**Entry point:** `jsonSchemaToTree(schema)`  
-**Schema dialect:** [draft-07](https://json-schema.org/draft-07/json-schema-release-notes.html) types via `json-schema-typed`. The compiler reads only the keyword subset documented below; later-draft keys may appear in documents but are inert unless noted.
-**Maintenance:** Update this catalog and the relevant capability tests in the same change as compiler behavior. Initial catalog work is tracked by bead `jsonschema-form-00s`.
+- **Package:** `@formframe/input-jsonschema`
+- **Entry point:** `jsonSchemaToTree(schema)`
+- **Schema dialect:** [draft-07](https://json-schema.org/draft-07/json-schema-release-notes.html) types via `json-schema-typed`. The compiler reads only the keyword subset documented below; later-draft keys may appear in documents but are inert unless noted.
+- **Maintenance:** Update this catalog and the relevant capability tests in the same change as compiler behavior. Initial catalog work is tracked by bead `jsonschema-form-00s`.
 
 This document records **what the compiler does today**, not what we intend. Every non-obvious claim should be backed by source and/or tests (see [Evidence](#evidence)).
 
@@ -15,7 +15,7 @@ This document records **what the compiler does today**, not what we intend. Ever
 
 1. **Reject** boolean root schemas (`true` / `false`).
 2. **`resolveLocalRefs`** — inline same-document `#` / `#/…` `$ref`s (with sibling shallow-merge); recurse into `properties` and homogeneous `items`.
-3. **`compileRoot` → `present(defaultPresentation)`** — structural transcription (`compile.ts`) then default widget assignment (`@jsonschema-form/core` `present/present.ts`).
+3. **`compileRoot` → `present(defaultPresentation)`** — structural transcription (`compile.ts`) then default widget assignment (`@formframe/core` `present/present.ts`).
 
 The front-end is a **structural transcriber** (ADR 033): it reads keywords into neutral `facts` / `constraints`; it does **not** validate instance data. Validation is side-loaded (ADR 019).
 
@@ -161,11 +161,11 @@ No `datetime` alias; `month` / `week` not mapped. Broader format coverage: bead 
 
 ## Validation-only semantics
 
-These JSON Schema keywords affect runtime validation (e.g. `@jsonschema-form/validation-ajv`) but are **not** represented in the compiled tree beyond whatever inner facts survive compilation. **Prefill** (initial field values) is a separate axis — also not handled by compile or the shipped native submit path today (bead `jsonschema-form-2qx`).
+These JSON Schema keywords affect runtime validation (e.g. `@formframe/validation-ajv`) but are **not** represented in the compiled tree beyond whatever inner facts survive compilation. **Prefill** (initial field values) is a separate axis — also not handled by compile or the shipped native submit path today (bead `jsonschema-form-2qx`).
 
 | Feature | Compile / shipped stack | Validation behavior |
 |---------|-------------------------|---------------------|
-| `default` | Ignored — not read at compile; no prefill in tree or native submit | Applied on validated output **only** when caller opts in (`createAjvValidator(schema, { ajv: { useDefaults: true } })`); off by default in `@jsonschema-form/validation-ajv` |
+| `default` | Ignored — not read at compile; no prefill in tree or native submit | Applied on validated output **only** when caller opts in (`createAjvValidator(schema, { ajv: { useDefaults: true } })`); off by default in `@formframe/validation-ajv` |
 | `const` | Ignored — plain string leaf | Fixed value enforced by validator |
 | `multipleOf`, `exclusiveMinimum`, `exclusiveMaximum` | Ignored — not copied to `facts.constraints` | Numeric constraints enforced by validator |
 | `uniqueItems` | Ignored | Array uniqueness enforced by validator |
@@ -264,6 +264,6 @@ Actionable unsupported areas are tracked in **bd**. This catalog links them for 
 - **`anyOf` is not supported as a variant subform.** The combinator is an **ignored** modifier; the property compiles from its resolved subschema (plain string input when `type` is absent) (`edgeSchemas.test.ts`).
 - **`oneOf` is not general union typing.** Only `{ const, title? }` branches become choices; `{ type: 'string' } | { type: 'number' }` yields an empty radio group.
 - **`allOf` does not merge.** Constraint keywords on `allOf` branches are not applied.
-- **`packages/core/README.md` schema-resolution list is stale.** Resolution lives in `@jsonschema-form/input-jsonschema` and is limited to local `$ref` (ADR 033).
+- **`packages/core/README.md` schema-resolution list is stale.** Resolution lives in `@formframe/input-jsonschema` and is limited to local `$ref` (ADR 033).
 - **Validation is never the front-end's job.** Constraints are surfaced for HTML hints and side-loaded validators only.
 - **`default` is not prefill.** Compile ignores it; AJV applies defaults only when the caller enables `useDefaults`.

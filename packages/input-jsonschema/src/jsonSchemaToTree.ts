@@ -1,5 +1,5 @@
-import type { GroupNode } from '@jsonschema-form/core'
-import { present, defaultPresentation } from '@jsonschema-form/core'
+import type { GroupNode } from '@formframe/core'
+import { present, defaultPresentation } from '@formframe/core'
 import type { JSONSchema, JSONSchemaObject } from './types'
 import { compileRoot, isObjectSchema } from './compile'
 import { resolveLocalRefs } from './resolveRefs'

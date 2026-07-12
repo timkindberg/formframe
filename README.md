@@ -1,6 +1,6 @@
-# jsonschema-form
+# FormFrame
 
-A schema-driven form library, built as a better-architected alternative to [React JSON Schema Form (RJSF)](https://github.com/rjsf-team/react-jsonschema-form).
+FormFrame is a schema-driven form library, built as a better-architected alternative to [React JSON Schema Form (RJSF)](https://github.com/rjsf-team/react-jsonschema-form).
 
 ## The problem
 
@@ -10,7 +10,7 @@ RJSF sits at one extreme: schema drives *everything*, including customization. T
 
 **A schema generates the form automatically — that's the reason this library exists.** You customize in **JSX (code)**, not in more schema. Hand-authoring a whole form node-by-node is a non-goal — if that's what you want, use a form library directly.
 
-This puts jsonschema-form in between RJSF and the plain form libraries: **serialize when you must, code when you can** — a principle that applies per form, even per node.
+This puts FormFrame in between RJSF and the plain form libraries: **serialize when you must, code when you can** — a principle that applies per form, even per node.
 
 A serializable customization path also exists for genuinely DB-driven cases (Mode 1, see below), where the customization itself must be stored, not just the schema. That path is pushed into adapters, including ones you write yourself, and stays deliberately minimal — see [ADR 007](./architecture_records/007_schema_generates_jsx_customizes.md).
 
@@ -39,7 +39,7 @@ Customization is one recursive primitive, available at any granularity, fractal 
 `Default` and `Children` are injected into `renderNode` (and the root render-prop) and are also importable from the package root — use whichever is in scope:
 
 ```tsx
-import { SchemaFields, Default, Children } from '@jsonschema-form/react'
+import { SchemaFields, Default, Children } from '@formframe/react'
 
 // 1. All defaults — no customization
 <SchemaFields form={tree} />

@@ -3,7 +3,7 @@
 // `useSyncExternalStore` subscriber bails. These tests pin that invariant
 // directly (the render-count test proves it end-to-end through React).
 import { describe, it, expect, vi } from 'vitest'
-import type { ValidationError } from '@jsonschema-form/core'
+import type { ValidationError } from '@formframe/core'
 import { createErrorStore, EMPTY_ERRORS } from './errorStore'
 
 const error = (path: string, message = 'bad'): ValidationError => ({

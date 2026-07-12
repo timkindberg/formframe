@@ -1,7 +1,7 @@
 {
-  "name": "@jsonschema-form/vanilla",
+  "name": "@formframe/vanilla",
   "version": "0.0.0",
-  "description": "Framework-agnostic (no UI framework) HTML renderer for JSON Schema forms — the second-implementation probe and conformance oracle",
+  "description": "Framework-agnostic HTML renderer and conformance oracle for FormFrame trees",
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -46,10 +46,10 @@
   "author": "Tim Kindberg",
   "license": "MIT",
   "peerDependencies": {
-    "@jsonschema-form/core": "*"
+    "@formframe/core": "*"
   },
   "devDependencies": {
-    "@jsonschema-form/input-jsonschema": "*",
+    "@formframe/input-jsonschema": "*",
     "happy-dom": "^20.0.10",
     "typescript": "^5.3.3",
     "vitest": "^4.0.9"

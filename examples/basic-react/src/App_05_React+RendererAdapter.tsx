@@ -1,6 +1,6 @@
-import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
-import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
-import { createRenderer, defaultAdapter } from '@jsonschema-form/react'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
+import type { JSONSchema } from '@formframe/input-jsonschema'
+import { createRenderer, defaultAdapter } from '@formframe/react'
 
 // The floor (ADR 013): the lowest public rendering rung. `createRenderer` binds
 // a renderer set and returns a `SchemaFields`-style component. The set is *partial* —
