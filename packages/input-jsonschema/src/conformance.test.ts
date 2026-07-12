@@ -1,6 +1,6 @@
 // input-jsonschema's half of the shared input-conformance oracle (ADR 039).
 //
-// The oracle (@jsonschema-form/input-conformance) defines schema-language-NEUTRAL
+// The oracle (@formframe/input-conformance) defines schema-language-NEUTRAL
 // expected trees; here we express each scenario in JSON Schema and assert
 // jsonSchemaToTree produces the oracle's tree. The exhaustive
 // `Record<ScenarioId, JSONSchema>` makes TypeScript fail the build if a scenario
@@ -15,7 +15,7 @@
 import {
   runInputConformance,
   type ScenarioId,
-} from '@jsonschema-form/input-conformance'
+} from '@formframe/input-conformance'
 import { jsonSchemaToTree } from './jsonSchemaToTree'
 import type { JSONSchema } from './types'
 

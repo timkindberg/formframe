@@ -1,15 +1,15 @@
 {
-  "name": "@jsonschema-form/root",
+  "name": "@formframe/root",
   "version": "0.0.0",
   "private": true,
-  "description": "A modular, tiny, well-architected JSON Schema form library",
+  "description": "FormFrame: schema-driven forms over a neutral form-tree core",
   "workspaces": [
     "packages/*",
     "examples/*"
   ],
   "scripts": {
     "dev": "npm run dev -w examples/basic-react",
-    "build": "npm run build -w @jsonschema-form/core -w @jsonschema-form/input-jsonschema -w @jsonschema-form/input-zod -w @jsonschema-form/input-conformance -w @jsonschema-form/validation-contract -w @jsonschema-form/validation-ajv -w @jsonschema-form/validation-zod -w @jsonschema-form/vanilla -w @jsonschema-form/react",
+    "build": "npm run build -w @formframe/core -w @formframe/input-jsonschema -w @formframe/input-zod -w @formframe/input-conformance -w @formframe/validation-contract -w @formframe/validation-ajv -w @formframe/validation-zod -w @formframe/vanilla -w @formframe/react",
     "smoke": "node scripts/smoke-external.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/core/tsconfig.test.json && tsc --noEmit -p packages/input-jsonschema && tsc --noEmit -p packages/input-jsonschema/tsconfig.test.json && tsc --noEmit -p packages/input-zod && tsc --noEmit -p packages/input-zod/tsconfig.test.json && tsc --noEmit -p packages/input-conformance && tsc --noEmit -p packages/react/tsconfig.src.json && tsc --noEmit -p packages/react/tsconfig.test.json && tsc --noEmit -p packages/vanilla && tsc --noEmit -p packages/vanilla/tsconfig.test.json && tsc --noEmit -p packages/validation-ajv && tsc --noEmit -p packages/validation-ajv/tsconfig.test.json && tsc --noEmit -p packages/validation-contract && tsc --noEmit -p packages/validation-zod && tsc --noEmit -p packages/validation-zod/tsconfig.test.json && tsc --noEmit -p examples/basic-react/tsconfig.json",

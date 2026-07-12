@@ -156,7 +156,7 @@ so "Zod just works" is available either way (see Consequences).
   proves annoying in real recipes.
 - **Rename `result.data` → `value` now.** Unnecessary (see Consequences). The
   boundary adapter is the seam that needs the spec's name, and it has it.
-- **Put the adapters in a new `@jsonschema-form/standard-schema` package.** Rejected
+- **Put the adapters in a new `@formframe/standard-schema` package.** Rejected
   (ADR 008) — two tiny pure functions over types Core already owns. Core is their
   natural home; a package can be carved later if a non-Core consumer needs them
   without pulling Core.

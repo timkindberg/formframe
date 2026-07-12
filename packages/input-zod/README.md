@@ -1,12 +1,12 @@
-# @jsonschema-form/input-zod
+# @formframe/input-zod
 
-Zod v4 **front-end** for `@jsonschema-form/core` (ADR 034). Compiles a Zod schema into the neutral form-tree IR by direct introspection of `schema._zod.def` — no Zod → JSON Schema round-trip — then runs the shipped default presentation.
+Zod v4 **front-end** for `@formframe/core` (ADR 034). Compiles a Zod schema into the neutral form-tree IR by direct introspection of `schema._zod.def` — no Zod → JSON Schema round-trip — then runs the shipped default presentation.
 
 ## Usage
 
 ```typescript
 import { z } from 'zod'
-import { zodToTree } from '@jsonschema-form/input-zod'
+import { zodToTree } from '@formframe/input-zod'
 
 const tree = zodToTree(
   z.object({
@@ -15,7 +15,7 @@ const tree = zodToTree(
 )
 ```
 
-Pair with `@jsonschema-form/react`'s `useFormTree(tree)` for rendering and submission (ADR 035).
+Pair with `@formframe/react`'s `useFormTree(tree)` for rendering and submission (ADR 035).
 
 ## Support catalog
 
@@ -26,7 +26,7 @@ Update the catalog when compiler behavior changes.
 ## Pipeline
 
 1. `compileRoot` — structural transcription via `zodInternals.ts` → `compile.ts`
-2. `present(defaultPresentation)` — default widgets (`@jsonschema-form/core`)
+2. `present(defaultPresentation)` — default widgets (`@formframe/core`)
 
 See [ADR 034](../../architecture_records/034_zod_front_end_direct_introspection.md).
 

@@ -1,6 +1,6 @@
 # Architecture & Design Decisions
 
-This document captures the architecture of the JSON Schema Form library: what Core is, how adapters hang off it, and how rendering/customization works. For the decision history behind each section, see `architecture_records/`. For vocabulary, see `CONTEXT.md`.
+This document captures FormFrame's architecture: what Core is, how adapters hang off it, and how rendering/customization works. For the decision history behind each section, see `architecture_records/`. For vocabulary, see `CONTEXT.md`.
 
 ## Core: the form-tree IR
 
@@ -117,7 +117,7 @@ A first-party reactive store (dependency-free live behavior without reaching for
 
 ## Type System Decisions
 
-We use **`json-schema-typed`** (draft-07) for the JSON Schema front-end's types: battle-tested (120M+ downloads), supports modern drafts, no known vulnerabilities, and stable enough that its type definitions don't need constant updates. Since Core is schema-agnostic (ADR 033), this dependency and the `JSONSchema` type live in **`@jsonschema-form/input-jsonschema`**, which re-exports it:
+We use **`json-schema-typed`** (draft-07) for the JSON Schema front-end's types: battle-tested (120M+ downloads), supports modern drafts, no known vulnerabilities, and stable enough that its type definitions don't need constant updates. Since Core is schema-agnostic (ADR 033), this dependency and the `JSONSchema` type live in **`@formframe/input-jsonschema`**, which re-exports it:
 
 ```typescript
 export type { JSONSchema } from 'json-schema-typed/draft-07'

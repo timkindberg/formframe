@@ -6,8 +6,8 @@
 
 ## Context
 
-The monorepo originally listed `@jsonschema-form/react-hook-form` and
-`@jsonschema-form/ui-tailwind` alongside Core, React, and the validation
+The monorepo originally listed `@formframe/react-hook-form` and
+`@formframe/ui-tailwind` alongside Core, React, and the validation
 adapters. Both were empty placeholders — a `package.json` and an eight-line
 `src/index.ts` exporting `VERSION = '0.0.0'`. No real adapter code existed.
 
@@ -33,8 +33,8 @@ with instructions, living under `examples/` — whose job is to prove the seam i
 sufficient ([ADR 008](./008_swappability_earned_by_second_implementation.md)),
 not to be a product consumers install.
 
-**Validation adapters remain packages.** `@jsonschema-form/validation-ajv` and
-`@jsonschema-form/validation-zod` stay maintained workspace packages: they are
+**Validation adapters remain packages.** `@formframe/validation-ajv` and
+`@formframe/validation-zod` stay maintained workspace packages: they are
 thin, Standard-Schema-shaped, and reusable without per-consumer customization.
 The customization-heavy axes (UI presentation, form-library state) are recipes.
 

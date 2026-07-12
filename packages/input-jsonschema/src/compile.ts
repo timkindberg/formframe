@@ -10,7 +10,7 @@ import {
   createGroupNode,
   createArrayNode,
   createArrayItemNode,
-} from '@jsonschema-form/core'
+} from '@formframe/core'
 import type {
   AnyNode,
   ArrayItemNode,
@@ -24,7 +24,7 @@ import type {
   LeafFacts,
   SelectOption,
   ValidationRules,
-} from '@jsonschema-form/core'
+} from '@formframe/core'
 import type { JSONSchema, JSONSchemaObject } from './types'
 
 /** Type guard: a draft-07 schema may be a boolean; we only compile object schemas. */

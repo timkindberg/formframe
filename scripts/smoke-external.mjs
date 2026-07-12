@@ -20,7 +20,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
-const SCOPE = '@jsonschema-form'
+const SCOPE = '@formframe'
 
 // Publishable packages, in dependency order (order is cosmetic here).
 const PACKAGES = [

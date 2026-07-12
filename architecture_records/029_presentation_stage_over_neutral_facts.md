@@ -152,7 +152,7 @@ function present(
   preserve node identity for unchanged subtrees** (structural sharing) so the
   React `NodeRenderer` memo-bail keeps holding.
 
-`present` lives in `@jsonschema-form/core` — the same "fold over the tree" family as
+`present` lives in `@formframe/core` — the same "fold over the tree" family as
 the continuation engine; splitting it into a package is deferred until a second
 consumer forces it (ADR 008).
 
@@ -161,7 +161,7 @@ consumer forces it (ADR 008).
 A **widget kind** has two halves that live in two layers:
 
 - **neutral `deriveParts`** — pure, framework-free, produces the control facet from
-  facts. **Built-ins live in Core** (`@jsonschema-form/core` widget catalog), so the
+  facts. **Built-ins live in Core** (`@formframe/core` widget catalog), so the
   string-oracle and vanilla adapters get the *same* derivers and conformance
   (React ≡ vanilla markup, ADR 013/008) still holds. Co-locating derivers in the
   React package would be a conformance trap.
@@ -304,7 +304,7 @@ facts** and delegate widget selection + parts to the Core catalog via
 `deriveSelectParts`). `buildInputAttrs` and the parser's part-builders are gone, so
 the facts→parts logic lives in exactly one place (`present.ts`). `jsonSchemaToTree`'s
 return stays **fully-formed** (default-presented) — every direct consumer (the
-`@jsonschema-form/vanilla` package, conformance, arrays/render-stability tests) is
+`@formframe/vanilla` package, conformance, arrays/render-stability tests) is
 unchanged, and `useFormTree` still layers a consumer resolver on top identity-
 preservingly. The array→`multiselect` *collapse* remains a structural (facts)
 decision the parser owns; only the leaf's widget/parts derivation moved.

@@ -23,7 +23,7 @@ The real React seam is the form tree, not any source schema.
 
 ## Decision
 
-**`@jsonschema-form/react` exposes `useFormTree(tree, options)` as its sole
+**`@formframe/react` exposes `useFormTree(tree, options)` as its sole
 convenience hook.** Callers compile with an input package first:
 
 ```tsx
@@ -56,7 +56,7 @@ Schema recognition and compilation remain entirely in input packages.
 
 The previous JSON-Schema-specific hook is removed rather than retained as
 another public rung. A wrapper would preserve the exact coupling this decision
-removes, keep `@jsonschema-form/input-jsonschema` as a React peer dependency, and
+removes, keep `@formframe/input-jsonschema` as a React peer dependency, and
 leave two ways to teach the same behavior.
 
 JSON Schema now takes the same explicit compile-then-bind path as Zod. The extra

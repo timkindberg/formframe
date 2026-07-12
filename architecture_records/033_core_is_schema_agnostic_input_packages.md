@@ -28,8 +28,8 @@ So a second front-end (Zod, bd `4qe`) cannot compile *into* the tree without eit
 (a) lowering Zod to JSON Schema first (lossy, and it would re-prove the coupling) or
 (b) duplicating the whole builder/collapse logic. Neither is acceptable. We want Core to be
 the neutral IR + `present()` + submit, and **each schema language its own input package**
-that compiles into Core's builders. (This is also why the library will eventually be renamed
-`schemaform` — it is not JSON-Schema-specific.)
+that compiles into Core's builders. (This is also why the library is named
+FormFrame rather than for one source schema.)
 
 Two redundancies compound the coupling and must be cleared first:
 
@@ -104,13 +104,13 @@ consumer's resolver gets a **properly typed** `facts.origin.schema` for the sche
 The whole-node **`NodeBase.schema` is removed** — the only schema reference is the generic,
 front-end-owned `origin.schema` on facts.
 
-### 5. `@jsonschema-form/input-jsonschema` owns all JSON Schema knowledge
+### 5. `@formframe/input-jsonschema` owns all JSON Schema knowledge
 
 `jsonSchemaToTree`, `resolveRefs`, and the keyword→facts mapping move to a new
-`@jsonschema-form/input-jsonschema` package that depends on `@jsonschema-form/core` and calls
+`@formframe/input-jsonschema` package that depends on `@formframe/core` and calls
 its builders. Core keeps zero dependencies and no JSON Schema import. Core does **not**
 re-export `jsonSchemaToTree` (that would make the dependency point back Core→front-end); every
-consumer imports it directly from `@jsonschema-form/input-jsonschema`, and the `JSONSchema` type
+consumer imports it directly from `@formframe/input-jsonschema`, and the `JSONSchema` type
 now lives there too.
 
 ## Migration (staged; gate-green per PR)
@@ -127,7 +127,7 @@ now lives there too.
   `createArrayItemNode`) + `itemFactory` closure; generic `origin<S>` (Core defaults `S=unknown`,
   reads it as opaque); drop `NodeBase.schema` / `ArrayNode.itemSchema`. Core-internal — the JSON
   Schema front-end (`compile.ts`) still lived in Core, now pinned to `S=JSONSchemaObject`.
-- **PR B4 ✅** — §5: extract `@jsonschema-form/input-jsonschema` (`compile`, `resolveRefs`,
+- **PR B4 ✅** — §5: extract `@formframe/input-jsonschema` (`compile`, `resolveRefs`,
   `jsonSchemaToTree`, and the `JSONSchema`/`JSONSchemaObject` types). Core exports the neutral
   builders + `ValidationRules` + `decodeJsonPointerSegment`, drops the `json-schema-typed`
   dependency, and no longer imports or re-exports any JSON Schema. All consumers (react, vanilla,
@@ -137,8 +137,8 @@ now lives there too.
 
 - **A second front-end (Zod) is now a thin package**, not a fork of Core — it fills facts and
   calls builders, inheriting `present()`, collapse, and submit for free (bd `4qe`, PR C).
-- **Core is finally schema-agnostic**, matching the stated architecture, and can be renamed
-  `schemaform` without a lie in the name.
+- **Core is finally schema-agnostic**, matching FormFrame's source-neutral
+  product identity.
 - **Typed origin for consumers** — a resolver reading `facts.origin.schema` gets the
   front-end's real type, not `JSONSchemaObject` baked into Core.
 - **One validation home** removes a whole class of "which copy is right?" bugs.

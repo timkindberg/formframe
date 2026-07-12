@@ -7,8 +7,8 @@
 ## Context
 
 ADR 019 carved the validator seam in Core and placed the **contract-test suite**
-in `@jsonschema-form/validation-ajv/test`, deferring a shared package until a
-second adapter existed. That second adapter — `@jsonschema-form/validation-zod`
+in `@formframe/validation-ajv/test`, deferring a shared package until a
+second adapter existed. That second adapter — `@formframe/validation-zod`
 — now consumes the suite via an awkward `./test/contract` export on the AJV
 package. Zod importing AJV for a test helper inverts the dependency direction
 and leaks test infrastructure through a production package's public exports.
@@ -20,7 +20,7 @@ to its own package is the honest extraction.
 ## Decision
 
 **Extract the validator-agnostic contract suite into
-`@jsonschema-form/validation-contract`.**
+`@formframe/validation-contract`.**
 
 The package is test infrastructure, not a runtime validator. Its public API:
 
@@ -30,13 +30,13 @@ The package is test infrastructure, not a runtime validator. Its public API:
   array-item paths (`contacts.0.email`)
 - `ValidatorContractTarget` — `{ name, validate }` passed into the suite
 
-Dependencies: `@jsonschema-form/core` (types only) and `vitest`. Each validator
-adapter adds `@jsonschema-form/validation-contract` as a **devDependency** and
+Dependencies: `@formframe/core` (types only) and `vitest`. Each validator
+adapter adds `@formframe/validation-contract` as a **devDependency** and
 calls `runValidatorContract` from its adapter-specific test file. Adapter-only
 tests (AJV pattern/allErrors/coercion; Zod keyword mapping) stay in their
 respective packages.
 
-Remove the `./test/contract` export from `@jsonschema-form/validation-ajv`.
+Remove the `./test/contract` export from `@formframe/validation-ajv`.
 
 ## Consequences
 
@@ -64,5 +64,5 @@ Remove the `./test/contract` export from `@jsonschema-form/validation-ajv`.
 ---
 
 **Relates to:** ADR 008 (second implementation earns the seam), ADR 019
-(validator contract + contract tests), `@jsonschema-form/validation-ajv`,
-`@jsonschema-form/validation-zod`.
+(validator contract + contract tests), `@formframe/validation-ajv`,
+`@formframe/validation-zod`.

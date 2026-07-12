@@ -67,7 +67,7 @@ import {
   type AnyTreeNode,
   type FieldControl,
   type ValidationError,
-} from '@jsonschema-form/core'
+} from '@formframe/core'
 
 // ---------------------------------------------------------------------------
 // Public types — React instantiates the generic engine at R = ReactNode.

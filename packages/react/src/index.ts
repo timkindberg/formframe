@@ -1,5 +1,5 @@
 /**
- * @jsonschema-form/react
+ * @formframe/react
  *
  * React adapter for Core form trees from any schema front-end.
  */

@@ -3,7 +3,7 @@ import { createAjvValidator } from '../src'
 import {
   contractSchema,
   runValidatorContract,
-} from '@jsonschema-form/validation-contract'
+} from '@formframe/validation-contract'
 
 runValidatorContract({
   name: 'AJV',

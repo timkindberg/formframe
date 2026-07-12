@@ -5,7 +5,7 @@ import {
   OPTION_COUNT_THRESHOLD,
   layered,
   type PresentationResolver,
-} from '@jsonschema-form/core'
+} from '@formframe/core'
 import { jsonSchemaToTree } from './jsonSchemaToTree'
 import {
   inputCtl,

@@ -9,10 +9,10 @@
 
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
-import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
+import type { JSONSchema } from '@formframe/input-jsonschema'
 import { useState, useMemo } from 'react'
-import { createAjvValidator } from '@jsonschema-form/validation-ajv'
+import { createAjvValidator } from '@formframe/validation-ajv'
 import {
   createRenderer,
   defaultAdapter,
@@ -22,7 +22,7 @@ import {
   type ReactPartialAdapter,
 } from './renderer'
 import { useFormTree } from './useFormTree'
-import type { FieldControl } from '@jsonschema-form/core'
+import type { FieldControl } from '@formframe/core'
 
 type Counts = Record<string, number>
 

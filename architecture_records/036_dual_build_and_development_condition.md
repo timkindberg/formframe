@@ -37,7 +37,7 @@ Output is `dist/index.js` (ESM), `dist/index.cjs` (CJS), and matching
 `dist/index.d.ts` / `dist/index.d.cts`. `tsup` (esbuild) is light and produces
 both formats plus declarations in one pass. Cross-package deps are externalized
 (they are `dependencies`/`peerDependencies`), so a package's `dist` and `.d.ts`
-keep the bare `@jsonschema-form/*` specifier and never inline a sibling.
+keep the bare `@formframe/*` specifier and never inline a sibling.
 
 `tsconfig.tsup.json` extends the root config but sets `composite: false`,
 `incremental: false`, `declarationMap: false` (the composite project graph
@@ -69,7 +69,7 @@ below, build order does not matter — each package builds independently.
 The `development` condition points at source. The root `tsconfig`
 (`customConditions: ["development"]`) and Vite/Vitest (which enable
 `development` by default) both select it, so **the gate resolves every
-`@jsonschema-form/*` import to `src` with no build** — requirement (1) is met
+`@formframe/*` import to `src` with no build** — requirement (1) is met
 with zero per-package Vitest/alias wiring. A normal consumer never sets
 `development`, so `import`/`require` win and they get `dist`.
 
@@ -106,8 +106,8 @@ build+pack+install signal runs in parallel.
 - Publishing source is a conscious trade (bigger tarball, source visible in dev)
   for sourcemap-accurate DX. A future move to a non-leaking custom condition (no
   shipped `src`) is possible but would require per-package Vitest resolution.
-- The build config is name-agnostic; the eventual `@jsonschema-form/*` →
-  `@schemaform/*` rename only touches the smoke consumer's import strings.
+- The build config is name-agnostic; moving the package family to
+  `@formframe/*` only changes the smoke consumer's import strings.
 - `build-and-smoke` adds CI minutes (build + tarball install), isolated from the
   fast gate.
 

@@ -9,10 +9,10 @@ import {
   useFormTree,
   ValidationProvider,
   ValidationSummary,
-} from '@jsonschema-form/react'
-import { createAjvValidator } from '@jsonschema-form/validation-ajv'
-import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
-import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
+} from '@formframe/react'
+import { createAjvValidator } from '@formframe/validation-ajv'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
+import type { JSONSchema } from '@formframe/input-jsonschema'
 
 const schema = {
   type: 'object',

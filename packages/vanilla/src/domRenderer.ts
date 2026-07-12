@@ -19,7 +19,7 @@ import {
   type AnyGroupNode,
   type AnySchemaResolver,
   type FieldControl,
-} from '@jsonschema-form/core'
+} from '@formframe/core'
 
 // ---------------------------------------------------------------------------
 // Public types — enriched nodes at R = Node.

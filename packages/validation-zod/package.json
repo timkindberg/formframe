@@ -1,7 +1,7 @@
 {
-  "name": "@jsonschema-form/validation-zod",
+  "name": "@formframe/validation-zod",
   "version": "0.0.0",
-  "description": "Zod validation adapter for JSON Schema forms",
+  "description": "Zod validation adapter for FormFrame",
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -45,12 +45,12 @@
   "author": "Tim Kindberg",
   "license": "MIT",
   "peerDependencies": {
-    "@jsonschema-form/core": "*",
+    "@formframe/core": "*",
     "zod": "^3 || ^4"
   },
   "devDependencies": {
-    "@jsonschema-form/core": "*",
-    "@jsonschema-form/validation-contract": "*",
+    "@formframe/core": "*",
+    "@formframe/validation-contract": "*",
     "typescript": "^5.3.3",
     "vitest": "^4.0.9",
     "zod": "^4.0.0"

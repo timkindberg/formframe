@@ -1,7 +1,7 @@
 {
-  "name": "@jsonschema-form/core",
+  "name": "@formframe/core",
   "version": "0.0.0",
-  "description": "Headless core logic for JSON Schema form generation",
+  "description": "FormFrame's schema-agnostic form-tree IR and recursive fold",
   "type": "module",
   "sideEffects": false,
   "engines": {

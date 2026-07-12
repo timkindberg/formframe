@@ -1,7 +1,7 @@
 {
-  "name": "@jsonschema-form/input-conformance",
+  "name": "@formframe/input-conformance",
   "version": "0.0.0",
-  "description": "The shared input-conformance oracle — expected neutral trees every @jsonschema-form/input-* front-end must produce for equivalent schemas (ADR 039). Test-only; imports nothing from any input-* package.",
+  "description": "The shared input-conformance oracle — expected neutral trees every @formframe/input-* front-end must produce for equivalent schemas (ADR 039). Test-only; imports nothing from any input-* package.",
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -42,11 +42,11 @@
   "author": "Tim Kindberg",
   "license": "MIT",
   "peerDependencies": {
-    "@jsonschema-form/core": "*",
+    "@formframe/core": "*",
     "vitest": "^4"
   },
   "devDependencies": {
-    "@jsonschema-form/core": "*",
+    "@formframe/core": "*",
     "typescript": "^5.3.3",
     "vitest": "^4.0.9"
   }

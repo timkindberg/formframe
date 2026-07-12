@@ -8,14 +8,14 @@ import {
   type ReactNode,
   type SyntheticEvent,
 } from 'react'
-import { present, defaultPresentation, layered } from '@jsonschema-form/core'
+import { present, defaultPresentation, layered } from '@formframe/core'
 import type {
   GroupNode,
   Validator,
   ValidationError,
   ValidationResult,
   PresentationResolver,
-} from '@jsonschema-form/core'
+} from '@formframe/core'
 import {
   SchemaFields as SchemaFieldsRenderer,
   type EGroup,

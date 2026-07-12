@@ -55,7 +55,7 @@ covers the native-adapter path the architecture calls out. Async validators
 (Standard Schema, Zod's async refinements) are a **future seam evolution**,
 deferred until a second adapter actually forces an async shape (ADR 008).
 
-### 3. AJV is the first adapter (`@jsonschema-form/validation-ajv`)
+### 3. AJV is the first adapter (`@formframe/validation-ajv`)
 
 `createAjvValidator(schema) → Validator` compiles the schema once (`allErrors`,
 `strict:false`) and maps each AJV `ErrorObject` to a `ValidationIssue`:

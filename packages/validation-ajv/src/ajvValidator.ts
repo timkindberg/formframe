@@ -1,8 +1,8 @@
 import Ajv, { type ErrorObject, type Options as AjvOptions } from 'ajv'
 import addFormats from 'ajv-formats'
-import type { Validator, ValidationError } from '@jsonschema-form/core'
-import { joinPath, jsonPointerToPath } from '@jsonschema-form/core'
-import type { InferData, JSONSchema } from '@jsonschema-form/input-jsonschema'
+import type { Validator, ValidationError } from '@formframe/core'
+import { joinPath, jsonPointerToPath } from '@formframe/core'
+import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
 
 export interface AjvValidatorOptions {
   /**

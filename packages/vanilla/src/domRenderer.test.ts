@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 
 import { describe, it, expect } from 'vitest'
-import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
-import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
+import type { JSONSchema } from '@formframe/input-jsonschema'
 import { renderToString } from './renderToString'
 import {
   renderToDom,

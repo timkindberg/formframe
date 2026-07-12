@@ -1,4 +1,4 @@
-import { decodeJsonPointerSegment } from '@jsonschema-form/core'
+import { decodeJsonPointerSegment } from '@formframe/core'
 import type { JSONSchemaObject } from './types'
 
 /**

@@ -1,9 +1,9 @@
 # Zod front-end support catalog
 
-**Package:** `@jsonschema-form/input-zod`  
-**Entry point:** `zodToTree(schema)`  
-**Schema dialect:** [Zod v4](https://zod.dev) — introspection via `schema._zod.def` (ADR 034). Evidence in this catalog uses **Zod 4.4.3** (current lockfile resolution). Zod v3 internals differ and are out of scope.  
-**Maintenance:** Update this catalog and its evidence tests in the same change as compiler behavior. Initial catalog work is tracked by bead `jsonschema-form-5ss.6`.
+- **Package:** `@formframe/input-zod`
+- **Entry point:** `zodToTree(schema)`
+- **Schema dialect:** [Zod v4](https://zod.dev) — introspection via `schema._zod.def` (ADR 034). Evidence in this catalog uses **Zod 4.4.3** (current lockfile resolution). Zod v3 internals differ and are out of scope.
+- **Maintenance:** Update this catalog and its evidence tests in the same change as compiler behavior. Initial catalog work is tracked by bead `jsonschema-form-5ss.6`.
 
 This document records **what the compiler does today**, not what we intend. Every non-obvious claim should be backed by source and/or tests (see [Evidence](#evidence)).
 
@@ -14,9 +14,9 @@ This document records **what the compiler does today**, not what we intend. Ever
 `zodToTree` runs two stages:
 
 1. **`compileRoot` → `compile.ts`** — direct introspection (`zodInternals.ts`) produces neutral `facts` / `parts` / `children` and calls Core's neutral builders.
-2. **`present(defaultPresentation)`** — default widget assignment (`@jsonschema-form/core` `present/present.ts`).
+2. **`present(defaultPresentation)`** — default widget assignment (`@formframe/core` `present/present.ts`).
 
-The front-end is a **structural transcriber** (ADR 033/034): it reads Zod definitions into neutral facts; it does **not** validate instance data. Validation is side-loaded (ADR 019) — typically `@jsonschema-form/validation-zod` against the same Zod schema. **Standard Schema does not compile forms.**
+The front-end is a **structural transcriber** (ADR 033/034): it reads Zod definitions into neutral facts; it does **not** validate instance data. Validation is side-loaded (ADR 019) — typically `@formframe/validation-zod` against the same Zod schema. **Standard Schema does not compile forms.**
 
 ---
 
@@ -165,7 +165,7 @@ Peeling is structural: any wrapper with `def.innerType` is unwrapped (`unwrap()`
 
 ## Validation-only semantics
 
-These Zod features affect runtime validation (and `@jsonschema-form/validation-zod`) but are **not** represented in the compiled tree beyond whatever inner scalar facts survive unwrapping:
+These Zod features affect runtime validation (and `@formframe/validation-zod`) but are **not** represented in the compiled tree beyond whatever inner scalar facts survive unwrapping:
 
 | Feature | Compile behavior | Validation behavior |
 |---------|------------------|---------------------|

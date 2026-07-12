@@ -1,4 +1,4 @@
-import type { Validator, ValidationError } from '@jsonschema-form/core'
+import type { Validator, ValidationError } from '@formframe/core'
 
 // A throwaway, hand-rolled validator (ADR 008 / ADR 019): a tiny schema-walking
 // checker for `required` + `minLength`. Its only job is to prove the Core

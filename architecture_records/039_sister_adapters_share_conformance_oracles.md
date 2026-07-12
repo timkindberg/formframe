@@ -14,11 +14,11 @@ the shared boundary must not drift.
 
 The repository already has this shape in two families:
 
-- `@jsonschema-form/validation-ajv` and
-  `@jsonschema-form/validation-zod` run
-  `@jsonschema-form/validation-contract`;
-- `@jsonschema-form/input-jsonschema` and `@jsonschema-form/input-zod` run
-  `@jsonschema-form/input-conformance`.
+- `@formframe/validation-ajv` and
+  `@formframe/validation-zod` run
+  `@formframe/validation-contract`;
+- `@formframe/input-jsonschema` and `@formframe/input-zod` run
+  `@formframe/input-conformance`.
 
 ADR 020 records the validation extraction. ADRs 033 and 034 establish the
 neutral input boundary, but do not establish how equivalent source schemas are
@@ -76,9 +76,9 @@ that helper directly. Until then it remains private to the runner. Accordingly,
 
 ## Current Implementations
 
-- **Validation:** `@jsonschema-form/validation-contract` runs one validator
+- **Validation:** `@formframe/validation-contract` runs one validator
   contract against AJV, Zod, and the contract fake (ADR 020).
-- **Input:** `@jsonschema-form/input-conformance` runs one exhaustive neutral
+- **Input:** `@formframe/input-conformance` runs one exhaustive neutral
   tree oracle against JSON Schema and Zod. Numeric choice sets are a shared
   scenario rather than duplicated adapter-local assertions.
 - **Rendering:** `packages/react/src/conformance.test.tsx` applies the same
@@ -114,5 +114,5 @@ that helper directly. Until then it remains private to the runner. Accordingly,
 
 **Relates to:** ADR 008 (earned seams), ADR 013 (renderer adapters), ADR 020
 (validation contract package), ADR 033 (input packages), ADR 034 (Zod input),
-`@jsonschema-form/input-conformance`,
-`@jsonschema-form/validation-contract`.
+`@formframe/input-conformance`,
+`@formframe/validation-contract`.

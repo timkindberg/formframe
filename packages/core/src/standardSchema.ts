@@ -61,7 +61,7 @@ export interface StandardSchemaV1Issue {
  */
 export function toStandardSchema<T>(
   validator: Validator<T>,
-  vendor = 'jsonschema-form'
+  vendor = 'formframe'
 ): StandardSchemaV1<unknown, T> {
   return {
     '~standard': {

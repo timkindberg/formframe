@@ -5,12 +5,7 @@
 // helpers narrow `AnyNode` via the boolean-literal discriminants, throwing a
 // clear message otherwise.
 
-import type {
-  AnyNode,
-  ArrayNode,
-  FieldNode,
-  GroupNode,
-} from '@jsonschema-form/core'
+import type { AnyNode, ArrayNode, FieldNode, GroupNode } from '@formframe/core'
 
 export function assertArrayNode<S = unknown>(
   node: AnyNode<S> | undefined

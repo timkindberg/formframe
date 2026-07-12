@@ -8,7 +8,7 @@
 // the rest of the front-end works against typed helpers, never `_zod`.
 
 import type { ZodType } from 'zod'
-import type { SelectOption } from '@jsonschema-form/core'
+import type { SelectOption } from '@formframe/core'
 
 /** One entry of `def.checks` (or an inline check on a format schema like `z.int()`). */
 interface ZodCheckDef {

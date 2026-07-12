@@ -1,9 +1,9 @@
 /**
- * @jsonschema-form/core
+ * @formframe/core
  *
  * Headless, schema-agnostic form-tree IR + the present() fold (ADR 033).
  * Zero dependencies. No framework coupling. Front-ends (e.g.
- * @jsonschema-form/input-jsonschema) compile a schema INTO this tree via the
+ * @formframe/input-jsonschema) compile a schema INTO this tree via the
  * neutral builders below; Core reads no schema language itself.
  */
 
@@ -78,7 +78,7 @@ export {
 } from './jsonPointer'
 
 // Validation capability slot (ADR 019) — the neutral, side-loaded contract.
-// Adapters (e.g. @jsonschema-form/validation-ajv) implement `Validator`.
+// Adapters (e.g. @formframe/validation-ajv) implement `Validator`.
 export { groupErrorsByPath } from './validation'
 
 // Standard Schema interop (ADR 026) — let the Validator seam emit/consume the

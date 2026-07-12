@@ -27,7 +27,7 @@ import {
   type AnyGroupNode,
   type AnySchemaResolver,
   type FieldControl,
-} from '@jsonschema-form/core'
+} from '@formframe/core'
 
 // ---------------------------------------------------------------------------
 // Public types — the enriched node handed to `renderNode`, at R = string.

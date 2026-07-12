@@ -1,7 +1,7 @@
 {
-  "name": "@jsonschema-form/validation-contract",
+  "name": "@formframe/validation-contract",
   "version": "0.0.0",
-  "description": "Validator-agnostic contract suite for JSON Schema form validation adapters",
+  "description": "Validator-agnostic contract suite for FormFrame validation adapters",
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -46,13 +46,13 @@
   "author": "Tim Kindberg",
   "license": "MIT",
   "peerDependencies": {
-    "@jsonschema-form/core": "*",
-    "@jsonschema-form/input-jsonschema": "*",
+    "@formframe/core": "*",
+    "@formframe/input-jsonschema": "*",
     "vitest": "^4.0.0"
   },
   "devDependencies": {
-    "@jsonschema-form/core": "*",
-    "@jsonschema-form/input-jsonschema": "*",
+    "@formframe/core": "*",
+    "@formframe/input-jsonschema": "*",
     "typescript": "^5.3.3",
     "vitest": "^4.0.9"
   }

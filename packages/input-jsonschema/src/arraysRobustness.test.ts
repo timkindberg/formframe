@@ -4,7 +4,7 @@ import {
   present,
   defaultPresentation,
   type AnyNode,
-} from '@jsonschema-form/core'
+} from '@formframe/core'
 import { jsonSchemaToTree } from './jsonSchemaToTree'
 import type { JSONSchema } from './types'
 import { choicegroupCtl } from './controlTestUtils'

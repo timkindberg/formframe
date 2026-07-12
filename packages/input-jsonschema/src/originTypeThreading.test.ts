@@ -5,7 +5,7 @@
 // every node — root and deep leaf alike — never a per-node subschema.
 
 import { describe, it, expectTypeOf } from 'vitest'
-import type { GroupNode, FieldNode } from '@jsonschema-form/core'
+import type { GroupNode, FieldNode } from '@formframe/core'
 import { jsonSchemaToTree } from './jsonSchemaToTree'
 import type { JSONSchema, JSONSchemaObject } from './types'
 
