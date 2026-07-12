@@ -1,4 +1,4 @@
-// The input-conformance oracle (ADR 038).
+// The input-conformance oracle (ADR 039).
 //
 // Every @jsonschema-form/input-* front-end (JSON Schema, Zod, …) is a STRUCTURAL
 // transcriber into the same neutral Core tree, so for equivalent input schemas

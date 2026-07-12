@@ -1,4 +1,4 @@
-# ADR 038: Sister Adapters Share Conformance Oracles
+# ADR 039: Sister Adapters Share Conformance Oracles
 
 **Date:** 2026-07-12
 **Status:** Accepted (bd `jsonschema-form-8jl`)

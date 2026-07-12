@@ -1,4 +1,4 @@
-// input-jsonschema's half of the shared input-conformance oracle (ADR 038).
+// input-jsonschema's half of the shared input-conformance oracle (ADR 039).
 //
 // The oracle (@jsonschema-form/input-conformance) defines schema-language-NEUTRAL
 // expected trees; here we express each scenario in JSON Schema and assert

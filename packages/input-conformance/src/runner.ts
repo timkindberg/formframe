@@ -3,7 +3,7 @@
 // scenario id into a Core tree with ITS OWN front-end. The runner folds every
 // oracle scenario (scenarios.ts) over that tree and asserts the neutral tree
 // surface matches — so any front-end is checked against the SAME reference,
-// never against another front-end (the packages stay mutually ignorant, ADR 038).
+// never against another front-end (the packages stay mutually ignorant, ADR 039).
 //
 // Generic in the origin type `S` so `GroupNode<JSONSchemaObject>` and
 // `GroupNode<ZodType>` both satisfy it without tripping over `S`-invariance
