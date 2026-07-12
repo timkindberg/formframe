@@ -13,7 +13,7 @@ import { render } from 'vitest-browser-react'
 import { useState } from 'react'
 import { jsonSchemaToTree } from '@jsonschema-form/input-jsonschema'
 import type { JSONSchema } from '@jsonschema-form/input-jsonschema'
-import { SchemaFields, Default, Children } from './renderer'
+import { SchemaFields, Default, Children } from './index'
 
 const schema: JSONSchema = {
   type: 'object',
