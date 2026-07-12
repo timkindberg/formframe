@@ -125,7 +125,14 @@ export type { JSONSchema } from 'json-schema-typed/draft-07'
 
 This lets consumers import the schema type from the JSON Schema front-end without knowing its internal dependencies; Core itself imports no schema language.
 
-What the JSON Schema front-end accepts and how it maps to the default form is documented in **[packages/input-jsonschema/SUPPORT_CATALOG.md](./packages/input-jsonschema/SUPPORT_CATALOG.md)** (evidence-backed; maintained under bead `jsonschema-form-00s`). Use it for triage and to avoid assuming keywords (e.g. `anyOf`) work before checking current behavior.
+### Input support catalogs
+
+Every maintained **input** package publishes an evidence-backed **`SUPPORT_CATALOG.md`** (linked from its `README.md`, included in npm pack output) documenting current compile behavior: supported, qualified, degraded, ignored, and rejected shapes, plus validation-only semantics where relevant. Update the catalog and `supportCatalog.test.ts` (or equivalent evidence tests) in the same change as compiler behavior.
+
+Use the catalogs for triage — don't assume a keyword or Zod construct works before checking current behavior (e.g. JSON Schema `anyOf`, Zod non-literal unions).
+
+- JSON Schema: [packages/input-jsonschema/SUPPORT_CATALOG.md](./packages/input-jsonschema/SUPPORT_CATALOG.md) (bead `jsonschema-form-00s`)
+- Zod v4: [packages/input-zod/SUPPORT_CATALOG.md](./packages/input-zod/SUPPORT_CATALOG.md) (bead `jsonschema-form-5ss.6`)
 
 ## What We Decided Against
 

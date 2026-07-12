@@ -26,6 +26,8 @@
   "files": [
     "dist",
     "src",
+    "README.md",
+    "SUPPORT_CATALOG.md",
     "!**/*.test.ts",
     "!**/*.test.tsx",
     "!**/*.spec.ts",

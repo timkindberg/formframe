@@ -108,7 +108,7 @@ Designing every swap seam up front tends to produce speculative, wrong abstracti
 
 - `packages/core` — headless foundation: the form-tree IR and recursive fold (schema-agnostic)
 - `packages/input-jsonschema` — JSON Schema front-end (`jsonSchemaToTree`); see [support catalog](./packages/input-jsonschema/SUPPORT_CATALOG.md)
-- `packages/input-zod` — Zod v4 front-end (`zodToTree`)
+- `packages/input-zod` — Zod v4 front-end (`zodToTree`); see [support catalog](./packages/input-zod/SUPPORT_CATALOG.md)
 - `packages/react` — React framework-binding adapter (hooks, default templates, the continuation renderer)
 - `packages/validation-ajv` / `packages/validation-zod` — validation adapters (Standard-Schema-shaped; maintained packages)
 - `examples/basic-react` — example app exercising the library end to end
