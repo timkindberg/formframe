@@ -874,32 +874,6 @@ describe('jsonSchemaToTree', () => {
       ])
     })
 
-    it('handles enum fields with number values', () => {
-      const schema: JSONSchema = {
-        type: 'object',
-        properties: {
-          rating: {
-            type: 'number',
-            enum: [1, 2, 3, 4, 5],
-            title: 'Rating',
-          },
-        },
-      }
-
-      const form = jsonSchemaToTree(schema)
-      const field = form.getField('rating')
-
-      // 5 options == threshold, so still a radio; choices keep their number values.
-      expect(field?.widget).toBe('radio')
-      expect(field?.facts.choices).toEqual([
-        { value: 1, label: '1' },
-        { value: 2, label: '2' },
-        { value: 3, label: '3' },
-        { value: 4, label: '4' },
-        { value: 5, label: '5' },
-      ])
-    })
-
     it('handles required enum fields', () => {
       const schema: JSONSchema = {
         type: 'object',

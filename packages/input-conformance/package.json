@@ -1,7 +1,7 @@
 {
   "name": "@jsonschema-form/input-conformance",
   "version": "0.0.0",
-  "description": "The shared input-conformance oracle — expected neutral trees every @jsonschema-form/input-* front-end must produce for equivalent schemas (ADR 033/034). Test-only; imports nothing from any input-* package.",
+  "description": "The shared input-conformance oracle — expected neutral trees every @jsonschema-form/input-* front-end must produce for equivalent schemas (ADR 038). Test-only; imports nothing from any input-* package.",
   "type": "module",
   "sideEffects": false,
   "engines": {

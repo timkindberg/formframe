@@ -1,13 +1,13 @@
 // The oracle runner. A front-end's colocated conformance test calls
 // `runInputConformance(label, buildTree)`, passing a function that compiles each
 // scenario id into a Core tree with ITS OWN front-end. The runner folds every
-// oracle scenario (scenarios.ts) over that tree and asserts the neutral facts
-// match — so any front-end is checked against the SAME reference, never against
-// another front-end (the packages stay mutually ignorant, ADR 033).
+// oracle scenario (scenarios.ts) over that tree and asserts the neutral tree
+// surface matches — so any front-end is checked against the SAME reference,
+// never against another front-end (the packages stay mutually ignorant, ADR 038).
 //
 // Generic in the origin type `S` so `GroupNode<JSONSchemaObject>` and
 // `GroupNode<ZodType>` both satisfy it without tripping over `S`-invariance
-// (bd wo8); the runner reads only neutral facts, never `origin.schema`.
+// (bd wo8); the runner reads only neutral facts and parts, never `origin.schema`.
 
 import { describe, it, expect } from 'vitest'
 import type { AnyNode, GroupNode, ValidationRules } from '@jsonschema-form/core'
@@ -54,6 +54,16 @@ function assertNode<S>(
     }
     if (spec.choices !== undefined) {
       expect(f.choices, `"${path}" choices`).toEqual(spec.choices)
+      const control = node.parts.control
+      const controlValues =
+        control.kind === 'choicegroup'
+          ? control.options.map((option) => option.attrs.value)
+          : control.kind === 'select'
+            ? control.options.map((option) => option.value)
+            : undefined
+      expect(controlValues, `"${path}" control choice values`).toEqual(
+        spec.choices.map((choice) => choice.value)
+      )
     }
     assertConstraints(f.constraints, spec.constraints, path)
     return

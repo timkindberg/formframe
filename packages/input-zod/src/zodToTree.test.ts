@@ -191,17 +191,6 @@ describe('zodToTree', () => {
         'l',
       ])
     })
-
-    it('a numeric literal union → numeric-valued choices', () => {
-      const form = zodToTree(
-        z.object({ n: z.union([z.literal(1), z.literal(2)]) })
-      )
-      const field = form.getField('n')
-      expect(field?.facts.primitive).toBe('number')
-      expect(choicegroupCtl(field).options.map((o) => o.attrs.value)).toEqual([
-        1, 2,
-      ])
-    })
   })
 
   describe('arrays', () => {

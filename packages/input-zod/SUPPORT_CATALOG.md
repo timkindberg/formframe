@@ -82,7 +82,7 @@ If Zod restructures `_zod.def`, **`zodInternals.ts` is the only file to touch.**
 | Other `string_format` checks (`uuid`, `ip`, …) | qualified | `facts.format` set; unknown formats → `input type=text` | `mapStringFormat` / `readScalar` in `zodInternals.ts` |
 | `z.enum([…])` (non-empty) | supported | `radio` if ≤5 options else `select` | `zodToTree.test.ts` |
 | `z.union([z.literal(…), …])` (all string/number literals) | supported | Same as enum | `zodToTree.test.ts` |
-| `z.union([z.literal(1), z.literal(2)])` | supported | Numeric primitive + choice widgets | `zodToTree.test.ts` |
+| Numeric `z.literal(…)` union | supported | Numeric primitive + choice widgets | `conformance.test.ts` (`small-numeric-choice-radio`) |
 | `z.literal('x')` alone | degraded | Plain string `input`; **no** `choices` | `zodToTree.test.ts` — use `enum` or literal union for choices |
 | `z.literal(42)` alone | degraded | Plain number `input`; **no** `choices` | `zodToTree.test.ts` |
 | `z.literal(true)` / `z.literal(false)` alone | degraded | `primitive: boolean`, checkbox input; **no** `choices` | `zodToTree.test.ts` |

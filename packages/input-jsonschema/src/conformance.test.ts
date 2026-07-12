@@ -1,4 +1,4 @@
-// input-jsonschema's half of the shared input-conformance oracle (ADR 033).
+// input-jsonschema's half of the shared input-conformance oracle (ADR 038).
 //
 // The oracle (@jsonschema-form/input-conformance) defines schema-language-NEUTRAL
 // expected trees; here we express each scenario in JSON Schema and assert
@@ -55,6 +55,12 @@ const schemas: Record<ScenarioId, JSONSchema> = {
   'small-enum-radio': {
     type: 'object',
     properties: { color: { type: 'string', enum: ['red', 'green', 'blue'] } },
+  },
+  'small-numeric-choice-radio': {
+    type: 'object',
+    properties: {
+      rating: { type: 'number', enum: [1, 2, 3, 4, 5] },
+    },
   },
   'large-enum-select': {
     type: 'object',

@@ -1,4 +1,4 @@
-// The input-conformance oracle (ADR 033 §4 / ADR 034).
+// The input-conformance oracle (ADR 038).
 //
 // Every @jsonschema-form/input-* front-end (JSON Schema, Zod, …) is a STRUCTURAL
 // transcriber into the same neutral Core tree, so for equivalent input schemas
@@ -15,9 +15,9 @@
 // exhaustive), which is exactly what keeps the front-ends behaving identically.
 //
 // The oracle asserts BEHAVIOR (widget, primitive, valueShape, requiredness,
-// constraints, choices, array item descriptor, nesting) — not label text, which is
-// authored differently per language (`title` vs `.meta({ title })`) and is covered
-// by each package's own tests.
+// constraints, choices and their derived control values, array item descriptor,
+// nesting) — not field label text, which is authored differently per language
+// (`title` vs `.meta({ title })`) and is covered by each package's own tests.
 
 import type {
   ItemDescriptor,
@@ -39,6 +39,7 @@ export type ScenarioId =
   | 'boolean'
   | 'required-vs-optional'
   | 'small-enum-radio'
+  | 'small-numeric-choice-radio'
   | 'large-enum-select'
   | 'array-of-scalars'
   | 'array-length-bounds'
@@ -89,6 +90,14 @@ const enum3: SelectOption[] = [
   { value: 'red', label: 'red' },
   { value: 'green', label: 'green' },
   { value: 'blue', label: 'blue' },
+]
+
+const numericChoices: SelectOption[] = [
+  { value: 1, label: '1' },
+  { value: 2, label: '2' },
+  { value: 3, label: '3' },
+  { value: 4, label: '4' },
+  { value: 5, label: '5' },
 ]
 
 const enum6: SelectOption[] = [
@@ -215,6 +224,20 @@ export const conformanceScenarios: ConformanceScenario[] = [
         valueShape: 'scalar',
         required: false,
         choices: enum3,
+      },
+    },
+  },
+  {
+    id: 'small-numeric-choice-radio',
+    description: 'a small numeric choice set preserves numeric option values',
+    expect: {
+      rating: {
+        node: 'field',
+        widget: 'radio',
+        primitive: 'number',
+        valueShape: 'scalar',
+        required: false,
+        choices: numericChoices,
       },
     },
   },

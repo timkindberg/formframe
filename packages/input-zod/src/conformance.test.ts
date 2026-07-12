@@ -1,4 +1,4 @@
-// input-zod's half of the shared input-conformance oracle (ADR 034).
+// input-zod's half of the shared input-conformance oracle (ADR 038).
 //
 // The oracle (@jsonschema-form/input-conformance) defines schema-language-NEUTRAL
 // expected trees; here we express each scenario in Zod and assert zodToTree
@@ -33,6 +33,17 @@ const schemas: Record<ScenarioId, z.ZodType> = {
   }),
   'small-enum-radio': z.object({
     color: z.enum(['red', 'green', 'blue']).optional(),
+  }),
+  'small-numeric-choice-radio': z.object({
+    rating: z
+      .union([
+        z.literal(1),
+        z.literal(2),
+        z.literal(3),
+        z.literal(4),
+        z.literal(5),
+      ])
+      .optional(),
   }),
   'large-enum-select': z.object({
     size: z.enum(['a', 'b', 'c', 'd', 'e', 'f']).optional(),

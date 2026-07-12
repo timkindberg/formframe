@@ -56,7 +56,7 @@ The front-end is a **structural transcriber** (ADR 033): it reads keywords into 
 | `type: 'string'` (no `enum` / choice `oneOf`) | supported | `input`, `attrs.type=text` | `parser.test.ts` |
 | `type: 'number'` / `type: 'integer'` | supported | `input`, `attrs.type=number`; `facts.primitive` is `number` or `integer` respectively | `conformance.test.ts` (integer scenario); `parser.test.ts` (number) |
 | `type: 'boolean'` | supported | `input`, `attrs.type=checkbox` | `parser.test.ts` |
-| `enum: […]` (non-empty string/number options) | supported | `radio` if ≤5 options else `select`; labels = `String(value)` | `edgeSchemas.test.ts`, `present.test.ts` (bd cm7) |
+| `enum: […]` (non-empty string/number options) | supported | `radio` if ≤5 options else `select`; labels = `String(value)` | `conformance.test.ts`, `present.test.ts` (bd cm7) |
 | `enum: []` | supported (qualified) | Plain `input` (empty enum ignored) | `edgeSchemas.test.ts` |
 | `oneOf: [{ const, title? }, …]` with string/number `const` values | supported | Same as `enum`; `title` → option label, else `String(const)` | `parser.test.ts`, `edgeSchemas.test.ts`, ADR 003 |
 | `oneOf` without `const` on branches | supported (qualified) | `radio` with **zero options** (`choices: []`) | `edgeSchemas.test.ts` |
