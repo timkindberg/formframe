@@ -31,6 +31,24 @@ _Avoid_: layer (implies a strict linear stack; the shape is deliberately undrawn
 **Capability slot**:
 A swappable responsibility: structure, validation, framework-binding, form-state, presentation. Swappability is per-slot — one package may fill several slots (e.g. a UI kit that ships its own form-state).
 
+## Input support
+
+**Compilation status**:
+The support catalog's outcome for translating a source construct into the form tree: supported, qualified, degraded, ignored, or rejected. This axis says nothing about full-source validation.
+_Avoid_: validation support, catch-all support status
+
+**Validation-only semantics**:
+Source behavior enforced or produced by a validator but not represented in the compiled form tree. This is orthogonal to compilation status.
+_Avoid_: unsupported
+
+**Degraded compilation**:
+A source shape is accepted but represented by a less-specific fallback shape in the form tree.
+_Avoid_: ignored
+
+**Ignored construct**:
+A source modifier has no compilation effect on an otherwise recognized shape.
+_Avoid_: degraded
+
 **Form-state adapter**:
 The slot that holds values + reactivity. *Headless* (wraps no external lib — native `<form>` + FormData is the minimal one; a first-party reactive store would be a richer one, deferred) or *wrapped* (React Hook Form / TanStack Form — optional, for reactivity + interop). A shallow slot; validation and UI are the primary swaps (ADR 011).
 
