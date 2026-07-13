@@ -6,10 +6,10 @@
 
 ## Context
 
-The monorepo originally listed `@formframe/renderer-react-hook-form` and
-`@formframe/ui-tailwind` alongside Core, React, and the validation
-adapters. Both were empty placeholders — a `package.json` and an eight-line
-`src/index.ts` exporting `VERSION = '0.0.0'`. No real adapter code existed.
+The monorepo originally listed placeholder `react-hook-form` and `ui-tailwind`
+adapter packages alongside Core, React, and the validation adapters. Both were
+empty placeholders — a `package.json` and an eight-line `src/index.ts`
+exporting `VERSION = '0.0.0'`. No real adapter code existed.
 
 Meanwhile the product model has clarified around **IOC seams** — stable
 contracts consumers implement against — not a matrix of pre-built integrations.
