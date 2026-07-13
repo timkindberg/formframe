@@ -1,5 +1,5 @@
 /**
- * @formframe/react
+ * @formframe/renderer-react
  *
  * React adapter for Core form trees from any schema front-end.
  */

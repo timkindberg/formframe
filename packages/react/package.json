@@ -1,5 +1,5 @@
 {
-  "name": "@formframe/react",
+  "name": "@formframe/renderer-react",
   "version": "0.0.0",
   "description": "React adapter for FormFrame trees from any schema front-end",
   "type": "module",
@@ -54,7 +54,7 @@
     "@formframe/input-zod": "*",
     "@formframe/validation-ajv": "*",
     "@formframe/validation-zod": "*",
-    "@formframe/vanilla": "*",
+    "@formframe/renderer-vanilla": "*",
     "@types/react": "^18.2.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/browser": "^4.0.14",

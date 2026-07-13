@@ -1,4 +1,4 @@
-import { useFormTree } from '@formframe/react'
+import { useFormTree } from '@formframe/renderer-react'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 

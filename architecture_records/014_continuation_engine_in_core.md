@@ -6,7 +6,7 @@
 
 ## Context
 
-ADR 010 introduced recursive **continuation rendering** (`renderNode` + `node.Default`/`Children`/`child`/`parts.X.Default`) and implemented it in the React package. ADR 008 then said a seam is only real once a **second implementation** forces it. The `@formframe/vanilla` probe (a no-framework, string-output renderer) was that second implementation, and the cross-framework conformance suite (bead 0mw) proved the two renderers emit **byte-identical normalized DOM** for the same tree — across widgets, nested groups, arrays, and `renderNode` overrides.
+ADR 010 introduced recursive **continuation rendering** (`renderNode` + `node.Default`/`Children`/`child`/`parts.X.Default`) and implemented it in the React package. ADR 008 then said a seam is only real once a **second implementation** forces it. The `@formframe/renderer-vanilla` probe (a no-framework, string-output renderer) was that second implementation, and the cross-framework conformance suite (bead 0mw) proved the two renderers emit **byte-identical normalized DOM** for the same tree — across widgets, nested groups, arrays, and `renderNode` overrides.
 
 That left two renderers carrying a **duplicated continuation algorithm**: enrichment (attaching the re-entry handles to a node), the recursion, child-path resolution, and scoping. The markup differed (JSX vs strings) but the *fold* was the same function written twice. Per the vanilla findings, the **algorithmic** duplication dominated; the markup duplication was small. Duplicated logic that two renderers must keep in lockstep is exactly what drifts and breaks conformance.
 

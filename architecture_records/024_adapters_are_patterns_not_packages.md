@@ -6,7 +6,7 @@
 
 ## Context
 
-The monorepo originally listed `@formframe/react-hook-form` and
+The monorepo originally listed `@formframe/renderer-react-hook-form` and
 `@formframe/ui-tailwind` alongside Core, React, and the validation
 adapters. Both were empty placeholders — a `package.json` and an eight-line
 `src/index.ts` exporting `VERSION = '0.0.0'`. No real adapter code existed.

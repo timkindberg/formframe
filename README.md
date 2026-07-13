@@ -39,7 +39,7 @@ Customization is one recursive primitive, available at any granularity, fractal 
 `Default` and `Children` are injected into `renderNode` (and the root render-prop) and are also importable from the package root — use whichever is in scope:
 
 ```tsx
-import { SchemaFields, Default, Children } from '@formframe/react'
+import { SchemaFields, Default, Children } from '@formframe/renderer-react'
 
 // 1. All defaults — no customization
 <SchemaFields form={tree} />

@@ -10,7 +10,7 @@ import {
   useFormTree,
   ValidationProvider,
   ValidationSummary,
-} from '@formframe/react'
+} from '@formframe/renderer-react'
 import { createAjvValidator } from '@formframe/validation-ajv'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'

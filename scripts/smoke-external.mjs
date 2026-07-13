@@ -24,15 +24,15 @@ const SCOPE = '@formframe'
 
 // Publishable packages, in dependency order (order is cosmetic here).
 const PACKAGES = [
-  'core',
-  'input-jsonschema',
-  'input-zod',
-  'input-conformance',
-  'validation-contract',
-  'validation-ajv',
-  'validation-zod',
-  'vanilla',
-  'react',
+  { name: 'core', directory: 'core' },
+  { name: 'input-jsonschema', directory: 'input-jsonschema' },
+  { name: 'input-zod', directory: 'input-zod' },
+  { name: 'input-conformance', directory: 'input-conformance' },
+  { name: 'validation-contract', directory: 'validation-contract' },
+  { name: 'validation-ajv', directory: 'validation-ajv' },
+  { name: 'validation-zod', directory: 'validation-zod' },
+  { name: 'renderer-vanilla', directory: 'vanilla' },
+  { name: 'renderer-react', directory: 'react' },
 ]
 
 function sh(cmd, args, opts = {}) {
@@ -64,9 +64,9 @@ const fail = (label, err) => {
 
 // 1 + 2: pack + publint + attw for every package.
 const tarballs = {}
-for (const pkg of PACKAGES) {
-  const dir = join('packages', pkg)
-  step(`pack + publint + attw: ${SCOPE}/${pkg}`)
+for (const { name, directory } of PACKAGES) {
+  const dir = join('packages', directory)
+  step(`pack + publint + attw: ${SCOPE}/${name}`)
   try {
     const out = sh(
       'npm',
@@ -76,15 +76,15 @@ for (const pkg of PACKAGES) {
       }
     )
     const filename = JSON.parse(out)[0].filename
-    tarballs[pkg] = join(tarballsDir, filename)
+    tarballs[name] = join(tarballsDir, filename)
   } catch (err) {
-    fail(`npm pack ${pkg}`, err)
+    fail(`npm pack ${name}`, err)
     continue
   }
   try {
     sh('npx', ['publint', '--strict', dir])
   } catch (err) {
-    fail(`publint ${pkg}`, err)
+    fail(`publint ${name}`, err)
   }
   try {
     sh('npx', [
@@ -95,7 +95,7 @@ for (const pkg of PACKAGES) {
       'cjs-resolves-to-esm',
     ])
   } catch (err) {
-    fail(`attw ${pkg}`, err)
+    fail(`attw ${name}`, err)
   }
 }
 
@@ -113,7 +113,7 @@ const consumerPkg = {
   type: 'module',
   dependencies: {
     ...Object.fromEntries(
-      PACKAGES.map((pkg) => [`${SCOPE}/${pkg}`, `file:${tarballs[pkg]}`])
+      PACKAGES.map(({ name }) => [`${SCOPE}/${name}`, `file:${tarballs[name]}`])
     ),
     react: '^18.2.0',
     'react-dom': '^18.2.0',
@@ -162,8 +162,8 @@ import * as iconf from '${SCOPE}/input-conformance'
 import * as vcontract from '${SCOPE}/validation-contract'
 import * as vajv from '${SCOPE}/validation-ajv'
 import * as vzod from '${SCOPE}/validation-zod'
-import * as vanilla from '${SCOPE}/vanilla'
-import * as react from '${SCOPE}/react'
+import * as vanilla from '${SCOPE}/renderer-vanilla'
+import * as react from '${SCOPE}/renderer-react'
 export const surfaces = [core, ijs, izod, iconf, vcontract, vajv, vzod, vanilla, react].length
 `
 )
@@ -174,7 +174,7 @@ writeFileSync(
   `import assert from 'node:assert/strict'
 import { jsonSchemaToTree } from '${SCOPE}/input-jsonschema'
 import { zodToTree } from '${SCOPE}/input-zod'
-import { renderToString } from '${SCOPE}/vanilla'
+import { renderToString } from '${SCOPE}/renderer-vanilla'
 import { createAjvValidator } from '${SCOPE}/validation-ajv'
 import { z } from 'zod'
 
@@ -198,7 +198,7 @@ writeFileSync(
   join(consumerDir, 'run.cjs'),
   `const assert = require('node:assert/strict')
 const { jsonSchemaToTree } = require('${SCOPE}/input-jsonschema')
-const { renderToString } = require('${SCOPE}/vanilla')
+const { renderToString } = require('${SCOPE}/renderer-vanilla')
 const { createAjvValidator } = require('${SCOPE}/validation-ajv')
 
 const schema = { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] }

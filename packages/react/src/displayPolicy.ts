@@ -5,7 +5,7 @@
 // `(mode, { touched, submitted })`. It has no React, no DOM, no store — the
 // per-path touched state and the `submitted` flag are supplied by the caller
 // (see `touchedStore.ts` + `ValidationProvider`), so the policy itself stays a
-// trivially-testable pure function. Kept in `@formframe/react` (not Core)
+// trivially-testable pure function. Kept in `@formframe/renderer-react` (not Core)
 // until a second front-end earns the shared shape (ADR 008).
 
 /**

@@ -1,5 +1,5 @@
 /**
- * @formframe/vanilla
+ * @formframe/renderer-vanilla
  *
  * Framework-agnostic (no UI framework) HTML renderer. The second-implementation
  * probe (ADR 008) that pressure-tests the Core boundary, and the conformance

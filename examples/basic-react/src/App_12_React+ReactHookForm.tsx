@@ -57,8 +57,8 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { toStandardSchema } from '@formframe/core'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import { SchemaFields } from '@formframe/react'
-import type { EField, RenderNode } from '@formframe/react'
+import { SchemaFields } from '@formframe/renderer-react'
+import type { EField, RenderNode } from '@formframe/renderer-react'
 import { createAjvValidator } from '@formframe/validation-ajv'
 
 const schema = {

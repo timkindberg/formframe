@@ -15,7 +15,7 @@ import {
   useFormTree,
   ValidationProvider,
   ValidationSummary,
-} from '@formframe/react'
+} from '@formframe/renderer-react'
 
 const schema = z.object({
   name: z

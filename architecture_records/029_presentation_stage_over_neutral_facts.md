@@ -304,7 +304,7 @@ facts** and delegate widget selection + parts to the Core catalog via
 `deriveSelectParts`). `buildInputAttrs` and the parser's part-builders are gone, so
 the facts→parts logic lives in exactly one place (`present.ts`). `jsonSchemaToTree`'s
 return stays **fully-formed** (default-presented) — every direct consumer (the
-`@formframe/vanilla` package, conformance, arrays/render-stability tests) is
+`@formframe/renderer-vanilla` package, conformance, arrays/render-stability tests) is
 unchanged, and `useFormTree` still layers a consumer resolver on top identity-
 preservingly. The array→`multiselect` *collapse* remains a structural (facts)
 decision the parser owns; only the leaf's widget/parts derivation moved.

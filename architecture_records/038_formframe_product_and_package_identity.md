@@ -32,14 +32,17 @@ of the brand.
 The npm package family uses the **`@formframe/*`** scope:
 
 - `@formframe/core`
-- `@formframe/react`
-- `@formframe/vanilla`
+- `@formframe/renderer-react`
+- `@formframe/renderer-vanilla`
 - `@formframe/input-jsonschema`
 - `@formframe/input-zod`
 - `@formframe/input-conformance`
 - `@formframe/validation-contract`
 - `@formframe/validation-ajv`
 - `@formframe/validation-zod`
+
+ADR 040 later grouped the two rendering adapters under the `renderer-*`
+package family.
 
 Source-specific suffixes remain explicit. FormFrame is schema-agnostic; each
 input package still tells consumers exactly which source language it compiles.
@@ -61,9 +64,9 @@ permanent maintenance without helping an existing consumer.
 - Package directory names and path-based TypeScript project references remain
   unchanged.
 - Beads issue ids keep their existing `jsonschema-form-*` prefix.
-- Renaming the GitHub repository and local checkout is an operational follow-up,
-  not part of the source-code change. Until then, existing repository URLs
-  remain valid.
+- The GitHub repository was subsequently renamed to `timkindberg/formframe`;
+  GitHub redirects its previous URL. Renaming local checkout directories remains
+  an optional operational follow-up.
 - Historical planning notes in `history/` remain point-in-time artifacts.
 
 ## Consequences

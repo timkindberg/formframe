@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import { SchemaFields } from '@formframe/react'
+import { SchemaFields } from '@formframe/renderer-react'
 
 // The real continuation engine (ADR 010) — the typed successor to the spike.
 // One primitive (`renderNode`), two granularities (node / part), three moves

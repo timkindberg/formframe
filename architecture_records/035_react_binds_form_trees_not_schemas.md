@@ -23,7 +23,7 @@ The real React seam is the form tree, not any source schema.
 
 ## Decision
 
-**`@formframe/react` exposes `useFormTree(tree, options)` as its sole
+**`@formframe/renderer-react` exposes `useFormTree(tree, options)` as its sole
 convenience hook.** Callers compile with an input package first:
 
 ```tsx

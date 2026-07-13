@@ -3,7 +3,7 @@
 // The address shape lives once under $defs; shipping and billing both reuse it
 // via $ref before jsonSchemaToTree compiles the form tree.
 import { useState } from 'react'
-import { useFormTree } from '@formframe/react'
+import { useFormTree } from '@formframe/renderer-react'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 

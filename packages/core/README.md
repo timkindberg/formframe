@@ -21,7 +21,7 @@ validation, form-state, and presentation adapters consume that tree.
 Core imports no schema language, framework, form-state library, or DOM API. It
 does not compile schemas or manage values. Use `@formframe/input-jsonschema` or
 `@formframe/input-zod` to build a tree, then bind it with a consumer such as
-`@formframe/react` or `@formframe/vanilla`.
+`@formframe/renderer-react` or `@formframe/renderer-vanilla`.
 
 ## Status
 

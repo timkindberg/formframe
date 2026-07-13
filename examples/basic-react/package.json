@@ -12,7 +12,7 @@
     "@formframe/core": "*",
     "@formframe/input-jsonschema": "*",
     "@formframe/input-zod": "*",
-    "@formframe/react": "*",
+    "@formframe/renderer-react": "*",
     "@formframe/validation-ajv": "*",
     "zod": "^4.0.0",
     "react": "^18.3.1",

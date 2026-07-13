@@ -15,7 +15,7 @@ const tree = zodToTree(
 )
 ```
 
-Pair with `@formframe/react`'s `useFormTree(tree)` for rendering and submission (ADR 035).
+Pair with `@formframe/renderer-react`'s `useFormTree(tree)` for rendering and submission (ADR 035).
 
 ## Support catalog
 

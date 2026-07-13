@@ -57,7 +57,7 @@ export interface WalkHandlers<R> {
 
 ### 2. Create React Default Components
 
-**Created three foundational components in `@formframe/react`:**
+**Created three foundational components in `@formframe/renderer-react`:**
 
 **`DefaultRootTemplate`:**
 - Renders `<form>` wrapper
@@ -82,7 +82,7 @@ export interface WalkHandlers<R> {
 - Created `packages/react/tsconfig.json` with JSX support
 - Added React package to monorepo references in root `tsconfig.json`
 - Added dependency in example app `package.json`
-- Exported all components from `@formframe/react`
+- Exported all components from `@formframe/renderer-react`
 
 ### 3. Updated Example App Pattern
 

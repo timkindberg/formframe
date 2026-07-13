@@ -1,5 +1,5 @@
 {
-  "name": "@formframe/vanilla",
+  "name": "@formframe/renderer-vanilla",
   "version": "0.0.0",
   "description": "Framework-agnostic HTML renderer and conformance oracle for FormFrame trees",
   "type": "module",

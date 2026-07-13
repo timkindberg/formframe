@@ -1,7 +1,7 @@
 // Cross-framework conformance (bead jsonschema-form-0mw).
 //
 // The contract (ADR 008/013): every renderer that folds over the Core tree must
-// emit the SAME HTML for the same schema. We treat @formframe/vanilla as
+// emit the SAME HTML for the same schema. We treat @formframe/renderer-vanilla as
 // the oracle — its eager string fold is the reference — and assert the live
 // React DOM normalizes to the identical shape. When we add a third adapter
 // (Vue, vanilla-DOM, …) it joins this table and must agree too.
@@ -33,7 +33,7 @@ import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
   renderToString,
   type RenderNode as VanillaRenderNode,
-} from '@formframe/vanilla'
+} from '@formframe/renderer-vanilla'
 import { SchemaFields, type RenderNode as ReactRenderNode } from './renderer'
 
 /**
