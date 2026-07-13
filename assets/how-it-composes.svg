@@ -1,358 +1,328 @@
 <svg
   xmlns="http://www.w3.org/2000/svg"
   width="1600"
-  height="840"
-  viewBox="0 0 1600 840"
+  height="820"
+  viewBox="0 0 1600 820"
   role="img"
   aria-labelledby="title description"
 >
   <title id="title">FormFrame composition reels</title>
   <desc id="description">
-    A slot-machine-inspired composition diagram. Zod, Standard Schema, default
-    presentation, native FormData, and React are aligned as one selected stack.
-    Other schema inputs, validators, presentation systems, form-state adapters,
-    and renderers appear above and below as alternative choices. The FormFrame
-    form tree is the fixed axle between inputs and consumers.
+    A clean, light composition diagram inspired by vertical game-show wheels.
+    Zod, Standard Schema, default presentation, native FormData, and React align
+    as one selected stack. Skewed panels above and below show alternative schema
+    inputs, validators, presentation systems, form-state adapters, and
+    renderers. The FormFrame form tree remains fixed between inputs and
+    consumers.
   </desc>
 
   <defs>
     <linearGradient id="page" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#071013" />
-      <stop offset="0.55" stop-color="#0d1a1d" />
-      <stop offset="1" stop-color="#071013" />
+      <stop offset="0" stop-color="#fbfaf5" />
+      <stop offset="1" stop-color="#eef3ef" />
     </linearGradient>
     <linearGradient id="machine" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#16282c" />
-      <stop offset="0.5" stop-color="#0c171a" />
-      <stop offset="1" stop-color="#132428" />
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="1" stop-color="#f3f6f3" />
     </linearGradient>
-    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#b9e7de" stop-opacity="0.04" />
-      <stop offset="0.5" stop-color="#effff9" stop-opacity="0.12" />
-      <stop offset="1" stop-color="#b9e7de" stop-opacity="0.04" />
+    <linearGradient id="upperPanel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f7f5" />
+      <stop offset="1" stop-color="#dce7e2" />
     </linearGradient>
-    <linearGradient id="selected" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fff4cf" />
-      <stop offset="1" stop-color="#f5df9e" />
+    <linearGradient id="lowerPanel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dce7e2" />
+      <stop offset="1" stop-color="#f4f7f5" />
     </linearGradient>
-    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ff845e" />
-      <stop offset="1" stop-color="#e84d32" />
+    <linearGradient id="selectedPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="1" stop-color="#fff2e9" />
     </linearGradient>
-    <radialGradient id="halo">
-      <stop offset="0" stop-color="#ff7551" stop-opacity="0.28" />
-      <stop offset="1" stop-color="#ff7551" stop-opacity="0" />
-    </radialGradient>
-    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-      <path
-        d="M 32 0 L 0 0 0 32"
-        fill="none"
-        stroke="#b7dcd5"
-        stroke-opacity="0.035"
-        stroke-width="1"
-      />
+    <linearGradient id="corePanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff7c56" />
+      <stop offset="1" stop-color="#ec4f35" />
+    </linearGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#173f42" opacity="0.055" />
     </pattern>
-    <filter id="machineShadow" x="-15%" y="-20%" width="130%" height="150%">
-      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-opacity="0.45" />
-    </filter>
-    <filter id="cardShadow" x="-30%" y="-40%" width="160%" height="180%">
+    <filter id="machineShadow" x="-10%" y="-15%" width="120%" height="140%">
       <feDropShadow
         dx="0"
-        dy="8"
+        dy="18"
+        stdDeviation="22"
+        flood-color="#173f42"
+        flood-opacity="0.13"
+      />
+    </filter>
+    <filter id="selectedShadow" x="-25%" y="-35%" width="150%" height="170%">
+      <feDropShadow
+        dx="0"
+        dy="7"
         stdDeviation="8"
-        flood-color="#000000"
-        flood-opacity="0.35"
-      />
-      <feDropShadow
-        dx="0"
-        dy="0"
-        stdDeviation="5"
-        flood-color="#ffd978"
-        flood-opacity="0.28"
+        flood-color="#c8452f"
+        flood-opacity="0.16"
       />
     </filter>
-    <filter id="coreShadow" x="-40%" y="-40%" width="180%" height="180%">
+    <filter id="coreShadow" x="-30%" y="-35%" width="160%" height="180%">
       <feDropShadow
         dx="0"
         dy="10"
-        stdDeviation="10"
-        flood-color="#000000"
-        flood-opacity="0.4"
-      />
-      <feDropShadow
-        dx="0"
-        dy="0"
-        stdDeviation="12"
-        flood-color="#ff6748"
-        flood-opacity="0.28"
+        stdDeviation="11"
+        flood-color="#8d2c1e"
+        flood-opacity="0.24"
       />
     </filter>
-    <clipPath id="inputClip">
-      <rect x="88" y="222" width="220" height="398" rx="20" />
-    </clipPath>
-    <clipPath id="validationClip">
-      <rect x="551" y="222" width="220" height="398" rx="20" />
-    </clipPath>
-    <clipPath id="presentationClip">
-      <rect x="789" y="222" width="220" height="398" rx="20" />
-    </clipPath>
-    <clipPath id="stateClip">
-      <rect x="1027" y="222" width="220" height="398" rx="20" />
-    </clipPath>
-    <clipPath id="rendererClip">
-      <rect x="1265" y="222" width="220" height="398" rx="20" />
-    </clipPath>
+    <style>
+      .heading {
+        fill: #122f32;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 46px;
+        font-weight: 700;
+        letter-spacing: -1px;
+      }
+      .eyebrow {
+        fill: #5e7877;
+        font-family: "Arial Narrow", "Avenir Next Condensed", sans-serif;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 2.2px;
+      }
+      .reel-label {
+        fill: #607a79;
+        font-family: "Arial Narrow", "Avenir Next Condensed", sans-serif;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 2.2px;
+        text-anchor: middle;
+      }
+      .option {
+        fill: #355c5d;
+        font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+        font-size: 18px;
+        font-weight: 700;
+        text-anchor: middle;
+      }
+      .far-option {
+        fill: #79918e;
+        font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+        font-size: 14px;
+        font-weight: 700;
+        text-anchor: middle;
+      }
+      .selected-name {
+        fill: #123f42;
+        font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+        font-size: 25px;
+        font-weight: 800;
+        text-anchor: middle;
+      }
+      .selected-small {
+        fill: #e95137;
+        font-family: "Arial Narrow", "Avenir Next Condensed", sans-serif;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 1.6px;
+        text-anchor: middle;
+      }
+      .far-panel {
+        fill: #edf2ef;
+        stroke: #cad7d2;
+        stroke-width: 1.5;
+      }
+      .upper-panel {
+        fill: url(#upperPanel);
+        stroke: #b9cbc5;
+        stroke-width: 1.5;
+      }
+      .lower-panel {
+        fill: url(#lowerPanel);
+        stroke: #b9cbc5;
+        stroke-width: 1.5;
+      }
+      .selected-panel {
+        fill: url(#selectedPanel);
+        stroke: #f26445;
+        stroke-width: 2;
+      }
+      .panel-seam {
+        fill: none;
+        stroke: #ffffff;
+        stroke-opacity: 0.9;
+        stroke-width: 2;
+      }
+    </style>
   </defs>
 
-  <!-- Ground -->
-  <rect width="1600" height="840" fill="url(#page)" />
-  <rect width="1600" height="840" fill="url(#grid)" />
-  <ellipse cx="800" cy="775" rx="690" ry="46" fill="#000" opacity="0.3" />
+  <!-- Page -->
+  <rect width="1600" height="820" fill="url(#page)" />
+  <rect width="1600" height="820" fill="url(#dots)" />
+  <ellipse cx="800" cy="766" rx="690" ry="27" fill="#173f42" opacity="0.08" />
 
   <!-- Header -->
-  <text
-    x="72"
-    y="78"
-    fill="#f8efd8"
-    font-family="Georgia, 'Times New Roman', serif"
-    font-size="46"
-    font-weight="700"
-    letter-spacing="-1"
-  >
-    One tree. Many stacks.
-  </text>
-  <text
-    x="74"
-    y="116"
-    fill="#a9c4be"
-    font-family="'Arial Narrow', 'Avenir Next Condensed', sans-serif"
-    font-size="18"
-    letter-spacing="2.4"
-  >
-    THE HIGHLIGHTED ROW IS ONE COMPOSITION - SPIN ANY CAPABILITY INDEPENDENTLY
+  <text x="70" y="72" class="heading">One tree. Many stacks.</text>
+  <text x="72" y="110" class="eyebrow">
+    EACH WHEEL IS A CAPABILITY. THE CENTER ROW IS ONE WORKING COMBINATION.
   </text>
 
-  <!-- Machine -->
+  <!-- Machine body -->
   <rect
-    x="52"
-    y="152"
-    width="1496"
-    height="594"
-    rx="40"
+    x="44"
+    y="142"
+    width="1512"
+    height="596"
+    rx="34"
     fill="url(#machine)"
-    stroke="#345057"
+    stroke="#cdd9d4"
     stroke-width="2"
     filter="url(#machineShadow)"
   />
-  <path
-    d="M92 176 H1508"
-    stroke="#9fc5bd"
-    stroke-opacity="0.18"
-    stroke-width="2"
+  <rect
+    x="62"
+    y="160"
+    width="1476"
+    height="52"
+    rx="18"
+    fill="#eef3f0"
+    stroke="#d8e1dd"
   />
-  <path
-    d="M92 720 H1508"
-    stroke="#061012"
-    stroke-opacity="0.9"
-    stroke-width="2"
-  />
-
-  <!-- Machine screws -->
-  <g fill="#78928e" stroke="#071013" stroke-width="3">
-    <circle cx="82" cy="182" r="8" />
-    <circle cx="1518" cy="182" r="8" />
-    <circle cx="82" cy="716" r="8" />
-    <circle cx="1518" cy="716" r="8" />
-  </g>
-  <g stroke="#263d41" stroke-width="2">
-    <path d="M77 182 H87" />
-    <path d="M1513 182 H1523" />
-    <path d="M77 716 H87" />
-    <path d="M1513 716 H1523" />
-  </g>
-
-  <!-- Selected stack rail (behind the reels) -->
-  <rect x="76" y="369" width="1448" height="112" rx="24" fill="#050b0d" />
-  <path
-    d="M92 425 H1510"
-    fill="none"
-    stroke="#ff7654"
-    stroke-width="4"
-    stroke-dasharray="5 12"
-    stroke-linecap="round"
-    opacity="0.75"
-  />
-  <text
-    x="86"
-    y="355"
-    fill="#ff8a68"
-    font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-    font-size="12"
-    font-weight="700"
-    letter-spacing="2"
-  >
-    SELECTED STACK
-  </text>
-
-  <!-- Reel labels -->
-  <g
-    fill="#8ba9a3"
-    font-family="'Arial Narrow', 'Avenir Next Condensed', sans-serif"
-    font-size="13"
-    font-weight="700"
-    letter-spacing="2.3"
-    text-anchor="middle"
-  >
-    <text x="198" y="204">INPUT</text>
-    <text x="661" y="204">VALIDATION</text>
-    <text x="899" y="204">PRESENTATION</text>
-    <text x="1137" y="204">FORM STATE</text>
-    <text x="1375" y="204">RENDERER</text>
-  </g>
-
-  <!-- Glass reel wells -->
-  <g fill="#071113" stroke="#304b50" stroke-width="2">
-    <rect x="88" y="222" width="220" height="398" rx="20" />
-    <rect x="551" y="222" width="220" height="398" rx="20" />
-    <rect x="789" y="222" width="220" height="398" rx="20" />
-    <rect x="1027" y="222" width="220" height="398" rx="20" />
-    <rect x="1265" y="222" width="220" height="398" rx="20" />
-  </g>
-  <g fill="url(#glass)">
-    <rect x="88" y="222" width="220" height="398" rx="20" />
-    <rect x="551" y="222" width="220" height="398" rx="20" />
-    <rect x="789" y="222" width="220" height="398" rx="20" />
-    <rect x="1027" y="222" width="220" height="398" rx="20" />
-    <rect x="1265" y="222" width="220" height="398" rx="20" />
-  </g>
-
-  <!-- Horizontal reel curvature guides -->
-  <g fill="none" stroke="#b4d5cf" stroke-width="1.5" opacity="0.12">
-    <path d="M99 315 Q198 343 297 315" />
-    <path d="M99 530 Q198 502 297 530" />
-    <path d="M562 315 Q661 343 760 315" />
-    <path d="M562 530 Q661 502 760 530" />
-    <path d="M800 315 Q899 343 998 315" />
-    <path d="M800 530 Q899 502 998 530" />
-    <path d="M1038 315 Q1137 343 1236 315" />
-    <path d="M1038 530 Q1137 502 1236 530" />
-    <path d="M1276 315 Q1375 343 1474 315" />
-    <path d="M1276 530 Q1375 502 1474 530" />
-  </g>
-
-  <!-- Input reel -->
-  <g clip-path="url(#inputClip)" text-anchor="middle">
+  <text x="84" y="192" class="eyebrow" font-size="12">COMPOSITION DECK</text>
+  <g transform="translate(1357 172)">
+    <rect width="155" height="28" rx="14" fill="#ffffff" stroke="#c7d5d0" />
+    <circle cx="17" cy="14" r="5" fill="#f26445" />
     <text
-      x="198"
-      y="239"
-      fill="#cde1dd"
-      opacity="0.1"
+      x="86"
+      y="18"
+      fill="#496766"
       font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="15"
+      font-size="10"
+      font-weight="800"
+      letter-spacing="1"
+      text-anchor="middle"
     >
-      TypeBox*
+      CURRENT STACK
     </text>
-    <g transform="rotate(-5 198 302)">
-      <text
-        x="198"
-        y="305"
-        fill="#cde1dd"
-        opacity="0.42"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="20"
-      >
-        JSON Schema
-      </text>
-    </g>
-    <g filter="url(#cardShadow)">
-      <rect
-        x="101"
-        y="377"
-        width="194"
-        height="96"
-        rx="16"
-        fill="url(#selected)"
-        stroke="#ffbd62"
-        stroke-width="2"
-      />
-      <circle cx="122" cy="397" r="7" fill="#f26343" />
-      <text
-        x="198"
-        y="438"
-        fill="#172025"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="28"
-        font-weight="800"
-      >
-        Zod
-      </text>
-    </g>
-    <g transform="rotate(5 198 547)">
-      <text
-        x="198"
-        y="552"
-        fill="#cde1dd"
-        opacity="0.42"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="20"
-      >
-        ArkType*
-      </text>
-    </g>
+  </g>
+
+  <!-- Highlight rail -->
+  <rect
+    x="64"
+    y="347"
+    width="1472"
+    height="138"
+    rx="24"
+    fill="#fff7f2"
+    fill-opacity="0.88"
+    stroke="#f4c7b8"
+    stroke-width="1.5"
+  />
+  <path
+    d="M78 416 H1522"
+    fill="none"
+    stroke="#f26445"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    opacity="0.38"
+  />
+
+  <!-- Reel headings -->
+  <text x="186" y="238" class="reel-label">INPUT</text>
+  <text x="658" y="238" class="reel-label">VALIDATION</text>
+  <text x="896" y="238" class="reel-label">PRESENTATION</text>
+  <text x="1134" y="238" class="reel-label">FORM STATE</text>
+  <text x="1372" y="238" class="reel-label">RENDERER</text>
+
+  <!-- Input wheel -->
+  <g transform="translate(76 0)">
+    <rect
+      x="0"
+      y="251"
+      width="220"
+      height="382"
+      rx="20"
+      fill="#e8efec"
+      stroke="#b8cac4"
+      stroke-width="2"
+    />
+    <rect x="10" y="262" width="200" height="360" rx="15" fill="#f8faf8" />
+    <path d="M36 262 H184 L200 295 H20 Z" class="far-panel" />
+    <path d="M20 299 H200 L218 368 H2 Z" class="upper-panel" />
+    <rect
+      x="2"
+      y="372"
+      width="216"
+      height="102"
+      rx="11"
+      class="selected-panel"
+      filter="url(#selectedShadow)"
+    />
+    <path d="M2 478 H218 L200 547 H20 Z" class="lower-panel" />
+    <path d="M20 551 H200 L184 622 H36 Z" class="far-panel" />
+    <path d="M24 300 Q110 320 196 300" class="panel-seam" opacity="0.6" />
+    <path d="M24 546 Q110 526 196 546" class="panel-seam" opacity="0.6" />
+    <text x="110" y="283" class="far-option" opacity="0.46">TypeBox*</text>
     <text
-      x="198"
-      y="616"
-      fill="#cde1dd"
-      opacity="0.1"
-      font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="15"
+      x="110"
+      y="340"
+      class="option"
+      opacity="0.72"
+      transform="rotate(-3 110 340)"
     >
+      JSON Schema
+    </text>
+    <text x="110" y="395" class="selected-small">SELECTED</text>
+    <text x="110" y="439" class="selected-name">Zod</text>
+    <text
+      x="110"
+      y="520"
+      class="option"
+      opacity="0.72"
+      transform="rotate(3 110 520)"
+    >
+      ArkType*
+    </text>
+    <text x="110" y="592" class="far-option" opacity="0.46">
       Custom source
     </text>
+    <polygon points="220,405 234,416 220,427" fill="#f26445" />
   </g>
 
-  <!-- Fixed Core axle -->
-  <ellipse cx="430" cy="426" rx="158" ry="196" fill="url(#halo)" />
+  <!-- Fixed FormFrame core -->
   <g filter="url(#coreShadow)">
     <rect
-      x="340"
-      y="274"
-      width="180"
-      height="300"
-      rx="28"
-      fill="#111d20"
-      stroke="#ff7452"
+      x="326"
+      y="287"
+      width="198"
+      height="278"
+      rx="27"
+      fill="#ffffff"
+      stroke="#f26445"
       stroke-width="3"
     />
     <rect
-      x="354"
-      y="288"
-      width="152"
-      height="272"
-      rx="20"
-      fill="url(#core)"
+      x="338"
+      y="299"
+      width="174"
+      height="254"
+      rx="19"
+      fill="url(#corePanel)"
     />
     <path
-      d="M380 325 H480 M380 525 H480"
-      stroke="#8f281d"
-      stroke-opacity="0.35"
-      stroke-width="2"
+      d="M425 330 V367 M425 367 H387 V399 M425 367 H463 V399"
+      fill="none"
+      stroke="#fff8ec"
+      stroke-width="5"
+      stroke-linecap="round"
     />
-    <!-- Tree glyph -->
-    <g fill="none" stroke="#fff3d1" stroke-width="5" stroke-linecap="round">
-      <path d="M430 345 V382 M430 382 H392 V412 M430 382 H468 V412" />
-    </g>
-    <g fill="#fff3d1">
-      <circle cx="430" cy="337" r="10" />
-      <circle cx="392" cy="420" r="10" />
-      <circle cx="468" cy="420" r="10" />
+    <g fill="#fff8ec">
+      <circle cx="425" cy="322" r="10" />
+      <circle cx="387" cy="407" r="10" />
+      <circle cx="463" cy="407" r="10" />
     </g>
     <text
-      x="430"
-      y="466"
-      fill="#3a1712"
+      x="425"
+      y="456"
+      fill="#69271d"
       font-family="'Arial Narrow', 'Avenir Next Condensed', sans-serif"
-      font-size="12"
+      font-size="11"
       font-weight="800"
       letter-spacing="2"
       text-anchor="middle"
@@ -360,9 +330,9 @@
       FORMFRAME
     </text>
     <text
-      x="430"
-      y="497"
-      fill="#fff3d1"
+      x="425"
+      y="489"
+      fill="#fff8ec"
       font-family="Georgia, 'Times New Roman', serif"
       font-size="25"
       font-weight="700"
@@ -371,375 +341,276 @@
       Form tree
     </text>
     <text
-      x="430"
-      y="535"
-      fill="#5e1e17"
+      x="425"
+      y="527"
+      fill="#7a2b20"
       font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="11"
+      font-size="10"
       font-weight="800"
-      letter-spacing="1.8"
+      letter-spacing="1.7"
       text-anchor="middle"
     >
       FIXED CORE
     </text>
   </g>
-
-  <!-- Input-to-Core arrow and Core fanout -->
-  <g fill="none" stroke="#ff8a68" stroke-width="3" stroke-linecap="round">
-    <path d="M308 425 H329" />
-    <path d="M322 417 L331 425 322 433" />
-    <path d="M521 425 H540" />
-    <path d="M533 417 L542 425 533 433" />
+  <g fill="none" stroke="#f26445" stroke-width="3" stroke-linecap="round">
+    <path d="M310 416 H316" />
+    <path d="M308 408 L318 416 308 424" />
+    <path d="M525 416 H538" />
+    <path d="M532 408 L542 416 532 424" />
   </g>
 
-  <!-- Validation reel -->
-  <g clip-path="url(#validationClip)" text-anchor="middle">
-    <text
-      x="661"
-      y="239"
-      fill="#cde1dd"
-      opacity="0.1"
-      font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="15"
-    >
-      None
-    </text>
-    <g transform="rotate(-5 661 302)">
-      <text
-        x="661"
-        y="305"
-        fill="#cde1dd"
-        opacity="0.42"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="21"
-      >
-        AJV
-      </text>
-    </g>
-    <g filter="url(#cardShadow)">
-      <rect
-        x="564"
-        y="377"
-        width="194"
-        height="96"
-        rx="16"
-        fill="url(#selected)"
-        stroke="#ffbd62"
-        stroke-width="2"
-      />
-      <circle cx="585" cy="397" r="7" fill="#f26343" />
-      <text
-        x="661"
-        y="430"
-        fill="#172025"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="19"
-        font-weight="800"
-      >
-        Standard
-      </text>
-      <text
-        x="661"
-        y="453"
-        fill="#172025"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="19"
-        font-weight="800"
-      >
-        Schema
-      </text>
-    </g>
-    <g transform="rotate(5 661 547)">
-      <text
-        x="661"
-        y="552"
-        fill="#cde1dd"
-        opacity="0.42"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="18"
-      >
-        Zod adapter
-      </text>
-    </g>
-    <text
-      x="661"
-      y="616"
-      fill="#cde1dd"
-      opacity="0.1"
-      font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="15"
-    >
-      Custom
-    </text>
-  </g>
-
-  <!-- Presentation reel -->
-  <g clip-path="url(#presentationClip)" text-anchor="middle">
-    <text
-      x="899"
-      y="239"
-      fill="#cde1dd"
-      opacity="0.1"
-      font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="15"
-    >
-      Resolver
-    </text>
-    <g transform="rotate(-5 899 302)">
-      <text
-        x="899"
-        y="305"
-        fill="#cde1dd"
-        opacity="0.42"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="17"
-      >
-        Design system
-      </text>
-    </g>
-    <g filter="url(#cardShadow)">
-      <rect
-        x="802"
-        y="377"
-        width="194"
-        height="96"
-        rx="16"
-        fill="url(#selected)"
-        stroke="#ffbd62"
-        stroke-width="2"
-      />
-      <circle cx="823" cy="397" r="7" fill="#f26343" />
-      <text
-        x="899"
-        y="438"
-        fill="#172025"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="24"
-        font-weight="800"
-      >
-        Defaults
-      </text>
-    </g>
-    <g transform="rotate(5 899 547)">
-      <text
-        x="899"
-        y="552"
-        fill="#cde1dd"
-        opacity="0.42"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="18"
-      >
-        Custom parts
-      </text>
-    </g>
-    <text
-      x="899"
-      y="616"
-      fill="#cde1dd"
-      opacity="0.1"
-      font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="15"
-    >
-      Bare facts
-    </text>
-  </g>
-
-  <!-- Form-state reel -->
-  <g clip-path="url(#stateClip)" text-anchor="middle">
-    <text
-      x="1137"
-      y="239"
-      fill="#cde1dd"
-      opacity="0.1"
-      font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="15"
-    >
-      Custom store
-    </text>
-    <g transform="rotate(-5 1137 302)">
-      <text
-        x="1137"
-        y="305"
-        fill="#cde1dd"
-        opacity="0.42"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="17"
-      >
-        React Hook Form
-      </text>
-    </g>
-    <g filter="url(#cardShadow)">
-      <rect
-        x="1040"
-        y="377"
-        width="194"
-        height="96"
-        rx="16"
-        fill="url(#selected)"
-        stroke="#ffbd62"
-        stroke-width="2"
-      />
-      <circle cx="1061" cy="397" r="7" fill="#f26343" />
-      <text
-        x="1137"
-        y="430"
-        fill="#172025"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="20"
-        font-weight="800"
-      >
-        Native
-      </text>
-      <text
-        x="1137"
-        y="453"
-        fill="#172025"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="16"
-        font-weight="800"
-      >
-        + FormData
-      </text>
-    </g>
-    <g transform="rotate(5 1137 547)">
-      <text
-        x="1137"
-        y="552"
-        fill="#cde1dd"
-        opacity="0.42"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="17"
-      >
-        TanStack Form*
-      </text>
-    </g>
-    <text
-      x="1137"
-      y="616"
-      fill="#cde1dd"
-      opacity="0.1"
-      font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="15"
-    >
-      Controlled*
-    </text>
-  </g>
-
-  <!-- Renderer reel -->
-  <g clip-path="url(#rendererClip)" text-anchor="middle">
-    <text
-      x="1375"
-      y="239"
-      fill="#cde1dd"
-      opacity="0.1"
-      font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="15"
-    >
-      Vanilla
-    </text>
-    <g transform="rotate(-5 1375 302)">
-      <text
-        x="1375"
-        y="305"
-        fill="#cde1dd"
-        opacity="0.42"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="21"
-      >
-        Vue*
-      </text>
-    </g>
-    <g filter="url(#cardShadow)">
-      <rect
-        x="1278"
-        y="377"
-        width="194"
-        height="96"
-        rx="16"
-        fill="url(#selected)"
-        stroke="#ffbd62"
-        stroke-width="2"
-      />
-      <circle cx="1299" cy="397" r="7" fill="#f26343" />
-      <text
-        x="1375"
-        y="438"
-        fill="#172025"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="28"
-        font-weight="800"
-      >
-        React
-      </text>
-    </g>
-    <g transform="rotate(5 1375 547)">
-      <text
-        x="1375"
-        y="552"
-        fill="#cde1dd"
-        opacity="0.42"
-        font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-        font-size="21"
-      >
-        Svelte*
-      </text>
-    </g>
-    <text
-      x="1375"
-      y="616"
-      fill="#cde1dd"
-      opacity="0.1"
-      font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
-      font-size="15"
-    >
-      Solid*
-    </text>
-  </g>
-
-  <!-- Reel edge fades -->
-  <g fill="#071113">
-    <rect x="89" y="223" width="218" height="42" rx="18" opacity="0.72" />
-    <rect x="89" y="578" width="218" height="41" rx="18" opacity="0.72" />
-    <rect x="552" y="223" width="218" height="42" rx="18" opacity="0.72" />
-    <rect x="552" y="578" width="218" height="41" rx="18" opacity="0.72" />
-    <rect x="790" y="223" width="218" height="42" rx="18" opacity="0.72" />
-    <rect x="790" y="578" width="218" height="41" rx="18" opacity="0.72" />
-    <rect x="1028" y="223" width="218" height="42" rx="18" opacity="0.72" />
-    <rect x="1028" y="578" width="218" height="41" rx="18" opacity="0.72" />
-    <rect x="1266" y="223" width="218" height="42" rx="18" opacity="0.72" />
-    <rect x="1266" y="578" width="218" height="41" rx="18" opacity="0.72" />
-  </g>
-
-  <!-- Legend -->
-  <g font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace">
-    <circle cx="92" cy="681" r="6" fill="#f26343" />
-    <text x="108" y="686" fill="#f7e9c1" font-size="13" font-weight="700">
-      CURRENT README STACK
-    </text>
-    <text x="309" y="686" fill="#78938e" font-size="13">|</text>
-    <text x="329" y="686" fill="#9bb6b0" font-size="13">
-      * PLANNED / BRING-YOUR-OWN EXAMPLE, NOT A MAINTAINED PACKAGE TODAY
-    </text>
-  </g>
-
-  <!-- Tiny machine badge -->
-  <g transform="translate(1351 670)">
+  <!-- Validation wheel -->
+  <g transform="translate(548 0)">
     <rect
-      width="135"
-      height="30"
-      rx="15"
-      fill="#071113"
-      stroke="#345057"
-      stroke-width="1.5"
+      x="0"
+      y="251"
+      width="220"
+      height="382"
+      rx="20"
+      fill="#e8efec"
+      stroke="#b8cac4"
+      stroke-width="2"
     />
+    <rect x="10" y="262" width="200" height="360" rx="15" fill="#f8faf8" />
+    <path d="M36 262 H184 L200 295 H20 Z" class="far-panel" />
+    <path d="M20 299 H200 L218 368 H2 Z" class="upper-panel" />
+    <rect
+      x="2"
+      y="372"
+      width="216"
+      height="102"
+      rx="11"
+      class="selected-panel"
+      filter="url(#selectedShadow)"
+    />
+    <path d="M2 478 H218 L200 547 H20 Z" class="lower-panel" />
+    <path d="M20 551 H200 L184 622 H36 Z" class="far-panel" />
+    <path d="M24 300 Q110 320 196 300" class="panel-seam" opacity="0.6" />
+    <path d="M24 546 Q110 526 196 546" class="panel-seam" opacity="0.6" />
+    <text x="110" y="283" class="far-option" opacity="0.46">None</text>
     <text
-      x="67.5"
-      y="20"
-      fill="#78938e"
+      x="110"
+      y="340"
+      class="option"
+      opacity="0.72"
+      transform="rotate(-3 110 340)"
+    >
+      AJV
+    </text>
+    <text x="110" y="395" class="selected-small">SELECTED</text>
+    <text x="110" y="424" class="selected-name" font-size="18">Standard</text>
+    <text x="110" y="448" class="selected-name" font-size="18">Schema</text>
+    <text
+      x="110"
+      y="520"
+      class="option"
+      font-size="16"
+      opacity="0.72"
+      transform="rotate(3 110 520)"
+    >
+      Zod adapter
+    </text>
+    <text x="110" y="592" class="far-option" opacity="0.46">Custom</text>
+    <polygon points="220,405 234,416 220,427" fill="#f26445" />
+  </g>
+
+  <!-- Presentation wheel -->
+  <g transform="translate(786 0)">
+    <rect
+      x="0"
+      y="251"
+      width="220"
+      height="382"
+      rx="20"
+      fill="#e8efec"
+      stroke="#b8cac4"
+      stroke-width="2"
+    />
+    <rect x="10" y="262" width="200" height="360" rx="15" fill="#f8faf8" />
+    <path d="M36 262 H184 L200 295 H20 Z" class="far-panel" />
+    <path d="M20 299 H200 L218 368 H2 Z" class="upper-panel" />
+    <rect
+      x="2"
+      y="372"
+      width="216"
+      height="102"
+      rx="11"
+      class="selected-panel"
+      filter="url(#selectedShadow)"
+    />
+    <path d="M2 478 H218 L200 547 H20 Z" class="lower-panel" />
+    <path d="M20 551 H200 L184 622 H36 Z" class="far-panel" />
+    <path d="M24 300 Q110 320 196 300" class="panel-seam" opacity="0.6" />
+    <path d="M24 546 Q110 526 196 546" class="panel-seam" opacity="0.6" />
+    <text x="110" y="283" class="far-option" opacity="0.46">Resolver</text>
+    <text
+      x="110"
+      y="340"
+      class="option"
+      font-size="16"
+      opacity="0.72"
+      transform="rotate(-3 110 340)"
+    >
+      Design system
+    </text>
+    <text x="110" y="395" class="selected-small">SELECTED</text>
+    <text x="110" y="439" class="selected-name" font-size="22">Defaults</text>
+    <text
+      x="110"
+      y="520"
+      class="option"
+      font-size="16"
+      opacity="0.72"
+      transform="rotate(3 110 520)"
+    >
+      Custom parts
+    </text>
+    <text x="110" y="592" class="far-option" opacity="0.46">Bare facts</text>
+    <polygon points="220,405 234,416 220,427" fill="#f26445" />
+  </g>
+
+  <!-- Form-state wheel -->
+  <g transform="translate(1024 0)">
+    <rect
+      x="0"
+      y="251"
+      width="220"
+      height="382"
+      rx="20"
+      fill="#e8efec"
+      stroke="#b8cac4"
+      stroke-width="2"
+    />
+    <rect x="10" y="262" width="200" height="360" rx="15" fill="#f8faf8" />
+    <path d="M36 262 H184 L200 295 H20 Z" class="far-panel" />
+    <path d="M20 299 H200 L218 368 H2 Z" class="upper-panel" />
+    <rect
+      x="2"
+      y="372"
+      width="216"
+      height="102"
+      rx="11"
+      class="selected-panel"
+      filter="url(#selectedShadow)"
+    />
+    <path d="M2 478 H218 L200 547 H20 Z" class="lower-panel" />
+    <path d="M20 551 H200 L184 622 H36 Z" class="far-panel" />
+    <path d="M24 300 Q110 320 196 300" class="panel-seam" opacity="0.6" />
+    <path d="M24 546 Q110 526 196 546" class="panel-seam" opacity="0.6" />
+    <text x="110" y="283" class="far-option" opacity="0.46">Custom store</text>
+    <text
+      x="110"
+      y="340"
+      class="option"
+      font-size="15"
+      opacity="0.72"
+      transform="rotate(-3 110 340)"
+    >
+      React Hook Form
+    </text>
+    <text x="110" y="395" class="selected-small">SELECTED</text>
+    <text x="110" y="424" class="selected-name" font-size="20">Native</text>
+    <text x="110" y="448" class="selected-name" font-size="16">+ FormData</text>
+    <text
+      x="110"
+      y="520"
+      class="option"
+      font-size="15"
+      opacity="0.72"
+      transform="rotate(3 110 520)"
+    >
+      TanStack Form*
+    </text>
+    <text x="110" y="592" class="far-option" opacity="0.46">Controlled*</text>
+    <polygon points="220,405 234,416 220,427" fill="#f26445" />
+  </g>
+
+  <!-- Renderer wheel -->
+  <g transform="translate(1262 0)">
+    <rect
+      x="0"
+      y="251"
+      width="220"
+      height="382"
+      rx="20"
+      fill="#e8efec"
+      stroke="#b8cac4"
+      stroke-width="2"
+    />
+    <rect x="10" y="262" width="200" height="360" rx="15" fill="#f8faf8" />
+    <path d="M36 262 H184 L200 295 H20 Z" class="far-panel" />
+    <path d="M20 299 H200 L218 368 H2 Z" class="upper-panel" />
+    <rect
+      x="2"
+      y="372"
+      width="216"
+      height="102"
+      rx="11"
+      class="selected-panel"
+      filter="url(#selectedShadow)"
+    />
+    <path d="M2 478 H218 L200 547 H20 Z" class="lower-panel" />
+    <path d="M20 551 H200 L184 622 H36 Z" class="far-panel" />
+    <path d="M24 300 Q110 320 196 300" class="panel-seam" opacity="0.6" />
+    <path d="M24 546 Q110 526 196 546" class="panel-seam" opacity="0.6" />
+    <text x="110" y="283" class="far-option" opacity="0.46">Vanilla</text>
+    <text
+      x="110"
+      y="340"
+      class="option"
+      opacity="0.72"
+      transform="rotate(-3 110 340)"
+    >
+      Vue*
+    </text>
+    <text x="110" y="395" class="selected-small">SELECTED</text>
+    <text x="110" y="439" class="selected-name">React</text>
+    <text
+      x="110"
+      y="520"
+      class="option"
+      opacity="0.72"
+      transform="rotate(3 110 520)"
+    >
+      Svelte*
+    </text>
+    <text x="110" y="592" class="far-option" opacity="0.46">Solid*</text>
+    <polygon points="220,405 234,416 220,427" fill="#f26445" />
+  </g>
+
+  <!-- Footer legend -->
+  <line x1="72" y1="664" x2="1528" y2="664" stroke="#d5dfdb" />
+  <circle cx="82" cy="698" r="6" fill="#f26445" />
+  <text
+    x="98"
+    y="703"
+    fill="#294e4f"
+    font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
+    font-size="12"
+    font-weight="800"
+  >
+    SELECTED README STACK
+  </text>
+  <text
+    x="300"
+    y="703"
+    fill="#758c89"
+    font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace"
+    font-size="12"
+  >
+    | * PLANNED / BRING-YOUR-OWN EXAMPLE, NOT A MAINTAINED PACKAGE TODAY
+  </text>
+  <g transform="translate(1332 684)">
+    <rect width="174" height="28" rx="14" fill="#edf3f0" stroke="#cbd9d4" />
+    <text
+      x="87"
+      y="18"
+      fill="#5c7775"
       font-family="'Arial Narrow', 'Avenir Next Condensed', sans-serif"
-      font-size="11"
-      font-weight="700"
-      letter-spacing="1.6"
+      font-size="10"
+      font-weight="800"
+      letter-spacing="1.4"
       text-anchor="middle"
     >
       COMPOSE, DON'T LOCK
