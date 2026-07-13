@@ -178,16 +178,11 @@ See the evidence-backed support catalogs for exact current behavior:
 
 ## How it composes
 
-```text
-Zod ─────────────┐
-JSON Schema ─────┼─ input compiler ─→ form tree ─→ React / DOM renderer
-ArkType* ────────┤
-your source ─────┘
+![FormFrame composition reels with Zod, Standard Schema, default presentation, native FormData, and React selected among interchangeable capability options](./assets/how-it-composes.svg)
 
-schema validator ───────────────────→ neutral validation results
-
-* Bring or build an input compiler; no maintained ArkType input ships today.
-```
+The highlighted row is the stack used by the complete React example, not the
+only supported composition. Asterisks mark planned or bring-your-own examples,
+not maintained packages available today.
 
 Core is the neutral boundary: it imports no schema language, framework,
 validator, form-state library, or DOM API. Compilation, validation,
