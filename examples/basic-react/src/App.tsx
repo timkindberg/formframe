@@ -14,6 +14,7 @@ import App11 from './App_11_React+LiveValidation'
 import App12 from './App_12_React+ReactHookForm'
 import App13 from './App_13_React+TouchedErrors'
 import App14 from './App_14_React+WidgetCatalog'
+import App15 from './App_15_React+CustomizePrototype'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -39,10 +40,15 @@ const examples = [
     name: 'React + Widget Catalog (bd 4j1, bd 672)',
     component: App14,
   },
+  {
+    id: '15',
+    name: 'React + customize prototype (bd gjq)',
+    component: App15,
+  },
 ]
 
 function App() {
-  const [currentExample, setCurrentExample] = useState('14')
+  const [currentExample, setCurrentExample] = useState('15')
 
   const CurrentComponent =
     examples.find((ex) => ex.id === currentExample)?.component || App01
