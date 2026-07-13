@@ -190,6 +190,59 @@ presentation, rendering, and form state remain independently composable. Most
 React users can stay on the `zodToTree` or `jsonSchemaToTree` plus `useFormTree`
 path and only use the lower interfaces when they need a new adapter.
 
+## Clear ownership boundaries
+
+FormFrame owns the reusable form mechanics:
+
+- a schema-neutral tree that input packages compile into;
+- sensible default controls and semantic field structure;
+- nested objects, repeatable arrays, choices, and `FormData` assembly;
+- recursive node, subtree, and part customization;
+- presentation, renderer, and validator contracts that applications can
+  replace independently.
+
+Your application keeps the product decisions:
+
+- the `<form>` element, buttons, and submit lifecycle;
+- loading, saving, cancellation, success, and navigation;
+- layout, copy, styling, and design-system components;
+- when validation runs and when errors become visible;
+- whether a form needs reactive state at all.
+
+There is deliberately no library-owned page shell or kitchen-sink form
+component. Generated fields remain content inside ordinary application code.
+
+## Native by default, reactive when needed
+
+The reference path uses native uncontrolled controls and `FormData`: no
+form-state dependency, no value-driven React rerender on every keystroke, and
+enough behavior for static and submit-time forms.
+
+Reach for a reactive form-state adapter when a form needs live dependencies,
+controlled values, dirty-state orchestration, or interop with an existing form
+platform. React Hook Form and similar integrations are reference recipes to
+copy and adapt, not a growing matrix of maintained wrapper packages. Validation
+adapters remain packages because their contracts are reusable without
+application-specific UI and state choices.
+
+The same rule applies to customization data. React makes code-first exceptions
+easy through JSX. When the customization itself must be stored in a database,
+put that serializable policy in a source-specific or application adapter rather
+than expanding Core into another UI schema. **Serialize when you must; code when
+you can.**
+
+## When FormFrame fits
+
+FormFrame is a good fit when schemas are real application data:
+
+- forms come from APIs, databases, configuration, or shared domain models;
+- most fields should be generated, while a few need product-specific UX;
+- several forms should share one presentation and validation approach;
+- layout belongs in application code rather than a second schema.
+
+If every field is static and hand-designed, or the primary need is a
+controlled-value state manager, a regular form library will usually be simpler.
+
 ## Main packages
 
 | Package | Purpose |
@@ -203,6 +256,18 @@ path and only use the lower interfaces when they need a new adapter.
 | `@formframe/validation-zod` | Zod validator with source-specific issue metadata |
 
 FormFrame is under active pre-v1 development; public APIs may still change.
+
+## Design principles
+
+- A schema generates the ordinary form; code handles the exceptions.
+- No schema language, renderer, validator, or form-state library is privileged
+  by Core.
+- Every default provides a way back into the engine.
+- Capabilities are injected explicitly; FormFrame does not guess behavior from
+  a node's origin.
+- Core stays stateless and stubborn. User-written adapters extend it rather than
+  forking it.
+- New seams are earned by real implementations, not designed speculatively.
 
 ## Learn more
 
