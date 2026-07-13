@@ -1,6 +1,6 @@
 # FormFrame
 
-Generate forms from schemas. Customize them in JSX.
+Automatic forms from schemas without losing control.
 
 FormFrame compiles the schema that already describes your data into a common
 form tree, then renders sensible default fields from that tree. Keep the
