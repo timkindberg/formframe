@@ -1,76 +1,118 @@
 # FormFrame
 
-FormFrame is a schema-driven form library, built as a better-architected alternative to [React JSON Schema Form (RJSF)](https://github.com/rjsf-team/react-jsonschema-form).
+Generate forms from schemas. Customize them in JSX.
 
-## The problem
+FormFrame compiles the schema that already describes your data into a common
+form tree, then renders sensible default fields from that tree. Keep the
+generated form where it works; replace a node, layout, or field part where your
+product needs something specific.
 
-RJSF sits at one extreme: schema drives *everything*, including customization. The easy 80% is fast, but every hard-20% need forces more `ui_schema`/`rule_schema` indirection — because RJSF's overrides are schema-keyed registries, not code. Plain form libraries (React Hook Form, TanStack Form) sit at the other extreme: code for everything, no auto-generation at all.
+Zod and JSON Schema input packages ship today. Other schema languages and
+application-specific models can target the same public tree without requiring a
+different renderer.
 
-## The goal
+## Quick start
 
-**A schema generates the form automatically — that's the reason this library exists.** You customize in **JSX (code)**, not in more schema. Hand-authoring a whole form node-by-node is a non-goal — if that's what you want, use a form library directly.
+In an existing React and TypeScript app:
 
-This puts FormFrame in between RJSF and the plain form libraries: **serialize when you must, code when you can** — a principle that applies per form, even per node.
-
-A serializable customization path also exists for genuinely DB-driven cases (Mode 1, see below), where the customization itself must be stored, not just the schema. That path is pushed into adapters, including ones you write yourself, and stays deliberately minimal — see [ADR 007](./architecture_records/007_schema_generates_jsx_customizes.md).
-
-## The model
-
-Earlier drafts of this library described "five decoupled layers" in a linear stack (Core → Validation → Framework → Form Library → UI). That framing has been superseded — see [ADR 006](./architecture_records/006_core_as_form_tree_ir_with_adapters.md).
-
-**Core is the form tree** — an intermediate representation (IR) — plus the recursive fold over it. It is stateless, framework-agnostic, and imports nothing. JSON Schema and Zod are separate front-ends that compile into the same tree (`jsonSchemaToTree` / `zodToTree`); React binds behavior to either with `useFormTree(tree)`.
-
-Everything else hangs off Core as an **adapter**, filling one or more **capability slots**:
-
-- **Front-end** — compiles a source schema into the tree (JSON Schema and Zod today; TypeScript is a plausible future front-end).
-- **Structure / framework-binding** — renders the tree (React today).
-- **Validation** — side-loaded, framework-agnostic, rides directly on Core.
-- **Form-state** — holds values + reactivity. The default is a *headless* adapter wrapping nothing: native `<form>` + FormData. RHF/TanStack Form are optional wrapped adapters for teams that need live reactivity or want to plug into existing form infrastructure.
-- **Presentation (UI)** — the actual rendered components and styling.
-
-Adapters are first-class and **user-writable** — the extension model is "write an adapter," never "fork Core." We deliberately don't draw a layered-stack diagram: the dependency shape is more hub-and-spoke than linear (e.g. validation doesn't sit "above" React; a UI kit may ship its own form-state). The one fixed invariant is the **stubborn Core boundary**: Core imports nothing, holds no state, and touches no DOM or framework.
-
-See `CONTEXT.md` for the full glossary and `architecture_records/` for the decisions behind it.
-
-## Customizing: the continuation model
-
-Customization is one recursive primitive, available at any granularity, fractal from the whole form down to a single field part. The renderer walks the tree and calls `renderNode(node, { Default, Children })` per node; you re-enter the engine by mounting a handle — `<Default of={node} />`, `<Children of={node} />`, or a specific child `<Default of={node.children.x} />` — or override individual parts of a field with `<Default of={node} parts={{ partName: (part) => <JSX/> }} />`. At every node you have three moves: take the default whole, keep the default layout but swap a sub-piece, or place the sub-pieces yourself. You pay only for what you customize — the library renders the rest.
-
-`Default` and `Children` are injected into `renderNode` (and the root render-prop) and are also importable from the package root — use whichever is in scope:
+```bash
+npm install @formframe/core @formframe/input-zod \
+  @formframe/renderer-react zod
+```
 
 ```tsx
-import { SchemaFields, Default, Children } from '@formframe/renderer-react'
+import { z } from 'zod'
+import { zodToTree } from '@formframe/input-zod'
+import { useFormTree } from '@formframe/renderer-react'
 
-// 1. All defaults — no customization
-<SchemaFields form={tree} />
+const profileSchema = z.object({
+  name: z.string().min(1).meta({ title: 'Name' }),
+  email: z.string().email().meta({ title: 'Email' }),
+  role: z
+    .enum(['Developer', 'Designer', 'Product manager'])
+    .meta({ title: 'Role' }),
+  updates: z.boolean().optional().meta({ title: 'Send me product updates' }),
+})
 
-// 2. Whole-node hijack — wrap a node, then re-enter its default
+const profileTree = zodToTree(profileSchema)
+
+export function ProfileForm() {
+  const { SchemaFields, submit } = useFormTree(profileTree)
+
+  return (
+    <form onSubmit={submit((data) => console.log(data))}>
+      <SchemaFields />
+      <button type="submit">Save profile</button>
+    </form>
+  )
+}
+```
+
+`SchemaFields` renders the form content. You keep ownership of the `<form>`,
+buttons, loading state, navigation, and success flow. The default path uses
+native uncontrolled controls and assembles nested submission data from
+`FormData`.
+
+## Add schema validation
+
+Form generation and validation are separate capabilities. `zodToTree` reads the
+schema's structure; Standard Schema validates submitted values. Standard Schema
+does **not** expose enough structural information to generate fields.
+
+Adapt any synchronous Standard Schema implementation with
+`fromStandardSchema`. For the Zod schema above:
+
+```tsx
+import { fromStandardSchema } from '@formframe/core'
+import {
+  useFormTree,
+  ValidationProvider,
+  ValidationSummary,
+} from '@formframe/renderer-react'
+
+const validator = fromStandardSchema(profileSchema)
+
+export function ProfileForm() {
+  const { SchemaFields, submit, validation } = useFormTree(profileTree, {
+    validator,
+  })
+
+  return (
+    <form noValidate onSubmit={submit((data) => console.log(data))}>
+      <ValidationProvider {...validation}>
+        <ValidationSummary />
+        <SchemaFields />
+      </ValidationProvider>
+      <button type="submit">Save profile</button>
+    </form>
+  )
+}
+```
+
+Validation runs on submit here. Wire the returned `revalidate` handler to
+`onInput`, `onChange`, or `onBlur` when the product calls for live validation.
+Successful transformed output is passed to the submit callback. The neutral
+validator contract is currently synchronous; async Standard Schema validation
+is not yet supported.
+
+## Customize one generated part
+
+Every default is also a re-entry point. This adds context to the generated email
+label while preserving its default control, description, errors, and the rest
+of the form:
+
+```tsx
 <SchemaFields
-  form={tree}
   renderNode={(node, { Default }) =>
-    node.isField ? (
-      <section>
-        <Default of={node} />
-      </section>
-    ) : (
-      <Default of={node} />
-    )
-  }
-/>
-
-// 3. Part override — keep the default layout, swap one piece
-<SchemaFields
-  form={tree}
-  renderNode={(node, { Default }) =>
-    node.isField && node.path === 'name' ? (
+    node.isField && node.path === 'email' ? (
       <Default
         of={node}
         parts={{
           label: (label) => (
-            <>
+            <span>
               <Default of={label} />
-              <span aria-hidden> (required)</span>
-            </>
+              <small> Account notifications only.</small>
+            </span>
           ),
         }}
       />
@@ -79,47 +121,102 @@ import { SchemaFields, Default, Children } from '@formframe/renderer-react'
     )
   }
 />
-
-// 4. Subtree re-entry — hijack a container's layout, delegate its children
-<SchemaFields
-  form={tree}
-  renderNode={(node, { Default, Children }) =>
-    node.isGroup && node.path === 'address' ? (
-      <section>
-        <Children of={node} />
-      </section>
-    ) : (
-      <Default of={node} />
-    )
-  }
-/>
 ```
 
-This is the RJSF-killer: the hard 20% is JSX, not schema sprawl. Full detail lives in [ADR 010](./architecture_records/010_recursive_continuation_rendering.md).
+The fallback `<Default of={node} />` renders a whole node normally. To own a
+group's layout while preserving its generated descendants, re-enter through
+`Children`:
 
-## Reference stack & swappability
+```tsx
+renderNode={(node, { Default, Children }) =>
+  node.isGroup && node.path === 'address' ? (
+    <section className="address-grid">
+      <Children of={node} />
+    </section>
+  ) : (
+    <Default of={node} />
+  )
+}
+```
 
-Designing every swap seam up front tends to produce speculative, wrong abstractions. Instead, **swappability is earned by a second implementation** ([ADR 008](./architecture_records/008_swappability_earned_by_second_implementation.md)):
+`Default` and `Children` are also exported from
+`@formframe/renderer-react` for authored layouts outside `renderNode`.
 
-- **Phase A** — Core plus a **zero-dependency reference stack**: React + native `<form>`/FormData (uncontrolled) + no validation + bare default UI. The stubborn Core boundary is the only hard architectural gate at this stage.
-- **Phase B** — slots fill in one at a time, each forced by its *first real adapter*. **Validation and UI swap in first** — they're visible to end users and where teams have the most existing investment. **Form-state is a shallow slot and swaps in last, and only when needed** ([ADR 011](./architecture_records/011_form_state_is_a_shallow_slot.md)): reach for RHF/TanStack only for live/reactive behavior or interop with existing form infrastructure, not for its own sake.
+## Choose a schema input
 
-## Monorepo structure
+Input compilers are peers: each translates one source into the same FormFrame
+tree. A source's ability to validate through Standard Schema does not make it a
+structural form input.
 
-- `packages/core` — headless foundation: the form-tree IR and recursive fold (schema-agnostic)
-- `packages/input-jsonschema` — JSON Schema front-end (`jsonSchemaToTree`); see [support catalog](./packages/input-jsonschema/SUPPORT_CATALOG.md)
-- `packages/input-zod` — Zod v4 front-end (`zodToTree`); see [support catalog](./packages/input-zod/SUPPORT_CATALOG.md)
-- `packages/react` — React framework-binding adapter (hooks, default templates, the continuation renderer)
-- `packages/validation-ajv` / `packages/validation-zod` — validation adapters (Standard-Schema-shaped; maintained packages)
-- `examples/basic-react` — example app exercising the library end to end
+| Source | Form generation | Validation |
+|---|---|---|
+| Zod v4 | `zodToTree` from the maintained `@formframe/input-zod` package | `fromStandardSchema`, or `createZodValidator` for richer Zod issue metadata |
+| JSON Schema draft-07 | `jsonSchemaToTree` from the maintained `@formframe/input-jsonschema` package | `createAjvValidator` from `@formframe/validation-ajv` |
+| ArkType | No maintained input package yet; an ArkType compiler can target Core's public tree builders | `fromStandardSchema` |
+| Your own source | Write a small compiler against Core's public builders | Supply any FormFrame `Validator` |
 
-UI-framework adapters (Tailwind, Chakra, etc.) and form-library adapters (React Hook Form, TanStack Form) are **not** maintained packages — they ship as **reference recipes** in `examples/` that you copy into your own app. See [ADR 024](./architecture_records/024_adapters_are_patterns_not_packages.md).
+Switching the quick start to JSON Schema changes the compiler, not the React
+binding:
 
-## Key decisions
+```tsx
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 
-- **Core is stateless and framework-agnostic** — form-state adapters own values; React owns rendering.
-- **No "kitchen sink" component** — we provide building blocks, not `<JsonSchemaForm />`.
-- **"label" not "title"** — field nodes use `label` for clarity despite JSON Schema's `title`.
-- **Boolean schemas throw** — `true`/`false` as schema values are not supported.
+const profileTree = jsonSchemaToTree({
+  type: 'object',
+  properties: {
+    name: { type: 'string', title: 'Name' },
+    email: { type: 'string', format: 'email', title: 'Email' },
+  },
+  required: ['name', 'email'],
+})
+```
 
-See `architecture_records/` for the full rationale behind every decision above.
+See the evidence-backed support catalogs for exact current behavior:
+
+- [Zod support](./packages/input-zod/SUPPORT_CATALOG.md)
+- [JSON Schema support](./packages/input-jsonschema/SUPPORT_CATALOG.md)
+
+## How it composes
+
+```text
+Zod ─────────────┐
+JSON Schema ─────┼─ input compiler ─→ form tree ─→ React / DOM renderer
+ArkType* ────────┤
+your source ─────┘
+
+schema validator ───────────────────→ neutral validation results
+
+* Bring or build an input compiler; no maintained ArkType input ships today.
+```
+
+Core is the neutral boundary: it imports no schema language, framework,
+validator, form-state library, or DOM API. Compilation, validation,
+presentation, rendering, and form state remain independently composable. Most
+React users can stay on the `zodToTree` or `jsonSchemaToTree` plus `useFormTree`
+path and only use the lower interfaces when they need a new adapter.
+
+## Main packages
+
+| Package | Purpose |
+|---|---|
+| `@formframe/core` | Schema-neutral form tree, presentation, submission, validation contract, and Standard Schema interop |
+| `@formframe/input-zod` | Zod v4 input compiler |
+| `@formframe/input-jsonschema` | JSON Schema draft-07 input compiler |
+| `@formframe/renderer-react` | React hook, default renderer, continuation customization, and error display |
+| `@formframe/renderer-vanilla` | DOM and string renderer |
+| `@formframe/validation-ajv` | AJV-backed JSON Schema validator |
+| `@formframe/validation-zod` | Zod validator with source-specific issue metadata |
+
+FormFrame is under active pre-v1 development; public APIs may still change.
+
+## Learn more
+
+- [Example app](./examples/basic-react)
+- [Architecture](./ARCHITECTURE.md)
+- [Project glossary](./CONTEXT.md)
+- [Architecture decisions](./architecture_records)
+- [Contributor and agent workflow](./AGENTS.md)
+
+## License
+
+MIT
