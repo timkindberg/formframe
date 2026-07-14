@@ -52,6 +52,31 @@ _Avoid_: degraded
 **Form-state adapter**:
 The slot that holds values + reactivity. *Headless* (wraps no external lib — native `<form>` + FormData is the minimal one; a first-party reactive store would be a richer one, deferred) or *wrapped* (React Hook Form / TanStack Form — optional, for reactivity + interop). A shallow slot; validation and UI are the primary swaps (ADR 011).
 
+## Validation
+
+**Validation run**:
+One validator invocation over a point-in-time, whole-document input snapshot. Its result and transformed output remain tied to that snapshot.
+
+**Validation result**:
+The verdict produced by a completed validation run: valid or invalid, with validation errors and optional transformed data.
+_Avoid_: outcome, response
+
+**Invalid result**:
+A validation result that says the input violates validation rules. A verdict exists, unlike a validation run failure.
+_Avoid_: validation failure
+
+**Validation run failure**:
+A validation run that ends without a result because the validator throws or rejects. This is an operational problem, not an invalid result.
+_Avoid_: validation error, invalid result
+
+**Authoritative run**:
+The validation run whose completion may publish shared validation state.
+_Avoid_: latest result (completion order does not grant authority)
+
+**Stale run**:
+A validation run superseded by a newer authoritative run; its completion cannot change shared validation state.
+_Avoid_: cancelled run (staleness does not imply cancellation)
+
 ## Authoring
 
 **Schema** (the source):
