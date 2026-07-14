@@ -1,0 +1,1408 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Why choicegroup ≠ select — architecture</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --card: #ffffff;
+
+        --facts: #7c3aed; /* violet — the shared neutral data */
+        --facts-bg: #ede9fe;
+        --present: #4f46e5; /* indigo — the present() stage */
+
+        --select: #0d9488; /* teal — the <select> archetype */
+        --select-bg: #ccfbf1;
+        --choice: #d97706; /* amber — the choicegroup archetype */
+        --choice-bg: #fef3c7;
+        --plain: #475569; /* slate — input / textarea */
+        --plain-bg: #eef2f7;
+        --bad: #e11d48;
+        --good: #059669;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(
+          1200px 600px at 80% -10%,
+          #eef1ff 0%,
+          var(--bg) 55%
+        );
+        color: var(--ink);
+        font:
+          15px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 56px 24px 96px;
+      }
+      code,
+      .mono {
+        font-family:
+          ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+      }
+
+      header .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--present);
+        font-weight: 700;
+        margin: 0 0 10px;
+      }
+      h1 {
+        font-size: 34px;
+        line-height: 1.15;
+        margin: 0 0 14px;
+        letter-spacing: -0.02em;
+      }
+      h1 .hl-teal {
+        color: var(--select);
+      }
+      h1 .hl-amber {
+        color: var(--choice);
+      }
+      .lede {
+        font-size: 18px;
+        color: #334155;
+        max-width: 74ch;
+        margin: 0;
+      }
+      .lede b {
+        color: var(--facts);
+      }
+
+      section {
+        margin-top: 44px;
+      }
+      h2 {
+        font-size: 13px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      h2::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow:
+          0 1px 2px rgba(15, 23, 42, 0.04),
+          0 12px 30px -18px rgba(15, 23, 42, 0.25);
+      }
+      .pad {
+        padding: 22px 24px;
+      }
+
+      /* two-axis callout */
+      .axes {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .axis {
+        padding: 20px 22px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: var(--card);
+      }
+      .axis .tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 3px 9px;
+        border-radius: 999px;
+        margin-bottom: 10px;
+      }
+      .axis.sem .tag {
+        color: var(--facts);
+        background: var(--facts-bg);
+      }
+      .axis.pres .tag {
+        color: var(--present);
+        background: #e0e7ff;
+      }
+      .axis h3 {
+        margin: 0 0 6px;
+        font-size: 17px;
+      }
+      .axis p {
+        margin: 0;
+        color: #475569;
+        font-size: 14px;
+      }
+      .axis .where {
+        margin-top: 12px;
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      .axis .where code {
+        color: var(--ink);
+        background: #f1f5f9;
+        padding: 1px 6px;
+        border-radius: 6px;
+      }
+
+      /* pipeline */
+      .pipe {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        flex-wrap: wrap;
+        overflow-x: auto;
+        padding: 6px 4px;
+      }
+      .step {
+        flex: 1 1 0;
+        min-width: 120px;
+        border-radius: 12px;
+        padding: 12px 12px;
+        text-align: center;
+        background: var(--plain-bg);
+        border: 1px solid var(--line);
+      }
+      .step .k {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 4px;
+      }
+      .step .v {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .step.facts {
+        background: var(--facts-bg);
+        border-color: #ddd6fe;
+      }
+      .step.facts .k {
+        color: var(--facts);
+      }
+      .step.present {
+        background: #e0e7ff;
+        border-color: #c7d2fe;
+      }
+      .step.present .k {
+        color: var(--present);
+      }
+      .arrow {
+        align-self: center;
+        color: #94a3b8;
+        font-size: 20px;
+        padding: 0 6px;
+        flex: 0 0 auto;
+      }
+      .pipe-note {
+        margin: 14px 2px 0;
+        font-size: 13.5px;
+        color: #475569;
+      }
+      .pipe-note b {
+        color: var(--facts);
+      }
+
+      /* svg map */
+      .maplegend {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin: 4px 2px 16px;
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      .maplegend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .sw {
+        width: 20px;
+        height: 4px;
+        border-radius: 3px;
+        display: inline-block;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      /* DOM comparison */
+      .cmp {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .dom {
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background: var(--card);
+      }
+      .dom .head {
+        padding: 12px 18px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #fff;
+      }
+      .dom.sel .head {
+        background: var(--select);
+      }
+      .dom.cg .head {
+        background: var(--choice);
+      }
+      .dom .head .pill {
+        font-size: 11px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.22);
+        padding: 2px 9px;
+        border-radius: 999px;
+      }
+      pre {
+        margin: 0;
+        padding: 16px 18px;
+        background: #0f172a;
+        color: #e2e8f0;
+        font-size: 12.5px;
+        line-height: 1.65;
+        overflow-x: auto;
+      }
+      pre .t {
+        color: #7dd3fc;
+      }
+      pre .a {
+        color: #fca5a5;
+      }
+      pre .c {
+        color: #64748b;
+      }
+      .dom ul {
+        margin: 0;
+        padding: 14px 20px 16px 34px;
+        font-size: 13px;
+        color: #475569;
+      }
+      .dom ul li {
+        margin: 4px 0;
+      }
+      .dom ul b {
+        color: var(--ink);
+      }
+
+      /* verdict */
+      .verdict {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .vc {
+        border-radius: 16px;
+        padding: 20px 22px;
+        border: 1px solid var(--line);
+        background: var(--card);
+      }
+      .vc h3 {
+        margin: 0 0 12px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .vc.bad {
+        border-color: #fecdd3;
+        background: #fff5f6;
+      }
+      .vc.good {
+        border-color: #a7f3d0;
+        background: #f2fdf8;
+      }
+      .vc.bad h3 {
+        color: var(--bad);
+      }
+      .vc.good h3 {
+        color: var(--good);
+      }
+      .badge {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .vc.bad .badge {
+        background: var(--bad);
+      }
+      .vc.good .badge {
+        background: var(--good);
+      }
+      .vc ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .vc li {
+        margin: 8px 0;
+        font-size: 14px;
+        color: #334155;
+      }
+      .vc li code {
+        background: #eef2f7;
+        padding: 1px 6px;
+        border-radius: 6px;
+        font-size: 12.5px;
+      }
+
+      .takeaway {
+        margin-top: 40px;
+        padding: 22px 26px;
+        border-radius: 16px;
+        background: linear-gradient(120deg, #0f172a, #1e293b);
+        color: #e2e8f0;
+      }
+      .takeaway .t {
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #a5b4fc;
+        font-weight: 700;
+        margin: 0 0 8px;
+      }
+      .takeaway p {
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.55;
+      }
+      .takeaway .hl-teal {
+        color: #5eead4;
+        font-weight: 700;
+      }
+      .takeaway .hl-amber {
+        color: #fbbf24;
+        font-weight: 700;
+      }
+      .takeaway .hl-violet {
+        color: #c4b5fd;
+        font-weight: 700;
+      }
+
+      @media (max-width: 760px) {
+        .axes,
+        .cmp,
+        .verdict {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 27px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <p class="eyebrow">jsonschema-form · ADR 029 §5/§6</p>
+        <h1>
+          Why <span class="hl-amber">choicegroup</span> and
+          <span class="hl-teal">select</span> stay separate
+        </h1>
+        <p class="lede">
+          They look like the same thing — both let you pick from a fixed set of
+          options. But "a choice" is <b>data</b>, and the data is already
+          unified upstream as <b>facts.choices</b>.
+          <code class="mono">control.kind</code> is not about the data — it's
+          about <b>which DOM to draw</b>, and a dropdown and a bank of radios
+          are genuinely different markup. Merging them doesn't remove a branch;
+          it just hides it and throws away the type.
+        </p>
+      </header>
+
+      <!-- TWO AXES -->
+      <section>
+        <h2>The trap: conflating two independent axes</h2>
+        <div class="axes">
+          <div class="axis sem">
+            <span class="tag">Semantic · WHAT it is</span>
+            <h3>A choice</h3>
+            <p>
+              One value (or many) drawn from a fixed set of labelled options.
+              This is what <code>enum</code> / <code>oneOf</code> mean. It is
+              framework- and widget-agnostic.
+            </p>
+            <p class="where">
+              Lives once in <code>facts.choices</code> — derived at parse time,
+              consumed by <b>every</b> choice widget.
+            </p>
+          </div>
+          <div class="axis pres">
+            <span class="tag">Presentation · HOW it's drawn</span>
+            <h3>A render archetype</h3>
+            <p>
+              The DOM element family: one <code>&lt;select&gt;</code>, or N
+              <code>&lt;input&gt;</code>s, or a <code>&lt;textarea&gt;</code>…
+              Different element, different focus model, different adapter code.
+            </p>
+            <p class="where">
+              Lives in <code>control.kind</code> — chosen by
+              <code>present()</code>, switched on by the adapter.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PIPELINE -->
+      <section>
+        <h2>Where each axis is decided in the pipeline</h2>
+        <div class="card pad">
+          <div class="pipe">
+            <div class="step">
+              <span class="k">source</span><span class="v">JSON Schema</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="step facts">
+              <span class="k">parse → neutral</span
+              ><span class="v mono">facts.choices</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="step present">
+              <span class="k">stage</span><span class="v mono">present()</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="step">
+              <span class="k">identity</span><span class="v mono">widget</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="step">
+              <span class="k">archetype</span
+              ><span class="v mono">control.kind</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="step">
+              <span class="k">adapter</span><span class="v">DOM</span>
+            </div>
+          </div>
+          <p class="pipe-note">
+            The unification you're reaching for happens at the
+            <b>second box</b>: <code class="mono">facts.choices</code> is the
+            single shared representation of "a choice." <code>select</code>,
+            <code>multiselect</code>, <code>radio</code> and
+            <code>checkboxes</code> all read from it. By the time you reach
+            <code class="mono">control.kind</code>, the question is no longer
+            "what is this?" but "what element renders it?" — and that answer
+            legitimately splits in two.
+          </p>
+        </div>
+      </section>
+
+      <!-- SPACES / SWIMLANE -->
+      <section>
+        <h2>Which space each layer lives in</h2>
+        <div class="maplegend">
+          <span
+            ><i class="sw" style="background: #fb7185"></i> Consumer-space —
+            <b>you author</b>: schema, resolver, overrides</span
+          >
+          <span
+            ><i class="sw" style="background: #3b82f6"></i> Library-space — Core
+            derives &amp; adapters render</span
+          >
+          <span
+            ><i class="sw" style="background: #a78bfa"></i> the boundary —
+            <code class="mono">widget</code>, the shared word</span
+          >
+        </div>
+        <div class="card pad">
+          <svg
+            viewBox="0 0 960 340"
+            role="img"
+            aria-label="Swimlane: consumer-space vs library-space across the pipeline, with the resolver and renderNode seams crossing the boundary"
+          >
+            <defs>
+              <marker
+                id="fa"
+                markerWidth="9"
+                markerHeight="9"
+                refX="7"
+                refY="4.5"
+                orient="auto"
+              >
+                <path d="M0,0 L9,4.5 L0,9 z" fill="#94a3b8" />
+              </marker>
+              <marker
+                id="ra"
+                markerWidth="9"
+                markerHeight="9"
+                refX="7"
+                refY="4.5"
+                orient="auto"
+              >
+                <path d="M0,0 L9,4.5 L0,9 z" fill="#e11d48" />
+              </marker>
+            </defs>
+
+            <!-- lanes -->
+            <rect
+              x="116"
+              y="40"
+              width="828"
+              height="110"
+              rx="14"
+              fill="#fff1f2"
+              stroke="#fecdd3"
+            />
+            <rect
+              x="116"
+              y="196"
+              width="828"
+              height="110"
+              rx="14"
+              fill="#eff6ff"
+              stroke="#bfdbfe"
+            />
+            <!-- boundary line -->
+            <line
+              x1="116"
+              y1="173"
+              x2="944"
+              y2="173"
+              stroke="#a78bfa"
+              stroke-width="1.5"
+              stroke-dasharray="5 5"
+            />
+
+            <!-- lane labels -->
+            <g
+              font-family="-apple-system, sans-serif"
+              font-weight="800"
+              font-size="11"
+              letter-spacing="0.5"
+            >
+              <text x="14" y="86" fill="#e11d48">CONSUMER</text>
+              <text x="14" y="100" fill="#e11d48">SPACE</text>
+              <text
+                x="14"
+                y="118"
+                fill="#9f1239"
+                font-weight="600"
+                font-size="10"
+              >
+                (you author)
+              </text>
+              <text x="14" y="244" fill="#2563eb">LIBRARY</text>
+              <text x="14" y="258" fill="#2563eb">SPACE</text>
+              <text
+                x="14"
+                y="276"
+                fill="#1d4ed8"
+                font-weight="600"
+                font-size="10"
+              >
+                (Core + adapters)
+              </text>
+            </g>
+
+            <!-- flow arrows (behind boxes) -->
+            <g fill="none" stroke="#cbd5e1" stroke-width="2">
+              <path
+                d="M230,96 C 240,96 240,258 249,258"
+                marker-end="url(#fa)"
+              />
+              <path d="M345,258 L364,258" marker-end="url(#fa)" />
+              <path
+                d="M460,258 C 470,258 470,151 479,151"
+                marker-end="url(#fa)"
+              />
+              <path
+                d="M575,151 C 585,151 585,258 594,258"
+                marker-end="url(#fa)"
+              />
+              <path d="M690,258 L709,258" marker-end="url(#fa)" />
+              <path d="M805,258 L824,258" marker-end="url(#fa)" />
+            </g>
+
+            <!-- seam plugs (consumer reaches down into library) -->
+            <g font-family="ui-monospace, monospace">
+              <rect
+                x="352"
+                y="72"
+                width="120"
+                height="34"
+                rx="8"
+                fill="#fff"
+                stroke="#fb7185"
+                stroke-width="1.5"
+                stroke-dasharray="4 3"
+              />
+              <text
+                x="412"
+                y="93"
+                text-anchor="middle"
+                font-size="12"
+                fill="#9f1239"
+              >
+                resolver
+              </text>
+              <path
+                d="M412,106 L412,236"
+                fill="none"
+                stroke="#e11d48"
+                stroke-width="1.8"
+                stroke-dasharray="4 4"
+                marker-end="url(#ra)"
+              />
+              <text
+                x="420"
+                y="166"
+                font-size="9.5"
+                font-family="-apple-system, sans-serif"
+                fill="#e11d48"
+              >
+                layers in a widget
+              </text>
+
+              <rect
+                x="684"
+                y="72"
+                width="146"
+                height="34"
+                rx="8"
+                fill="#fff"
+                stroke="#fb7185"
+                stroke-width="1.5"
+                stroke-dasharray="4 3"
+              />
+              <text
+                x="757"
+                y="93"
+                text-anchor="middle"
+                font-size="11.5"
+                fill="#9f1239"
+              >
+                renderNode / custom adapter
+              </text>
+              <path
+                d="M757,106 L757,236"
+                fill="none"
+                stroke="#e11d48"
+                stroke-width="1.8"
+                stroke-dasharray="4 4"
+                marker-end="url(#ra)"
+              />
+              <text
+                x="765"
+                y="166"
+                font-size="9.5"
+                font-family="-apple-system, sans-serif"
+                fill="#e11d48"
+              >
+                overrides render
+              </text>
+            </g>
+
+            <!-- stage boxes -->
+            <g font-family="ui-monospace, monospace" font-size="12.5">
+              <!-- Schema (consumer) -->
+              <rect
+                x="134"
+                y="74"
+                width="96"
+                height="44"
+                rx="9"
+                fill="#ffe4e6"
+                stroke="#fda4af"
+              />
+              <text x="182" y="100" text-anchor="middle" fill="#9f1239">
+                schema
+              </text>
+              <!-- facts (library) -->
+              <rect
+                x="249"
+                y="236"
+                width="96"
+                height="44"
+                rx="9"
+                fill="#dbeafe"
+                stroke="#93c5fd"
+              />
+              <text x="297" y="262" text-anchor="middle" fill="#1e40af">
+                facts.choices
+              </text>
+              <!-- present (library) -->
+              <rect
+                x="364"
+                y="236"
+                width="96"
+                height="44"
+                rx="9"
+                fill="#dbeafe"
+                stroke="#93c5fd"
+              />
+              <text x="412" y="262" text-anchor="middle" fill="#1e40af">
+                present()
+              </text>
+              <!-- widget (boundary) -->
+              <rect
+                x="479"
+                y="151"
+                width="96"
+                height="44"
+                rx="9"
+                fill="#ede9fe"
+                stroke="#a78bfa"
+                stroke-width="1.5"
+              />
+              <text
+                x="527"
+                y="172"
+                text-anchor="middle"
+                font-weight="700"
+                fill="#5b21b6"
+              >
+                widget
+              </text>
+              <text
+                x="527"
+                y="187"
+                text-anchor="middle"
+                font-size="9.5"
+                fill="#6d28d9"
+              >
+                the word (sugar)
+              </text>
+              <!-- control.kind (library) -->
+              <rect
+                x="594"
+                y="236"
+                width="96"
+                height="44"
+                rx="9"
+                fill="#dbeafe"
+                stroke="#93c5fd"
+              />
+              <text x="642" y="257" text-anchor="middle" fill="#1e40af">
+                control.kind
+              </text>
+              <text
+                x="642"
+                y="271"
+                text-anchor="middle"
+                font-size="9.5"
+                fill="#2563eb"
+              >
+                the IR (closed)
+              </text>
+              <!-- adapter (library) -->
+              <rect
+                x="709"
+                y="236"
+                width="96"
+                height="44"
+                rx="9"
+                fill="#dbeafe"
+                stroke="#93c5fd"
+              />
+              <text x="757" y="262" text-anchor="middle" fill="#1e40af">
+                adapter
+              </text>
+              <!-- DOM (output) -->
+              <rect
+                x="824"
+                y="236"
+                width="96"
+                height="44"
+                rx="9"
+                fill="#0f172a"
+              />
+              <text x="872" y="262" text-anchor="middle" fill="#e2e8f0">
+                DOM
+              </text>
+            </g>
+          </svg>
+          <p class="pipe-note">
+            Only <b style="color: #e11d48">two seams</b> cross into your space,
+            and each corresponds to one of the earlier answers. A
+            <b style="color: #e11d48">resolver</b> plugs into
+            <code class="mono">present()</code> and speaks in
+            <b style="color: #6d28d9">widget names</b> — that's why the name is
+            the ergonomic, open axis. <code class="mono">renderNode</code> / a
+            custom adapter plugs in at render and consumes
+            <b style="color: #2563eb">control.kind</b> — that's why the kind is
+            the closed, stable IR. Everything in blue is library-owned and
+            invisible unless you deliberately reach in; the surrounding
+            <code class="mono">&lt;form&gt;</code> + submit stays yours (ADR
+            013).
+          </p>
+        </div>
+      </section>
+
+      <!-- MAP -->
+      <section>
+        <h2>Many widget names → few archetypes → the DOM</h2>
+        <div class="maplegend">
+          <span
+            ><i class="sw" style="background: var(--plain)"></i> simple</span
+          >
+          <span
+            ><i class="sw" style="background: var(--select)"></i> one
+            <code class="mono">&lt;select&gt;</code> element</span
+          >
+          <span
+            ><i class="sw" style="background: var(--choice)"></i> N
+            <code class="mono">&lt;input&gt;</code> elements</span
+          >
+        </div>
+        <div class="card pad">
+          <svg
+            viewBox="0 0 940 430"
+            role="img"
+            aria-label="Mapping from widget names to control archetypes to DOM output"
+          >
+            <defs>
+              <marker
+                id="ah"
+                markerWidth="9"
+                markerHeight="9"
+                refX="7"
+                refY="4.5"
+                orient="auto"
+              >
+                <path d="M0,0 L9,4.5 L0,9 z" fill="#94a3b8" />
+              </marker>
+              <marker
+                id="ah-t"
+                markerWidth="9"
+                markerHeight="9"
+                refX="7"
+                refY="4.5"
+                orient="auto"
+              >
+                <path d="M0,0 L9,4.5 L0,9 z" fill="#0d9488" />
+              </marker>
+              <marker
+                id="ah-a"
+                markerWidth="9"
+                markerHeight="9"
+                refX="7"
+                refY="4.5"
+                orient="auto"
+              >
+                <path d="M0,0 L9,4.5 L0,9 z" fill="#d97706" />
+              </marker>
+            </defs>
+
+            <!-- column headers -->
+            <text
+              x="95"
+              y="20"
+              text-anchor="middle"
+              font-size="12"
+              font-weight="700"
+              fill="#64748b"
+              letter-spacing="0.5"
+            >
+              widget name
+            </text>
+            <text
+              x="455"
+              y="20"
+              text-anchor="middle"
+              font-size="12"
+              font-weight="700"
+              fill="#64748b"
+              letter-spacing="0.5"
+            >
+              control.kind (archetype)
+            </text>
+            <text
+              x="805"
+              y="20"
+              text-anchor="middle"
+              font-size="12"
+              font-weight="700"
+              fill="#64748b"
+              letter-spacing="0.5"
+            >
+              DOM output
+            </text>
+
+            <!-- connectors: pill(right x=160) -> archetype(left x=360) -->
+            <path
+              d="M160,57 L360,57"
+              stroke="#cbd5e1"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#ah)"
+            />
+            <path
+              d="M160,109 L360,109"
+              stroke="#cbd5e1"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#ah)"
+            />
+            <path
+              d="M160,197 C 260,197 262,216 360,216"
+              stroke="#5eead4"
+              stroke-width="2.5"
+              fill="none"
+              marker-end="url(#ah-t)"
+            />
+            <path
+              d="M160,239 C 260,239 262,216 360,216"
+              stroke="#5eead4"
+              stroke-width="2.5"
+              fill="none"
+              marker-end="url(#ah-t)"
+            />
+            <path
+              d="M160,329 C 260,329 262,350 360,350"
+              stroke="#fcd34d"
+              stroke-width="2.5"
+              fill="none"
+              marker-end="url(#ah-a)"
+            />
+            <path
+              d="M160,371 C 260,371 262,350 360,350"
+              stroke="#fcd34d"
+              stroke-width="2.5"
+              fill="none"
+              marker-end="url(#ah-a)"
+            />
+
+            <!-- connectors: archetype(right x=550) -> DOM(left x=700) -->
+            <path
+              d="M550,57 L700,57"
+              stroke="#cbd5e1"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#ah)"
+            />
+            <path
+              d="M550,109 L700,109"
+              stroke="#cbd5e1"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#ah)"
+            />
+            <path
+              d="M550,216 L700,216"
+              stroke="#5eead4"
+              stroke-width="2.5"
+              fill="none"
+              marker-end="url(#ah-t)"
+            />
+            <path
+              d="M550,350 L700,350"
+              stroke="#fcd34d"
+              stroke-width="2.5"
+              fill="none"
+              marker-end="url(#ah-a)"
+            />
+
+            <!-- widget pills -->
+            <g font-family="ui-monospace, monospace" font-size="13">
+              <g>
+                <rect
+                  x="30"
+                  y="40"
+                  width="130"
+                  height="34"
+                  rx="8"
+                  fill="#eef2f7"
+                  stroke="#cbd5e1"
+                />
+                <text x="95" y="61.5" text-anchor="middle" fill="#334155">
+                  input
+                </text>
+              </g>
+              <g>
+                <rect
+                  x="30"
+                  y="92"
+                  width="130"
+                  height="34"
+                  rx="8"
+                  fill="#eef2f7"
+                  stroke="#cbd5e1"
+                />
+                <text x="95" y="113.5" text-anchor="middle" fill="#334155">
+                  textarea
+                </text>
+              </g>
+              <g>
+                <rect
+                  x="30"
+                  y="180"
+                  width="130"
+                  height="34"
+                  rx="8"
+                  fill="#ccfbf1"
+                  stroke="#5eead4"
+                />
+                <text x="95" y="201.5" text-anchor="middle" fill="#0f766e">
+                  select
+                </text>
+              </g>
+              <g>
+                <rect
+                  x="30"
+                  y="222"
+                  width="130"
+                  height="34"
+                  rx="8"
+                  fill="#ccfbf1"
+                  stroke="#5eead4"
+                />
+                <text x="95" y="243.5" text-anchor="middle" fill="#0f766e">
+                  multiselect
+                </text>
+              </g>
+              <g>
+                <rect
+                  x="30"
+                  y="312"
+                  width="130"
+                  height="34"
+                  rx="8"
+                  fill="#fef3c7"
+                  stroke="#fcd34d"
+                />
+                <text x="95" y="333.5" text-anchor="middle" fill="#b45309">
+                  radio
+                </text>
+              </g>
+              <g>
+                <rect
+                  x="30"
+                  y="354"
+                  width="130"
+                  height="34"
+                  rx="8"
+                  fill="#fef3c7"
+                  stroke="#fcd34d"
+                />
+                <text x="95" y="375.5" text-anchor="middle" fill="#b45309">
+                  checkboxes
+                </text>
+              </g>
+            </g>
+
+            <!-- archetype cards -->
+            <g font-family="ui-monospace, monospace">
+              <g>
+                <rect
+                  x="360"
+                  y="34"
+                  width="190"
+                  height="46"
+                  rx="10"
+                  fill="#fff"
+                  stroke="#cbd5e1"
+                />
+                <text
+                  x="455"
+                  y="62"
+                  text-anchor="middle"
+                  font-size="14"
+                  fill="#334155"
+                >
+                  input
+                </text>
+              </g>
+              <g>
+                <rect
+                  x="360"
+                  y="86"
+                  width="190"
+                  height="46"
+                  rx="10"
+                  fill="#fff"
+                  stroke="#cbd5e1"
+                />
+                <text
+                  x="455"
+                  y="114"
+                  text-anchor="middle"
+                  font-size="14"
+                  fill="#334155"
+                >
+                  textarea
+                </text>
+              </g>
+              <g>
+                <rect
+                  x="360"
+                  y="188"
+                  width="190"
+                  height="56"
+                  rx="10"
+                  fill="#ccfbf1"
+                  stroke="#0d9488"
+                  stroke-width="1.5"
+                />
+                <text
+                  x="455"
+                  y="211"
+                  text-anchor="middle"
+                  font-size="15"
+                  font-weight="700"
+                  fill="#0f766e"
+                >
+                  select
+                </text>
+                <text
+                  x="455"
+                  y="230"
+                  text-anchor="middle"
+                  font-size="10.5"
+                  fill="#0f766e"
+                >
+                  multiselect = + attrs.multiple
+                </text>
+              </g>
+              <g>
+                <rect
+                  x="360"
+                  y="322"
+                  width="190"
+                  height="56"
+                  rx="10"
+                  fill="#fef3c7"
+                  stroke="#d97706"
+                  stroke-width="1.5"
+                />
+                <text
+                  x="455"
+                  y="345"
+                  text-anchor="middle"
+                  font-size="15"
+                  font-weight="700"
+                  fill="#b45309"
+                >
+                  choicegroup
+                </text>
+                <text
+                  x="455"
+                  y="364"
+                  text-anchor="middle"
+                  font-size="10.5"
+                  fill="#b45309"
+                >
+                  checkboxes = + multiple
+                </text>
+              </g>
+            </g>
+
+            <!-- DOM boxes -->
+            <g font-family="ui-monospace, monospace" font-size="11.5">
+              <g>
+                <rect
+                  x="700"
+                  y="40"
+                  width="210"
+                  height="34"
+                  rx="8"
+                  fill="#0f172a"
+                />
+                <text x="712" y="61" fill="#e2e8f0">
+                  &lt;input type="text"&gt;
+                </text>
+              </g>
+              <g>
+                <rect
+                  x="700"
+                  y="92"
+                  width="210"
+                  height="34"
+                  rx="8"
+                  fill="#0f172a"
+                />
+                <text x="712" y="113" fill="#e2e8f0">&lt;textarea&gt;</text>
+              </g>
+              <g>
+                <rect
+                  x="700"
+                  y="185"
+                  width="210"
+                  height="62"
+                  rx="8"
+                  fill="#0f172a"
+                />
+                <text x="712" y="205" fill="#5eead4" font-weight="700">
+                  ONE element
+                </text>
+                <text x="712" y="223" fill="#e2e8f0">&lt;select&gt;</text>
+                <text x="712" y="239" fill="#94a3b8">
+                  &#160;&#160;&lt;option&gt;…&lt;/option&gt;
+                </text>
+              </g>
+              <g>
+                <rect
+                  x="700"
+                  y="312"
+                  width="210"
+                  height="76"
+                  rx="8"
+                  fill="#0f172a"
+                />
+                <text x="712" y="332" fill="#fbbf24" font-weight="700">
+                  N elements
+                </text>
+                <text x="712" y="350" fill="#e2e8f0">
+                  &lt;input type="radio"&gt;
+                </text>
+                <text x="712" y="366" fill="#e2e8f0">
+                  &lt;input type="radio"&gt;
+                </text>
+                <text x="712" y="382" fill="#94a3b8">… one per option</text>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <!-- DOM COMPARISON -->
+      <section>
+        <h2>Same data, genuinely different markup</h2>
+        <div class="cmp">
+          <div class="dom sel">
+            <div class="head">
+              <span>select / multiselect</span
+              ><span class="pill">kind: select</span>
+            </div>
+            <pre><span class="c">&lt;!-- one focusable control --&gt;</span>
+<span class="t">&lt;select</span> <span class="a">name</span>="color"<span class="t">&gt;</span>
+  <span class="t">&lt;option</span> <span class="a">value</span>="red"<span class="t">&gt;</span>Red<span class="t">&lt;/option&gt;</span>
+  <span class="t">&lt;option</span> <span class="a">value</span>="green"<span class="t">&gt;</span>Green<span class="t">&lt;/option&gt;</span>
+<span class="t">&lt;/select&gt;</span></pre>
+            <ul>
+              <li><b>One</b> element, <b>one</b> tab stop</li>
+              <li>Selection state is the element's <code>value</code></li>
+              <li>Labelled by a single <code>&lt;label for&gt;</code></li>
+              <li>Options are children (<code>&lt;option&gt;</code>)</li>
+            </ul>
+          </div>
+          <div class="dom cg">
+            <div class="head">
+              <span>radio / checkboxes</span
+              ><span class="pill">kind: choicegroup</span>
+            </div>
+            <pre><span class="c">&lt;!-- N focusable controls --&gt;</span>
+<span class="t">&lt;div</span> <span class="a">role</span>="radiogroup"<span class="t">&gt;</span>
+  <span class="t">&lt;label&gt;&lt;input</span> <span class="a">type</span>="radio" <span class="a">name</span>="color" <span class="a">value</span>="red"<span class="t">&gt;</span>Red<span class="t">&lt;/label&gt;</span>
+  <span class="t">&lt;label&gt;&lt;input</span> <span class="a">type</span>="radio" <span class="a">name</span>="color" <span class="a">value</span>="green"<span class="t">&gt;</span>Green<span class="t">&lt;/label&gt;</span>
+<span class="t">&lt;/div&gt;</span></pre>
+            <ul>
+              <li><b>N</b> elements, arrow-key roving focus</li>
+              <li>
+                State is per-input <code>checked</code>, not <code>value</code>
+              </li>
+              <li>Needs a group role + wrapper labelling</li>
+              <li>Every input repeats the shared <code>name</code></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- VERDICT -->
+      <section>
+        <h2>So: fold everything into one choicegroup?</h2>
+        <div class="verdict">
+          <div class="vc bad">
+            <h3><span class="badge">✕</span> "Only choicegroup"</h3>
+            <ul>
+              <li>
+                The branch doesn't disappear — the adapter <em>still</em> has to
+                decide "<code>&lt;select&gt;</code> vs N inputs." You just move
+                the <code>if</code> <b>inside</b> one arm and pay for it
+                forever.
+              </li>
+              <li>
+                You lose the discriminated union: TypeScript can no longer tell
+                you a <code>select</code> has <code>attrs.multiple</code> and a
+                group has <code>options[].attrs.checked</code>. One blurry
+                <code>attrs</code> bag.
+              </li>
+              <li>
+                It doesn't even DRY anything — the shared part
+                (<code>facts.choices</code>) was <b>already</b> shared upstream.
+              </li>
+            </ul>
+          </div>
+          <div class="vc good">
+            <h3><span class="badge">✓</span> Archetype per DOM shape</h3>
+            <ul>
+              <li>
+                Adapters <code>switch (control.kind)</code> over a
+                <b>closed, tiny</b> set — one arm per real DOM shape,
+                exhaustively type-checked.
+              </li>
+              <li>
+                Growth is cheap where it should be: <code>multiselect</code> and
+                <code>checkboxes</code> shipped as
+                <b>"+1 flag, 0 new adapter branches"</b> (same kind, a
+                <code>multiple</code> boolean).
+              </li>
+              <li>
+                Widget <em>name</em> stays the expressive axis (grows freely);
+                archetype stays the <em>stable</em> axis the renderers depend
+                on.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <div class="takeaway">
+        <p class="t">the one-liner</p>
+        <p>
+          Unify on the <span class="hl-violet">data</span> (that's
+          <span class="hl-violet">facts.choices</span>, and it already is) — not
+          on the <span class="hl-teal">DOM</span>. A
+          <span class="hl-teal">&lt;select&gt;</span> and a bank of
+          <span class="hl-amber">radios</span> are different elements with
+          different focus and state models, so they earn different
+          <span class="mono">control.kind</span> arms. Collapsing them hides a
+          branch you can't delete and discards the type that keeps the adapters
+          honest.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
