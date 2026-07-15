@@ -34,13 +34,23 @@ declare const process: { env: { NODE_ENV?: string } } | undefined
 
 /** Flatten a mapped/conditional type so editors hover it as a plain object
  * literal instead of the raw generic expression. Display-only — no runtime, and
- * it does not change assignability. */
+ * it does not change assignability.
+ *
+ * TYPE TOUR: re-mapping every key (`[K in keyof T]: T[K]`) and intersecting `& {}`
+ * forces TS to EVALUATE the type eagerly, so a hover shows `{ Label: …; Control: … }`
+ * instead of `SlotsOf<FieldPartsData<'input', 'present'>>`. Pure editor ergonomics —
+ * this is the single biggest lever on "do the types FEEL nice on hover". */
 type Pretty<T> = { [K in keyof T]: T[K] } & {}
 
 /** Wrap each present part's DATA payload as a placeable `PartComponent`. An
  * OPTIONAL part (e.g. Zod's `Description?`) stays optional here — `parts.X` is
  * then `PartComponent<…> | undefined`, so you guard before placing it — while
- * `NonNullable` keeps the render-prop payload clean (no `| undefined`). */
+ * `NonNullable` keeps the render-prop payload clean (no `| undefined`).
+ *
+ * TYPE TOUR: a mapped type `[K in keyof D]` PRESERVES each key's `?`, so an
+ * optional data slot maps to an optional component slot (guard before you place
+ * it). `NonNullable<D[K]>` then strips the `| undefined` from the payload the
+ * render prop receives — you guard once at placement, never again inside. */
 type SlotsOf<D> = Pretty<{
   [K in keyof D]: PartComponent<NonNullable<D[K]>>
 }>
@@ -62,7 +72,12 @@ export type FieldProps<
    * until a reactive form-state adapter lands** (ADR 047 §7): the uncontrolled
    * runtime passes `undefined` today, so the type must not promise a value it
    * cannot deliver (bd bh7.7). The narrowed member is the forward-compatible
-   * shape — guard before reading. */
+   * shape — guard before reading.
+   *
+   * TYPE TOUR: a type that promises more than the runtime delivers is worse than a
+   * loose type — it invites `value.trim()` that crashes. The `| undefined` makes
+   * the compiler force a guard TODAY; when live values arrive the schema half is
+   * already correct and only the `| undefined` drops off. Honesty over optimism. */
   value: TS['fields'][P]['value'] | undefined
   Default: () => ReactNode
   parts: SlotsOf<
@@ -109,7 +124,13 @@ type ControlPartsData<K extends ControlKind> = {
 
 /** Handler props for a `control(kind)` rule: `parts.Control` is narrowed to `K`,
  * but `path`/`value` stay wide because the rule matches every field of that
- * archetype, not one path (ADR 047 §3/§5). */
+ * archetype, not one path (ADR 047 §3/§5).
+ *
+ * TYPE TOUR: narrow only what is PROVABLE. A `control('select')` rule fires on many
+ * paths, so their shared truth is "the control is a select" — that we narrow. The
+ * path and value differ per match, so pinning them to one type would be a lie;
+ * `path: string` / `value: unknown` is the honest ceiling. Contrast `FieldProps`,
+ * which keys off ONE path and can narrow everything. */
 export type ControlProps<K extends ControlKind> = Pretty<{
   path: string
   node: EField
@@ -133,6 +154,15 @@ export type ControlProps<K extends ControlKind> = Pretty<{
  * Annotate a module-scope (stable) builder as `(r: TypedRuleRegistrar<Shape>) =>
  * void`, or pass the builder inline to `useRenderNodeRules` where `TS` is inferred
  * from the tree.
+ *
+ * TYPE TOUR — re-typing SOME methods of an interface: `Omit` the ones you want to
+ * replace (`field`/`group`/`array`/`control`), then `&`-intersect narrowed versions
+ * back on. Everything you did NOT omit (`allFields`/`allGroups`/`allArrays`/`where`/
+ * `default`) rides along inherited from the neutral registrar. That is the whole
+ * fix for the "typing cliff" (bh7.6): before, this was a hand-written interface with
+ * only `field`/`group`, so reaching for `r.array` was a "property does not exist"
+ * error — the typed surface was a strict SUBSET of the runtime one. Now it is a
+ * complete superset.
  */
 export type TypedRuleRegistrar<TS extends FormShape> = Omit<
   RuleRegistrar,
@@ -192,11 +222,14 @@ export function useRenderNodeRules<TS extends FormShape, Origin>(
   // referenced here to reserve it for a future dev-time path-validation warning.
   void tree
 
-  // Capture the builder ONCE and hold the resolver for the component's lifetime.
-  // Rules are structural (ADR 047 §1/§7), so a stable identity is mandatory: a new
-  // resolver each render remounts every matched handler subtree and drops input
-  // focus / local state. A ref (not `useMemo`, which React is free to discard)
-  // guarantees the stability even for an inline builder. bd bh7.5.
+  // TYPE TOUR (runtime, not types) — the focus-loss BLOCKER fix (bh7.5). Think of
+  // rules as a STYLESHEET: read once, not reactive state. We stash the builder in a
+  // ref on first render and never rebuild, so the returned `RenderNode` keeps ONE
+  // identity for the component's life. Why it matters: React diffs by identity — a
+  // fresh resolver each render looks like a different component type, so it UNMOUNTS
+  // and remounts every matched field, and a remounted <input> loses focus mid-type.
+  // `useRef` (not `useMemo`, which React may throw away and recompute) is what makes
+  // this a guarantee even when the caller passes an inline `(r) => …`.
   const firstBuild = useRef(build)
   const resolverRef = useRef<RenderNode>()
   const resolver = (resolverRef.current ??= renderNodeRules(

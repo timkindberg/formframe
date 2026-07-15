@@ -44,7 +44,14 @@ export type ControlForWidget<W extends WidgetName> = Extract<
 >
 
 /** The `Description` slot contributed by a {@link DescriptionState}: present →
- * required, optional → optional, absent → omitted. */
+ * required, optional → optional, absent → omitted.
+ *
+ * TYPE TOUR: one 3-way conditional emits three DIFFERENT object shapes from a
+ * single state string. The `absent` branch returns `object` (an empty type): when
+ * that gets `&`-intersected into the parts bag it contributes NO key at all — so a
+ * field with no schema description has literally no `Description` slot to place,
+ * not merely an optional one. That is why `parts.Description` is a compile error on
+ * a description-less field instead of `PartComponent | undefined`. */
 type DescriptionSlot<D extends DescriptionState> = D extends 'present'
   ? { Description: TextData }
   : D extends 'optional'
@@ -81,6 +88,13 @@ export interface FormShape {
   arrays: Record<string, { description: DescriptionState }>
 }
 
+// TYPE TOUR — "phantom brand": a unique-symbol key that lives ONLY in the type and
+// is never emitted at runtime (the front-end asserts it with a cast). It lets a
+// plain tree and a "typed" tree be the SAME object at runtime yet DISTINCT to the
+// compiler — the trick that lets React read per-schema types off an otherwise
+// source-agnostic tree. Making the key REQUIRED (below) is what turns "handed an
+// unbranded tree" from a silent loss of all narrowing into a loud type error
+// (review finding #1).
 declare const FORM_SHAPE: unique symbol
 
 /**
