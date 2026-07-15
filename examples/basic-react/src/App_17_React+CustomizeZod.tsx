@@ -214,20 +214,24 @@ void _neutralExample
 export default function App() {
   return (
     <div>
-      <h1>customize over Zod — the second front-end (ADR 041 / ADR 008)</h1>
+      <h1>
+        renderNodeRules over Zod — the second front-end (ADR 042 / ADR 008)
+      </h1>
       <p>
         Field-for-field the same as example 16, but the schema is a{' '}
-        <code>z.object(…)</code> and the recipe import is{' '}
-        <code>./customizeZod</code>. Diff <code>customizeZod.ts</code> against{' '}
-        <code>customizeJsonSchema.ts</code>: identical except the{' '}
-        <code>input-*</code> import. The one real divergence:{' '}
-        <code>parts.Description</code> is an <em>optional</em> slot for Zod
-        (descriptions live in a runtime registry, so the type can only say
-        &ldquo;maybe&rdquo; — guard it), whereas App_16 gets a
-        statically-present slot from the JSON literal. Enum arity still narrows{' '}
-        <code>plan</code> to a radio.
+        <code>z.object(…)</code> and the front-end import is{' '}
+        <code>@formframe/input-zod</code>. There is no per-front-end recipe:{' '}
+        <code>zodToTree(schema)</code> brands the tree with its{' '}
+        <code>FormShapeOf&lt;S&gt;</code>, and the SAME{' '}
+        <code>useRenderNodeRules</code> hook binds off that brand (ADR 042) — so
+        this file is identical to App_16 except the front-end import + schema
+        DSL. The one real divergence: <code>parts.Description</code> is an{' '}
+        <em>optional</em> slot for Zod (descriptions live in a runtime registry,
+        so the type can only say &ldquo;maybe&rdquo; — guard it), whereas App_16
+        gets a statically-present slot from the JSON literal. Enum arity still
+        narrows <code>plan</code> to a radio.
       </p>
-      <Section title="customize over Zod — narrowed props/parts, typed render-props, live errors">
+      <Section title="renderNodeRules over Zod — narrowed props/parts, typed render-props, live errors">
         <LiveCustomizedForm />
       </Section>
     </div>

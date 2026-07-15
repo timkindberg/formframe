@@ -27,9 +27,9 @@
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { present, defaultPresentation, layered } from '@formframe/core'
-import type { PresentationResolver } from '@formframe/core'
+import type { GroupNode, PresentationResolver } from '@formframe/core'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
-import type { JSONSchema } from '@formframe/input-jsonschema'
+import type { JSONSchema, JSONSchemaObject } from '@formframe/input-jsonschema'
 import {
   renderToString,
   type RenderNode as VanillaRenderNode,
@@ -46,8 +46,11 @@ import { SchemaFields, type RenderNode as ReactRenderNode } from './renderer'
 function presented(
   schema: JSONSchema,
   resolver?: PresentationResolver
-): ReturnType<typeof jsonSchemaToTree> {
-  return present(
+): GroupNode<JSONSchemaObject> {
+  // re-presenting returns a plain (unbranded) tree — the ADR-042 brand rides the
+  // original `jsonSchemaToTree` result that `useRenderNodeRules` consumes; here we
+  // only fold to DOM, so an unbranded `GroupNode` is exactly right.
+  return present<JSONSchemaObject>(
     jsonSchemaToTree(schema),
     resolver ? layered(defaultPresentation, resolver) : defaultPresentation
   )
@@ -76,7 +79,8 @@ function canonical(el: Element): string {
   return `<${open}>${kids}</${tag}>`
 }
 
-type Tree = ReturnType<typeof jsonSchemaToTree>
+// The presented (re-folded) tree is an unbranded `GroupNode` — see `presented()`.
+type Tree = GroupNode<JSONSchemaObject>
 
 /** Vanilla oracle → canonical <form> (chrome-free content wrapped for compare). */
 function vanillaDom(tree: Tree, renderNode?: VanillaRenderNode): string {

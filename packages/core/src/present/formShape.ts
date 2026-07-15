@@ -89,13 +89,21 @@ declare const FORM_SHAPE: unique symbol
  * the front-end's return cast), so a `TypedTree` is an ordinary tree everywhere
  * the runtime looks, and only the type layer sees the resolved surface.
  *
+ * The brand is **required**, not optional: a plain `GroupNode` (or a tree widened
+ * back to `GroupNode`) is therefore NOT assignable to `TypedTree`, so a consumer
+ * that hands an unbranded tree to `useRenderNodeRules` gets a loud type error
+ * instead of a silent collapse to the permissive base surface (the alternative —
+ * an optional phantom — defeats the whole point by accepting anything). It is
+ * still never present at runtime; the front-end asserts it through an
+ * `as unknown as TypedTree<…>` cast.
+ *
  * The second parameter `Origin` threads the front-end's schema origin type
  * through the tree (ADR 033 §4 / bd wo8) exactly as `GroupNode<S>` did, so
  * `getField`/`walk` still surface `facts.origin.schema` at the front-end's type.
  */
 export interface TypedTree<TS extends FormShape = FormShape, Origin = unknown>
   extends GroupNode<Origin> {
-  readonly [FORM_SHAPE]?: TS
+  readonly [FORM_SHAPE]: TS
 }
 
 /** Extract the branded {@link FormShape} from a tree (falls back to the permissive
