@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { createZodValidator } from '../src'
+import { createZodValidator, createZodAsyncValidator } from '../src'
 import { runValidatorContract } from '@formframe/validation-contract'
 
 /** Zod schema mirroring {@link contractSchema}'s intent (see validation-contract). */
@@ -17,6 +17,13 @@ const contractZodSchema = z.object({
 runValidatorContract({
   name: 'Zod',
   validate: createZodValidator(contractZodSchema),
+})
+
+// Same suite, async mode (ADR 045/046): the async factory must satisfy every
+// per-call invariant the sync one does.
+runValidatorContract({
+  name: 'Zod (async)',
+  validate: createZodAsyncValidator(contractZodSchema),
 })
 
 describe('createZodValidator — Zod specifics', () => {
@@ -76,5 +83,50 @@ describe('createZodValidator — Zod specifics', () => {
     // ...and Zod never mutates the caller's object.
     expect(input).toEqual({ name: 'Tim', age: '25' })
     expect(result.data).not.toBe(input)
+  })
+})
+
+describe('createZodAsyncValidator — async Zod specifics', () => {
+  // A schema that can only be validated asynchronously: sync safeParse throws.
+  const asyncSchema = z.object({
+    handle: z
+      .string()
+      .refine(async (value) => value !== 'taken', { message: 'already taken' }),
+  })
+
+  it('validates an async-refined schema in one safeParseAsync pass', async () => {
+    const validate = createZodAsyncValidator(asyncSchema)
+    expect(await validate({ handle: 'free' })).toEqual({
+      valid: true,
+      errors: [],
+      data: { handle: 'free' },
+    })
+  })
+
+  it('reports async refinement failures keyed by dot-path', async () => {
+    const validate = createZodAsyncValidator(asyncSchema)
+    const result = await validate({ handle: 'taken' })
+    expect(result.valid).toBe(false)
+    expect(
+      result.errors.find((error) => error.path === 'handle')?.message
+    ).toBe('already taken')
+  })
+
+  it('preserves Zod issue codes as keyword (dropped by the generic Standard hop)', async () => {
+    const validate = createZodAsyncValidator(
+      z.object({ name: z.string().min(2) })
+    )
+    const result = await validate({ name: 'T' })
+    expect(result.errors.find((error) => error.path === 'name')?.keyword).toBe(
+      'too_small'
+    )
+  })
+
+  it('throws (rejects) is not observed for sync schemas — they still work async', async () => {
+    const validate = createZodAsyncValidator(
+      z.object({ name: z.string(), age: z.coerce.number() })
+    )
+    const result = await validate({ name: 'Tim', age: '25' })
+    expect(result.data).toEqual({ name: 'Tim', age: 25 })
   })
 })

@@ -17,7 +17,7 @@
 // structurally identical to `@standard-schema/spec` — a value typed as our
 // `StandardSchemaV1` is accepted anywhere the real one is.
 
-import type { Validator } from './validation'
+import type { AsyncValidator, Validator } from './validation'
 
 /** The Standard Schema v1 interface (inlined from standardschema.dev). */
 export interface StandardSchemaV1<Input = unknown, Output = Input> {
@@ -67,19 +67,47 @@ export function toStandardSchema<T>(
     '~standard': {
       version: 1,
       vendor,
-      validate: (value) => {
-        const result = validator(value)
-        if (result.valid) {
-          return { value: (result.data ?? value) as T }
-        }
-        return {
-          issues: result.errors.map((error) => ({
-            message: error.message,
-            path: dotPathToStandardPath(error.path),
-          })),
-        }
-      },
+      validate: (value) => validatorResultToStandard(validator(value), value),
     },
+  }
+}
+
+/**
+ * Emit (async): adapt an {@link AsyncValidator} into a {@link StandardSchemaV1}
+ * whose `~standard.validate` returns a `Promise` (ADR 045). The mirror of the
+ * ADR 041 sibling seam at the Standard boundary — a Standard-Schema consumer
+ * that awaits `validate` drives our async validator directly. Mappings are
+ * identical to {@link toStandardSchema}; only the timing differs.
+ */
+export function toStandardSchemaAsync<T>(
+  validator: AsyncValidator<T>,
+  vendor = 'formframe'
+): StandardSchemaV1<unknown, T> {
+  return {
+    '~standard': {
+      version: 1,
+      vendor,
+      validate: (value) =>
+        validator(value).then((result) =>
+          validatorResultToStandard(result, value)
+        ),
+    },
+  }
+}
+
+/** Shared emit mapping: our {@link ValidationResult} → a Standard result. */
+function validatorResultToStandard<T>(
+  result: ReturnType<Validator<T>>,
+  value: unknown
+): StandardSchemaV1Result<T> {
+  if (result.valid) {
+    return { value: (result.data ?? value) as T }
+  }
+  return {
+    issues: result.errors.map((error) => ({
+      message: error.message,
+      path: dotPathToStandardPath(error.path),
+    })),
   }
 }
 
@@ -106,17 +134,39 @@ export function fromStandardSchema<O>(
           'the Validator seam is synchronous (ADR 019).'
       )
     }
-    if (result.issues) {
-      return {
-        valid: false,
-        errors: result.issues.map((issue) => ({
-          path: standardPathToDotPath(issue.path),
-          message: issue.message,
-        })),
-      }
-    }
-    return { valid: true, errors: [], data: result.value }
+    return standardResultToValidation(result)
   }
+}
+
+/**
+ * Consume (async): adapt a {@link StandardSchemaV1} into an
+ * {@link AsyncValidator}. Unlike sync {@link fromStandardSchema}, this consumes
+ * **both** sync and async Standard schemas uniformly (ADR 045) — it awaits
+ * `~standard.validate` whether or not it returned a Promise, in a single
+ * execution. Use this for any Standard-Schema library whose validation may be
+ * async (Zod `parseAsync`, Valibot `*Async`, …).
+ */
+export function fromStandardSchemaAsync<O>(
+  schema: StandardSchemaV1<unknown, O>
+): AsyncValidator<O> {
+  const validate = schema['~standard'].validate
+  return async (data) => standardResultToValidation(await validate(data))
+}
+
+/** Shared consume mapping: a Standard result → our {@link ValidationResult}. */
+function standardResultToValidation<O>(
+  result: StandardSchemaV1Result<O>
+): ReturnType<Validator<O>> {
+  if (result.issues) {
+    return {
+      valid: false,
+      errors: result.issues.map((issue) => ({
+        path: standardPathToDotPath(issue.path),
+        message: issue.message,
+      })),
+    }
+  }
+  return { valid: true, errors: [], data: result.value }
 }
 
 /** Dot-path (`contacts.0.email`) → Standard segment array; root `''` → no path. */

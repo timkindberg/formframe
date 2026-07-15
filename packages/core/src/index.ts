@@ -46,6 +46,7 @@ export type {
   ValidationError,
   ValidationResult,
   Validator,
+  AsyncValidator,
 } from './types'
 
 // Neutral builders (ADR 033 §3) — a front-end produces neutral facts/parts/
@@ -102,7 +103,12 @@ export { groupErrorsByPath } from './validation'
 
 // Standard Schema interop (ADR 026) — let the Validator seam emit/consume the
 // cross-library https://standardschema.dev interface (RHF, TanStack Form, Zod…).
-export { toStandardSchema, fromStandardSchema } from './standardSchema'
+export {
+  toStandardSchema,
+  fromStandardSchema,
+  toStandardSchemaAsync,
+  fromStandardSchemaAsync,
+} from './standardSchema'
 export type {
   StandardSchemaV1,
   StandardSchemaV1Props,

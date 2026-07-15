@@ -37,4 +37,9 @@ export type {
   AnyTreeNode,
 } from './parser/nodeTypes'
 
-export type { ValidationError, ValidationResult, Validator } from './validation'
+export type {
+  ValidationError,
+  ValidationResult,
+  Validator,
+  AsyncValidator,
+} from './validation'

@@ -61,6 +61,27 @@ export interface ValidationResult<T = unknown> {
 export type Validator<T = unknown> = (data: unknown) => ValidationResult<T>
 
 /**
+ * The async sibling of {@link Validator} (ADR 041): given the form's assembled
+ * data, return a `Promise` of the result. This is a **separate seam**, not a
+ * widening of `Validator` — a consumer's single validation slot accepts
+ * `Validator<T> | AsyncValidator<T>` and branches on the returned value's
+ * Promise-shape at call time (ADR 046 §2), never on the validator's identity.
+ * Synchronous callers are therefore untouched.
+ *
+ * The same **purity invariant** as {@link Validator} holds: an `AsyncValidator`
+ * MUST NOT mutate its input (or anything reachable from it); coercion is surfaced
+ * via {@link ValidationResult.data}, never via a side effect. A thrown error or a
+ * rejected promise is a *validation-run failure* (ADR 042) — distinct from an
+ * invalid verdict — and is the orchestrator's concern, not part of the result.
+ *
+ * `T` is the type of the resolved {@link ValidationResult.data} (default
+ * `unknown`).
+ */
+export type AsyncValidator<T = unknown> = (
+  data: unknown
+) => Promise<ValidationResult<T>>
+
+/**
  * Group errors by their `path` for O(1) per-field lookup — the shape a renderer
  * wants ("does this field have errors?"). Pure and order-preserving within a path.
  */
