@@ -272,8 +272,46 @@ export type HasDescription<S, P extends string> =
     ? true
     : false
 
+/** JSON Schema proves description presence from the literal, so the neutral
+ * {@link DescriptionState} is a definite `'present' | 'absent'` per path. */
+export type DescriptionStateOf<S, P extends string> =
+  HasDescription<S, P> extends true ? 'present' : 'absent'
+
+/**
+ * The resolved {@link FormShape} for a JSON Schema (ADR 042 §2): the
+ * schema-specific facts per path — `value`, `widget`, `description` state —
+ * eagerly mapped over the schema's own paths. The widget→control→parts
+ * composition stays neutral in Core and is instantiated lazily when a handler
+ * indexes a specific path. `jsonSchemaToTree` brands its tree with this so React
+ * binds off it generically.
+ *
+ * Type-resolution cost (measured, not assumed): materializing this map is
+ * **linear in path count, ~6 type-instantiations/path**, with no measurable
+ * `tsc` check-time impact. A/B via `--extendedDiagnostics`: full `FormShapeOf`
+ * added +1203 instantiations (+5.8%) over baseline for a ~195-path schema and
+ * +4083 (+8.8%) for a ~670-field one (3.6× paths → 3.4× cost — no superlinear
+ * blowup), both flat on check time. The eager half here is the cheap half; the
+ * expensive `FieldControl` extraction + parts assembly (Core) stays lazy, so real
+ * cost tracks the handful of paths you customize, not the whole schema.
+ */
+export type FormShapeOf<S> = {
+  fields: {
+    [P in FieldPaths<S>]: {
+      value: ValueAt<S, P>
+      widget: WidgetAt<S, P>
+      description: DescriptionStateOf<S, P>
+    }
+  }
+  groups: {
+    [P in GroupPaths<S>]: { description: DescriptionStateOf<S, P> }
+  }
+  arrays: {
+    [P in ArrayPaths<S>]: { description: DescriptionStateOf<S, P> }
+  }
+}
+
 // The narrowed DATA payload each present part hands its render prop. Core owns
-// these shapes; a React binding wraps each as a `PartSlot<data>`.
+// these shapes; a React binding wraps each as a `PartComponent<data>`.
 type LabelData = FieldPartsBase['label']
 type TextData = NonNullable<FieldPartsBase['description']>
 

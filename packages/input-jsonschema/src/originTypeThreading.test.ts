@@ -5,7 +5,7 @@
 // every node — root and deep leaf alike — never a per-node subschema.
 
 import { describe, it, expectTypeOf } from 'vitest'
-import type { GroupNode, FieldNode } from '@formframe/core'
+import type { FormShape, GroupNode, FieldNode, ShapeOf } from '@formframe/core'
 import { jsonSchemaToTree } from './jsonSchemaToTree'
 import type { JSONSchema, JSONSchemaObject } from './types'
 
@@ -26,10 +26,13 @@ const schema: JSONSchema = {
 }
 
 describe('jsonSchemaToTree pins S = JSONSchemaObject', () => {
-  it('returns a GroupNode<JSONSchemaObject> root', () => {
-    expectTypeOf(jsonSchemaToTree(schema)).toEqualTypeOf<
-      GroupNode<JSONSchemaObject>
-    >()
+  it('returns a GroupNode<JSONSchemaObject> root, branded with a FormShape (ADR 042)', () => {
+    const tree = jsonSchemaToTree(schema)
+    // Still a GroupNode<JSONSchemaObject> structurally — origin threading (wo8)
+    // is preserved through the `TypedTree` brand's Origin parameter …
+    expectTypeOf(tree).toExtend<GroupNode<JSONSchemaObject>>()
+    // … and additionally carries a resolved FormShape React binds off (ADR 042).
+    expectTypeOf<ShapeOf<typeof tree>>().toExtend<FormShape>()
   })
 
   it('a deep leaf carries JSONSchemaObject — uniform, NOT a narrowed subschema', () => {

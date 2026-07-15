@@ -1,9 +1,10 @@
-// The customize layer (ADR 041) — a form-scope selector registry whose handlers
-// are **mounted components** receiving **arrangeable parts** as props.
+// The render-node rules layer (ADR 041/042) — a form-scope selector registry
+// whose handlers are **mounted components** receiving **arrangeable parts** as
+// props. `renderNodeRules` (formerly `customize`) is sugar over `renderNode`.
 //
-// This rides entirely on the ADR 010/016/017 engine: `customize(build)` returns
-// an ordinary `RenderNode` (the low-level continuation primitive), so there is NO
-// Core change and no new engine seam. Everything here is React sugar:
+// This rides entirely on the ADR 010/016/017 engine: `renderNodeRules(build)`
+// returns an ordinary `RenderNode` (the low-level continuation primitive), so
+// there is NO Core change and no new engine seam. Everything here is React sugar:
 //
 //  • §1 Handlers are components, not called callbacks. A matched selector renders
 //    `<Handler {...props} />` (mounted), so each handler gets its own fiber and
@@ -25,9 +26,9 @@
 //    independent across axes.
 //
 // This is the SOURCE-AGNOSTIC runtime (operates on the Core tree). Path/value/
-// control/parts narrowing off a const schema is layered by the front-end that
-// owns schema shape (input-jsonschema, ADR 041 §4) — it re-types this surface,
-// it does not re-implement it.
+// control/parts narrowing is layered generically by `useRenderNodeRules`, which
+// reads the resolved `FormShape` a front-end brands onto the tree (ADR 042) — it
+// re-types this surface, it does not re-implement it.
 import { createContext, useContext, type ReactNode } from 'react'
 import type {
   ControlKind,
@@ -74,9 +75,13 @@ export interface TextData {
   text: string
 }
 
-/** A placeable part: `<Part />` (default markup) or `<Part render={data => …} />`
- * (hand-authored from the part's narrowed payload). */
-export type PartSlot<D> = (props: {
+/**
+ * A **placeable part component** — render it as JSX. `<Part />` emits the default
+ * markup; `<Part render={data => …} />` hand-authors it from the part's narrowed
+ * `data` (the type shown inside `PartComponent<…>` on hover). It is an ordinary
+ * React component, so it composes and re-renders like any other.
+ */
+export type PartComponent<D> = (props: {
   render?: (data: D) => ReactNode
 }) => ReactNode
 
@@ -170,10 +175,10 @@ function Errors({
  * only slots (`Control`/`Errors`) no-op for them. The front-end narrows the bag
  * per path (presence + control kind); the runtime is always this object. */
 export interface PartsBag {
-  Label: PartSlot<LabelData>
-  Description: PartSlot<TextData>
-  Control: PartSlot<FieldControl>
-  Errors: PartSlot<ValidationError[]>
+  Label: PartComponent<LabelData>
+  Description: PartComponent<TextData>
+  Control: PartComponent<FieldControl>
+  Errors: PartComponent<ValidationError[]>
 }
 const partsBag: PartsBag = { Label, Description, Control, Errors }
 
@@ -229,7 +234,7 @@ export type NodeHandler = (props: NodeHandlerProps) => ReactNode
 
 /** The selector registry (§3). Register rules by axis; a single node picks one
  * winning rule by specificity. Handlers must be stable references (§1). */
-export interface CustomizeRegistrar {
+export interface RuleRegistrar {
   /** Exact field path (highest specificity). */
   field(path: string, Handler: FieldHandler): void
   /** Exact (non-root) group path. */
@@ -276,22 +281,24 @@ interface Rule {
   Handler: (props: RuntimeProps) => ReactNode
 }
 
-/** A customize builder — registers selector rules on the registrar (§3). */
-export type CustomizeBuild = (r: CustomizeRegistrar) => void
+/** A rules builder — registers selector rules on the registrar (§3). */
+export type RulesBuild = (r: RuleRegistrar) => void
 
 /**
- * Build a `RenderNode` from selector rules (ADR 041). Memoize the result in the
- * consumer (`useMemo`) so the resolver identity is stable — an inline call
- * rebuilds it every render and defeats the `NodeRenderer` memo bail.
+ * Build a `RenderNode` from selector rules (ADR 041/042) — sugar over the
+ * low-level `renderNode`, granting no capability a hand-written resolver lacks.
+ * Memoize the result in the consumer (`useMemo`, or use `useRenderNodeRules`
+ * which bakes it in) so the resolver identity is stable — an inline call rebuilds
+ * it every render and defeats the `NodeRenderer` memo bail.
  *
  * Accepts multiple builders that **compose as ordinary functions** (ADR 041 §6):
- * `customize(appRules, formRules)` layers a lower-precedence app scope under a
- * higher-precedence form scope. The cascade is `app-scope < form-scope`, and one
- * scope's rules already sit `adapter < customize < inline` relative to the engine
+ * `renderNodeRules(appRules, formRules)` layers a lower-precedence app scope under
+ * a higher-precedence form scope. The cascade is `app-scope < form-scope`, and one
+ * scope's rules already sit `adapter < rules < inline` relative to the engine
  * defaults and inline `<Default parts={…}/>`. At EQUAL specificity the later
  * (higher-scope) rule wins, exactly like the CSS cascade.
  */
-export function customize(...builds: CustomizeBuild[]): RenderNode {
+export function renderNodeRules(...builds: RulesBuild[]): RenderNode {
   const rules: Rule[] = []
   const add = (
     specificity: number,
@@ -300,7 +307,7 @@ export function customize(...builds: CustomizeBuild[]): RenderNode {
   ): void => {
     rules.push({ specificity, match, Handler: Handler as Rule['Handler'] })
   }
-  const r: CustomizeRegistrar = {
+  const r: RuleRegistrar = {
     field: (path, H) =>
       add(SPECIFICITY.path, (n) => n.isField && n.path === path, H),
     group: (path, H) =>
@@ -330,7 +337,7 @@ export function customize(...builds: CustomizeBuild[]): RenderNode {
   // registered rules carry higher indices and win ties (§6 cascade).
   for (const build of builds) build(r)
   // Sort by specificity desc; at EQUAL specificity the LATER-registered rule wins
-  // (higher index first) — CSS-cascade / spread semantics for `customize(app, form)`.
+  // (higher index first) — CSS-cascade / spread semantics for `renderNodeRules(app, form)`.
   const sorted = rules
     .map((rule, i) => ({ rule, i }))
     .sort((a, b) => b.rule.specificity - a.rule.specificity || b.i - a.i)

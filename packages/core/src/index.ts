@@ -75,6 +75,19 @@ export type {
   WidgetToControlKind,
 } from './present/present'
 
+// Typed-tree binding surface (ADR 042) — the neutral `FormShape` a front-end
+// brands its tree with, the widget→control→parts composition (moved out of the
+// front-ends so React can bind generically), and the `TypedTree` phantom brand.
+export type {
+  DescriptionState,
+  ControlForWidget,
+  FieldPartsData,
+  GroupPartsData,
+  FormShape,
+  TypedTree,
+  ShapeOf,
+} from './present/formShape'
+
 // JSON Pointer ↔ tree dot-path helpers (ADR 018) — shared with validation
 // adapters and the JSON Schema front-end (its $ref resolver).
 export {

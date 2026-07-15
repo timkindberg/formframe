@@ -16,6 +16,7 @@ import App13 from './App_13_React+TouchedErrors'
 import App14 from './App_14_React+WidgetCatalog'
 import App15 from './App_15_React+ZodUseFormTree'
 import App16 from './App_16_React+Customize'
+import App17 from './App_17_React+CustomizeZod'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -51,10 +52,15 @@ const examples = [
     name: 'React + Customize (ADR 041)',
     component: App16,
   },
+  {
+    id: '17',
+    name: 'React + Customize over Zod (ADR 041 / ADR 008)',
+    component: App17,
+  },
 ]
 
 /** Landing example — hook-based product path before Core walking demos. */
-const DEFAULT_EXAMPLE_ID = '15'
+const DEFAULT_EXAMPLE_ID = '17'
 
 function App() {
   const [currentExample, setCurrentExample] = useState(DEFAULT_EXAMPLE_ID)

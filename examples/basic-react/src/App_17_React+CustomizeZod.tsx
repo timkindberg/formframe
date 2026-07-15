@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
+import { z } from 'zod'
+import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   useFormTree,
   ValidationProvider,
@@ -10,58 +11,54 @@ import {
   type RulesBuild,
   type RuleRegistrar,
 } from '@formframe/renderer-react'
-import { createAjvValidator } from '@formframe/validation-ajv'
+import { createZodValidator } from '@formframe/validation-zod'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// The render-node rules layer (ADR 041/042), on the SHIPPED API.
+// The render-node rules layer (ADR 041/042) over a ZOD schema — the SECOND
+// front-end (ADR 008), mirroring App_16 field-for-field (bd jsonschema-form-bh7).
 //
-// No recipe file: `jsonSchemaToTree(schema)` brands the tree with its resolved
-// `FormShapeOf<S>`, and React's `useRenderNodeRules(tree, rules)` reads that brand
-// to type the registrar — React imports NO front-end. The APP side is: define a
-// schema (`as const`), write `type Shape = FormShapeOf<typeof schema>` for hoisted
-// handler annotations, then author handlers with fully narrowed path/value/
-// control/parts. (The `renderNode` prop can do all of this by hand — the hook is
-// just typed, memo-safe sugar over it.)
+// The whole point: this file is IDENTICAL to App_16 except the front-end import
+// (`@formframe/input-zod` vs `@formframe/input-jsonschema`) and the schema DSL.
+// There is NO per-front-end recipe — `zodToTree(schema)` brands the tree with its
+// resolved `FormShapeOf<S>`, and the SAME `useRenderNodeRules` from React binds
+// off that brand (ADR 042). The one real divergence that still surfaces:
+//   • `name` has a `.meta({ description })`, but Zod keeps descriptions in a
+//     runtime registry invisible to the type. So `parts.Description` is an
+//     OPTIONAL slot here (`PartComponent<…> | undefined` → guard before placing)
+//     rather than the statically-present slot App_16 gets from the JSON literal.
+//     The runtime still has the data, so the guarded render shows it. Enum arity,
+//     by contrast, DOES narrow at the type level (plan → radio), same as App_16.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const schema = {
-  type: 'object',
-  properties: {
-    name: {
-      type: 'string',
-      title: 'Full name',
-      description: 'As it appears on your ID.',
-      minLength: 3,
-    },
-    plan: {
-      type: 'string',
-      title: 'Plan',
-      enum: ['free', 'pro', 'enterprise'],
-    },
-    address: {
-      type: 'object',
-      title: 'Address',
-      properties: {
-        street: { type: 'string', title: 'Street' },
-        city: { type: 'string', title: 'City' },
-      },
-      required: ['street'],
-    },
-  },
-  required: ['name'],
-} as const
+const schema = z.object({
+  // Zod carries labels/descriptions in `.meta()` (title → label). The
+  // `description` is still runtime-registry-only — invisible to the type.
+  name: z
+    .string()
+    .min(3)
+    .meta({ title: 'Full name', description: 'As it appears on your ID.' }),
+  plan: z.enum(['free', 'pro', 'enterprise']).meta({ title: 'Plan' }),
+  address: z
+    .object({
+      street: z.string().meta({ title: 'Street' }),
+      city: z.string().meta({ title: 'City' }).optional(),
+    })
+    .meta({ title: 'Address' }),
+})
 
-// The resolved FormShape — what the typed binding reads (ADR 042). Hoisted
-// handlers annotate `FieldProps<Shape, 'name'>` / `GroupProps<Shape, 'address'>`;
-// a module-scope builder is `(r: TypedRuleRegistrar<Shape>) => void`. Inline
-// handlers inside `useRenderNodeRules` need no annotation.
+// The resolved FormShape (ADR 042). A Zod VALUE already carries its precise type,
+// so there's no `as const` step (unlike the JSON Schema literal in App_16).
 type Shape = FormShapeOf<typeof schema>
 
 // ── Handlers (hoisted → stable identity → safe hooks + memo bail, §1) ─────────
 
-// `name` HAS a description in the schema, so `parts.Description` exists here.
 function RowName({ parts }: FieldProps<Shape, 'name'>) {
   const [hint, setHint] = useState(false)
+  // Zod DIVERGENCE: `name` has a `.meta({ description })` at runtime, but Zod
+  // stores it in `z.globalRegistry` — invisible to the static type. So unlike
+  // App_16 (present slot from the literal), `parts.Description` is OPTIONAL:
+  // `PartComponent<TextData> | undefined`. Guard it, then place it — the runtime
+  // still holds the data, so this actually renders "As it appears on your ID."
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <parts.Control />
@@ -74,7 +71,7 @@ function RowName({ parts }: FieldProps<Shape, 'name'>) {
         >
           {hint ? 'hide' : 'why?'}
         </button>
-        <parts.Description />
+        {parts.Description && <parts.Description />}
         {hint && (
           <small style={{ color: '#666' }}>
             <code>useState</code> in a customize handler — legal because the
@@ -103,9 +100,6 @@ function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
 // member (`ControlAt<'address.street'>`), so `c.attrs` is the input attrs with no
 // guard. Spread keeps FormData wiring (ADR 041 §5); we add attrs and drop `type`.
 function StreetInput({ parts }: FieldProps<Shape, 'address.street'>) {
-  // presence narrowing: street has no description in the schema.
-  // @ts-expect-error 'address.street' has no description part
-  void parts.Description
   return (
     <div>
       <parts.Label />
@@ -150,7 +144,8 @@ const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
   // INLINE handler → props inferred as FieldProps<Shape, 'plan'> (no annotation),
   // because `r` is annotated `TypedRuleRegistrar<Shape>` on this builder above.
   r.field('plan', ({ value, Default }) => {
-    // Hover `value`: 'free' | 'pro' | 'enterprise' — from the schema enum.
+    // Hover `value`: 'free' | 'pro' | 'enterprise' — from the Zod enum. Arity ≤5
+    // also picks the radio control (choicegroup), same as JSON Schema.
     void value
     return <Default />
   })
@@ -165,8 +160,8 @@ const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
 }
 
 function LiveCustomizedForm() {
-  const tree = useMemo(() => jsonSchemaToTree(schema), [])
-  const validator = useMemo(() => createAjvValidator(schema), [])
+  const tree = useMemo(() => zodToTree(schema), [])
+  const validator = useMemo(() => createZodValidator(schema), [])
   const {
     SchemaFields: Fields,
     submit,
@@ -174,8 +169,8 @@ function LiveCustomizedForm() {
     errors,
   } = useFormTree(tree, { validator })
   // `useRenderNodeRules` reads the tree's `FormShape` brand to type the rules,
-  // bakes in the memo (stable resolver identity is the contract), and hides the
-  // one intrinsic cast. `tree` is a compile-time type carrier here (ADR 042).
+  // bakes in the memo, and hides the one intrinsic cast — the SAME React hook
+  // App_16 uses, no per-front-end binding (ADR 042).
   const renderNode = useRenderNodeRules(tree, customizeRules)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (
@@ -204,8 +199,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-// A plain neutral registrar (no schema types) still works — the source-agnostic
-// floor. Here: a blanket rule via the shared `RuleRegistrar` type.
+// The same source-agnostic neutral floor as App_16 — proof the runtime doesn't
+// care which front-end produced the tree.
 const _neutralExample: RulesBuild = (r: RuleRegistrar) => {
   r.allGroups(({ parts, children }) => (
     <fieldset>
@@ -219,17 +214,20 @@ void _neutralExample
 export default function App() {
   return (
     <div>
-      <h1>customize — path-narrowed props &amp; arrangeable parts (ADR 041)</h1>
+      <h1>customize over Zod — the second front-end (ADR 041 / ADR 008)</h1>
       <p>
-        In-editor: <code>{`r.field('…')`}</code>/<code>{`r.group('…')`}</code>{' '}
-        narrow to real paths; <code>value</code> and <code>control</code> narrow
-        to the schema; <code>parts</code> is derived per path (
-        <code>parts.Description</code> exists on <code>name</code> but not{' '}
-        <code>street</code>); every part takes a typed <code>render</code> prop;
-        and <code>Default</code> re-enters the whole node. Type into the orange
-        Street box and Submit.
+        Field-for-field the same as example 16, but the schema is a{' '}
+        <code>z.object(…)</code> and the recipe import is{' '}
+        <code>./customizeZod</code>. Diff <code>customizeZod.ts</code> against{' '}
+        <code>customizeJsonSchema.ts</code>: identical except the{' '}
+        <code>input-*</code> import. The one real divergence:{' '}
+        <code>parts.Description</code> is an <em>optional</em> slot for Zod
+        (descriptions live in a runtime registry, so the type can only say
+        &ldquo;maybe&rdquo; — guard it), whereas App_16 gets a
+        statically-present slot from the JSON literal. Enum arity still narrows{' '}
+        <code>plan</code> to a radio.
       </p>
-      <Section title="customize — narrowed props/parts, typed render-props, Default prop, live errors">
+      <Section title="customize over Zod — narrowed props/parts, typed render-props, live errors">
         <LiveCustomizedForm />
       </Section>
     </div>

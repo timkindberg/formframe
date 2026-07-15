@@ -10,3 +10,26 @@
 export const VERSION = '0.0.0'
 
 export { zodToTree } from './zodToTree'
+// Path-narrowed presentation types (ADR 041 §4 / bd jsonschema-form-bh7) — the
+// Zod sister of input-jsonschema's inference layer, same names/semantics so a
+// React binding differs only by import source. Framework-agnostic (Core deps).
+export type {
+  SchemaAt,
+  KindOf,
+  FieldPath,
+  FieldPaths,
+  GroupPaths,
+  ArrayPaths,
+  ValueAt,
+  NodeAt,
+  DefaultWidgetAt,
+  WidgetAt,
+  NoOverrides,
+  ControlKindAt,
+  ControlAt,
+  HasDescription,
+  FieldPartsFor,
+  GroupPartsFor,
+  DescriptionStateOf,
+  FormShapeOf,
+} from './infer'

@@ -1,4 +1,4 @@
-// The customize layer (ADR 041 §1–§3) — selector cascade + arrangeable parts.
+// The renderNodeRules layer (ADR 041 §1–§3) — selector cascade + arrangeable parts.
 //
 // Covers: mounted component handlers (safe hooks), the specificity cascade
 // (exact path > predicate > control kind > kind > default), arrangeable parts
@@ -17,8 +17,8 @@ import {
   fieldControlId,
   fieldErrorId,
 } from './renderer'
-import { customize } from './customize'
-import type { FieldHandlerProps, GroupHandlerProps } from './customize'
+import { renderNodeRules } from './renderNodeRules'
+import type { FieldHandlerProps, GroupHandlerProps } from './renderNodeRules'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -43,7 +43,7 @@ const schema: JSONSchema = {
   required: ['name'],
 }
 
-describe('customize — selector cascade (ADR 041 §3)', () => {
+describe('renderNodeRules — selector cascade (ADR 041 §3)', () => {
   it('exact path beats a blanket kind rule (specificity)', async () => {
     const NameHandler = ({ parts }: FieldHandlerProps) => (
       <div data-testid="exact">
@@ -54,7 +54,7 @@ describe('customize — selector cascade (ADR 041 §3)', () => {
     const AllFields = ({ Default }: FieldHandlerProps) => (
       <div data-testid="blanket">{Default()}</div>
     )
-    const rn = customize((r) => {
+    const rn = renderNodeRules((r) => {
       r.allFields(AllFields)
       r.field('name', NameHandler)
     })
@@ -69,7 +69,7 @@ describe('customize — selector cascade (ADR 041 §3)', () => {
   })
 
   it('control(kind) selects by render archetype', async () => {
-    const rn = customize((r) => {
+    const rn = renderNodeRules((r) => {
       r.control('input', ({ parts }: FieldHandlerProps) => (
         <div data-jsf-role="input-control">
           <parts.Label />
@@ -92,7 +92,7 @@ describe('customize — selector cascade (ADR 041 §3)', () => {
   })
 
   it('unmatched nodes fall through to the engine default', async () => {
-    const rn = customize((r) => {
+    const rn = renderNodeRules((r) => {
       r.field('name', ({ Default }: FieldHandlerProps) => <>{Default()}</>)
     })
     const form = jsonSchemaToTree(schema)
@@ -103,7 +103,7 @@ describe('customize — selector cascade (ADR 041 §3)', () => {
   })
 })
 
-describe('customize — arrangeable parts (ADR 041 §2)', () => {
+describe('renderNodeRules — arrangeable parts (ADR 041 §2)', () => {
   it('places parts in a custom order and hijacks a group label via render prop', async () => {
     const Card = ({ parts, children }: GroupHandlerProps) => (
       <fieldset data-testid="card">
@@ -113,7 +113,7 @@ describe('customize — arrangeable parts (ADR 041 §2)', () => {
         {children}
       </fieldset>
     )
-    const rn = customize((r) => {
+    const rn = renderNodeRules((r) => {
       r.group('address', Card)
     })
     const form = jsonSchemaToTree(schema)
@@ -140,7 +140,7 @@ describe('customize — arrangeable parts (ADR 041 §2)', () => {
         </div>
       )
     }
-    const rn = customize((r) => r.field('name', Stateful))
+    const rn = renderNodeRules((r) => r.field('name', Stateful))
     const form = jsonSchemaToTree(schema)
     const screen = await render(<SchemaFields form={form} renderNode={rn} />)
     await expect
@@ -153,28 +153,28 @@ describe('customize — arrangeable parts (ADR 041 §2)', () => {
   })
 })
 
-describe('customize — one registrar, cascading scopes (ADR 041 §6)', () => {
+describe('renderNodeRules — one registrar, cascading scopes (ADR 041 §6)', () => {
   it('form scope overrides app scope at equal specificity', async () => {
-    const app = (r: import('./customize').CustomizeRegistrar) =>
+    const app = (r: import('./renderNodeRules').RuleRegistrar) =>
       r.field('name', ({ Default }: FieldHandlerProps) => (
         <div data-testid="app-name">{Default()}</div>
       ))
-    const form = (r: import('./customize').CustomizeRegistrar) =>
+    const form = (r: import('./renderNodeRules').RuleRegistrar) =>
       r.field('name', ({ Default }: FieldHandlerProps) => (
         <div data-testid="form-name">{Default()}</div>
       ))
     // Composed app-first, form-last: form wins the tie on `name` (CSS cascade).
-    const rn = customize(app, form)
+    const rn = renderNodeRules(app, form)
     const f = jsonSchemaToTree(schema)
     const screen = await render(<SchemaFields form={f} renderNode={rn} />)
     await expect.element(screen.getByTestId('form-name')).toBeInTheDocument()
     expect(document.querySelectorAll('[data-testid="app-name"]').length).toBe(0)
   })
 
-  it('inline part render prop overrides the default part (adapter < customize < inline)', async () => {
-    // The customize handler places `parts.Label`; the INLINE render prop hand-
+  it('inline part render prop overrides the default part (adapter < rules < inline)', async () => {
+    // The renderNodeRules handler places `parts.Label`; the INLINE render prop hand-
     // authors it, which must win over the adapter's default <label> markup.
-    const rn = customize((r) => {
+    const rn = renderNodeRules((r) => {
       r.field('name', ({ parts }: FieldHandlerProps) => (
         <div>
           <parts.Label
@@ -194,7 +194,7 @@ describe('customize — one registrar, cascading scopes (ADR 041 §6)', () => {
   })
 })
 
-describe('customize — Errors promoted to a movable part keeps a11y (ADR 041 §2)', () => {
+describe('renderNodeRules — Errors promoted to a movable part keeps a11y (ADR 041 §2)', () => {
   const issues: ValidationError[] = [
     { path: 'name', message: 'Name is too short' },
   ]
@@ -205,7 +205,7 @@ describe('customize — Errors promoted to a movable part keeps a11y (ADR 041 §
     // the aria linkage rides on shared ids/context, not a fixed layout.
     const rn = useMemo(
       () =>
-        customize((r) => {
+        renderNodeRules((r) => {
           r.field('name', ({ parts }: FieldHandlerProps) => (
             <div>
               <div className="control-slot">

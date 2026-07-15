@@ -30,4 +30,6 @@ export type {
   HasDescription,
   FieldPartsFor,
   GroupPartsFor,
+  DescriptionStateOf,
+  FormShapeOf,
 } from './infer'
