@@ -165,7 +165,15 @@ export type SchemaAt<
 
 /** Classify a sub-schema's node kind (object/array/leaf) — the runtime `nodeType`
  * for the common cases. (Scalar-choice arrays that Core collapses to one leaf are
- * an edge the default rule handles at runtime; this mirrors the structural kind.) */
+ * an edge the default rule handles at runtime; this mirrors the structural kind.)
+ *
+ * KNOWN EDGE (bd bh7.9): this reads the STRUCTURE (`type: 'array'` → `'array'`),
+ * but Core collapses an array of a fixed choice set (e.g. `array` of `enum` → a
+ * single multi-select) into ONE leaf field at runtime. So for that specific shape
+ * the type says "array path" while the runtime produces a field — the two
+ * disagree. Common shapes (objects, arrays of objects, scalar fields) are exact;
+ * this is a corner left as a P2 accuracy gap, not a correctness bug (the default
+ * rule still renders it). */
 export type KindOf<S> = S extends { readonly type: 'object' }
   ? 'group'
   : S extends { readonly properties: unknown }
@@ -175,6 +183,13 @@ export type KindOf<S> = S extends { readonly type: 'object' }
       : 'field'
 
 type AllPaths<S> = FieldPath<S> & string
+
+// TYPE TOUR — the "filter a union" idiom, reused by all three path sets below:
+// `{ [P in Union]: test ? P : never }[Union]`. Build an object whose VALUE at each
+// key is either the key itself (passes) or `never` (fails), then immediately index
+// it by the whole union — that hands back the union of the values, and `never`
+// members vanish from a union. Net effect: keep only the paths whose `KindOf` is
+// the kind you asked for. It is the type-level equivalent of `paths.filter(...)`.
 
 /** Leaf (field) paths of `S` — reject a group/array path at compile time. */
 export type FieldPaths<S> = {
@@ -205,6 +220,12 @@ export type NodeAt<S, P extends string> =
 // --- Stage A: facts→widget, mirroring `defaultPresentation` (bounded drift) -----
 // A choice field splits on Core's `OPTION_COUNT_THRESHOLD` (5): ≤5 → radio, else
 // select. Both sides map to DIFFERENT control kinds, so the count is load-bearing.
+//
+// TYPE TOUR — counting at the type level with a tuple pattern: there is no "length
+// > 5" in the type system, so we ask a structural question instead — "does this
+// tuple START WITH 6 elements?" If the enum tuple matches `[_,_,_,_,_,_, ...rest]`
+// it has 6+ members → `false` (render a select); otherwise `true` (render radio).
+// Mirrors Core's runtime threshold of 5 so the typed widget matches what renders.
 type AtMost5<T extends readonly unknown[]> = T extends readonly [
   unknown,
   unknown,
@@ -264,7 +285,14 @@ export type ControlAt<
   Overrides extends Record<string, WidgetName> = NoOverrides,
 > = Extract<FieldControl, { kind: ControlKindAt<S, P, Overrides> }>
 
-/** Whether the sub-schema at `P` declares a description (part presence). */
+/** Whether the sub-schema at `P` declares a description (part presence).
+ *
+ * KNOWN EDGE (bd bh7.9): this is a STRUCTURAL proxy — "does the schema literal have
+ * a `description` property assignable to `string`?" — not a re-run of the runtime's
+ * presence logic. It nails the common `description: 'help text'` case, but can
+ * disagree at the margins (a description sourced elsewhere, an empty string, a
+ * combinator branch). Present/absent is therefore a good-enough compile-time guess,
+ * kept honest for the ordinary cases by the conformance tests; a P2 accuracy edge. */
 export type HasDescription<S, P extends string> =
   SchemaAt<S, P> extends {
     readonly description: string
