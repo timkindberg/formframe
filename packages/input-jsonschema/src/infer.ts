@@ -127,7 +127,7 @@ export type InferData<S> = InferSchemaData<S>
 export type FieldPath<S> = FieldPathFromSchema<S>
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Path-narrowed presentation types (ADR 041 §4)
+// Path-narrowed presentation types (ADR 047 §4)
 //
 // The schema-owning half of the customize narrowing: for a dot-path `P` in a
 // const schema `S`, resolve the sub-schema, its node kind, its value, and — via
@@ -137,7 +137,7 @@ export type FieldPath<S> = FieldPathFromSchema<S>
 //
 // The types are kept honest against the runtime `present()` pipeline by the
 // paired type-level + runtime conformance tests (infer.control.test.ts), the
-// "bounded drift" strategy for Stage A (ADR 041 §4).
+// "bounded drift" strategy for Stage A (ADR 047 §4).
 // ═══════════════════════════════════════════════════════════════════════════
 
 type PropsOf<S> = S extends { readonly properties: infer Q } ? Q : never
@@ -222,7 +222,7 @@ type EnumOf<S> = S extends { readonly enum: infer E extends readonly unknown[] }
 
 /** The DEFAULT widget a path resolves to (Stage A) — mirrors `defaultPresentation`
  * for the scalar cases the const schema can express (enum → radio/select by count;
- * otherwise a plain input). Kept honest by gate conformance (ADR 041 §4). */
+ * otherwise a plain input). Kept honest by gate conformance (ADR 047 §4). */
 export type DefaultWidgetAt<S, P extends string> =
   SchemaAt<S, P> extends {
     readonly enum: readonly unknown[]
@@ -233,11 +233,11 @@ export type DefaultWidgetAt<S, P extends string> =
     : 'input'
 
 /** No-overrides marker: `Record<never, WidgetName>` = an empty override map, so
- * `WidgetAt` is pure default rule today (ADR 041 §4, `Overrides = {}`). */
+ * `WidgetAt` is pure default rule today (ADR 047 §4, `Overrides = {}`). */
 export type NoOverrides = Record<never, WidgetName>
 
 /**
- * The forward-compat seam (ADR 041 §4): the widget at `P` is the consumer's
+ * The forward-compat seam (ADR 047 §4): the widget at `P` is the consumer's
  * `Overrides[P]` when present, else the default rule. Today `Overrides` defaults
  * to empty, so this is pure default-rule fidelity; a typed per-path resolver
  * later supplies an `Overrides` map and the control type re-narrows with NO
@@ -257,7 +257,7 @@ export type ControlKindAt<
 > = WidgetToControlKind<WidgetAt<S, P, Overrides>>
 
 /** The pre-narrowed `FieldControl` union member at a path — so `control.attrs`
- * is the right shape with no runtime `kind` guard (ADR 041 §4/§5). */
+ * is the right shape with no runtime `kind` guard (ADR 047 §4/§5). */
 export type ControlAt<
   S,
   P extends string,
@@ -278,7 +278,7 @@ export type DescriptionStateOf<S, P extends string> =
   HasDescription<S, P> extends true ? 'present' : 'absent'
 
 /**
- * The resolved {@link FormShape} for a JSON Schema (ADR 042 §2): the
+ * The resolved {@link FormShape} for a JSON Schema (ADR 048 §2): the
  * schema-specific facts per path — `value`, `widget`, `description` state —
  * eagerly mapped over the schema's own paths. The widget→control→parts
  * composition stays neutral in Core and is instantiated lazily when a handler
@@ -316,7 +316,7 @@ type LabelData = FieldPartsBase['label']
 type TextData = NonNullable<FieldPartsBase['description']>
 
 /**
- * The parts bag DERIVED per field path (ADR 041 §4): `Description` exists only
+ * The parts bag DERIVED per field path (ADR 047 §4): `Description` exists only
  * when the schema declares one; `Control` is the pre-narrowed member for the
  * path's widget. `Errors` is runtime validation state (`ValidationError[]`).
  */

@@ -7,7 +7,7 @@ import { resolveLocalRefs } from './resolveRefs'
 
 /**
  * Compile a JSON Schema into the neutral form tree, branded with its resolved
- * {@link FormShapeOf} (ADR 042). The `const S` capture pins the exact schema
+ * {@link FormShapeOf} (ADR 048). The `const S` capture pins the exact schema
  * literal so paths/values/widgets narrow off it — replacing the old `defineSchema`
  * step: pass an inline schema and React's `useRenderNodeRules(tree, …)` types
  * itself off the brand, importing no front-end.
@@ -28,7 +28,7 @@ export function jsonSchemaToTree<const S extends JSONSchema>(
   // its widget/parts. All *lowering* lives in present(), never the front-end.
   // `useFormTree` re-runs present() with a consumer resolver layered on top,
   // identity-preservingly. The `FormShapeOf<S>` brand is a compile-time phantom
-  // (ADR 042 §3) — the runtime value is an ordinary tree, so the cast is honest.
+  // (ADR 048 §3) — the runtime value is an ordinary tree, so the cast is honest.
   return present<JSONSchemaObject>(
     compileRoot(resolvedSchema),
     defaultPresentation

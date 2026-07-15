@@ -1,4 +1,4 @@
-// The typed binding for `renderNodeRules` (ADR 042) — the former per-front-end
+// The typed binding for `renderNodeRules` (ADR 048) — the former per-front-end
 // "recipe", now generic and living in React. It reads the resolved `FormShape` a
 // front-end brands onto its tree (`jsonSchemaToTree` / `zodToTree`) and re-types
 // the neutral rule registrar off it. React imports NO front-end: the brand is the
@@ -88,7 +88,7 @@ export interface TypedRuleRegistrar<TS extends FormShape> {
 
 /**
  * Bind typed selector rules to a memoized `RenderNode` for `<SchemaFields>`
- * (ADR 042). Sugar over `renderNode`:
+ * (ADR 048). Sugar over `renderNode`:
  *   • **tree-typed authoring** — `r.field('name', …)` autocompletes real paths and
  *     narrows `value`/`parts` off the `FormShape` the front-end branded onto the
  *     tree (React imports no front-end);

@@ -1,4 +1,4 @@
-// The render-node rules layer (ADR 041/042) — a form-scope selector registry
+// The render-node rules layer (ADR 047/048) — a form-scope selector registry
 // whose handlers are **mounted components** receiving **arrangeable parts** as
 // props. `renderNodeRules` (formerly `customize`) is sugar over `renderNode`.
 //
@@ -15,7 +15,7 @@
 //    `parts.X` is ONE module-level, context-reading component, so passing the bag
 //    as a prop costs nothing and never remounts. Every part is render-prop-
 //    hijackable: `<parts.X />` (default) or `<parts.X render={data => …} />`.
-//    `Errors` is promoted out of the field Root to a movable part (ADR 041 §2);
+//    `Errors` is promoted out of the field Root to a movable part (ADR 047 §2);
 //    the control↔errors a11y linkage is carried by shared ids + `FieldA11yContext`
 //    (derived from the path + validation store), NOT a fixed layout, so it holds
 //    wherever the parts land.
@@ -27,7 +27,7 @@
 //
 // This is the SOURCE-AGNOSTIC runtime (operates on the Core tree). Path/value/
 // control/parts narrowing is layered generically by `useRenderNodeRules`, which
-// reads the resolved `FormShape` a front-end brands onto the tree (ADR 042) — it
+// reads the resolved `FormShape` a front-end brands onto the tree (ADR 048) — it
 // re-types this surface, it does not re-implement it.
 import { createContext, useContext, type ReactNode } from 'react'
 import type {
@@ -91,7 +91,7 @@ export type PartComponent<D> = (props: {
 
 /** Shared a11y derivation: a field with currently-displayed issues links its
  * control to the error list by id, so `Control` and `Errors` stay wired together
- * no matter where a handler places them (ADR 041 §2). */
+ * no matter where a handler places them (ADR 047 §2). */
 function useFieldA11y(path: string): { errorId: string } | null {
   const issues = useFieldErrors(path)
   const show = useFieldErrorDisplay(path)
@@ -136,7 +136,7 @@ function Control({
   if (!h || !h.node.isField) return null
   const control = h.node.parts.control
   // A render-prop control is hand-authored: the consumer owns a11y by spreading
-  // `c.attrs` and adding their own (ADR 041 §5). The default control gets the
+  // `c.attrs` and adding their own (ADR 047 §5). The default control gets the
   // linkage via `FieldA11yContext`, exactly as the field Root does.
   if (render) return render(control)
   return (
@@ -147,7 +147,7 @@ function Control({
 }
 
 // Errors are RUNTIME validation state (not a schema part), read from the store —
-// possible only because parts are real components (ADR 041 §2). The id/class/role
+// possible only because parts are real components (ADR 047 §2). The id/class/role
 // match the default field Root's error list, so promoting Errors to a movable
 // part keeps `aria-describedby` (set by `Control`) pointing at a real element.
 function Errors({
@@ -198,7 +198,7 @@ export interface FieldHandlerProps {
   node: EField
   path: string
   /** Typed to the schema facts at this path by the front-end; `unknown` here.
-   * Type-only until a reactive form-state adapter lands (ADR 041 §7). */
+   * Type-only until a reactive form-state adapter lands (ADR 047 §7). */
   value: unknown
   /** Re-enter the engine for the whole node (exclusive with the parts). */
   Default: () => ReactNode
@@ -255,7 +255,7 @@ export interface RuleRegistrar {
   default(Handler: NodeHandler): void
 }
 
-// CSS-cascade specificity (ADR 041 §3): exact path > predicate > control kind >
+// CSS-cascade specificity (ADR 047 §3): exact path > predicate > control kind >
 // kind > default. Distinct per axis so the winner is order-independent across
 // axes; ties within an axis never overlap on one node (different paths/kinds).
 const SPECIFICITY = {
@@ -285,13 +285,13 @@ interface Rule {
 export type RulesBuild = (r: RuleRegistrar) => void
 
 /**
- * Build a `RenderNode` from selector rules (ADR 041/042) — sugar over the
+ * Build a `RenderNode` from selector rules (ADR 047/048) — sugar over the
  * low-level `renderNode`, granting no capability a hand-written resolver lacks.
  * Memoize the result in the consumer (`useMemo`, or use `useRenderNodeRules`
  * which bakes it in) so the resolver identity is stable — an inline call rebuilds
  * it every render and defeats the `NodeRenderer` memo bail.
  *
- * Accepts multiple builders that **compose as ordinary functions** (ADR 041 §6):
+ * Accepts multiple builders that **compose as ordinary functions** (ADR 047 §6):
  * `renderNodeRules(appRules, formRules)` layers a lower-precedence app scope under
  * a higher-precedence form scope. The cascade is `app-scope < form-scope`, and one
  * scope's rules already sit `adapter < rules < inline` relative to the engine

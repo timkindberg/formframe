@@ -1,15 +1,15 @@
-# ADR 042: Front-ends brand the tree with a resolved `FormShape`; React binds off it
+# ADR 048: Front-ends brand the tree with a resolved `FormShape`; React binds off it
 
 - **Status:** Accepted
 - **Date:** 2026-07-14
-- **Supersedes the recipe half of:** ADR 041 §4 (the per-front-end typed-binding
+- **Supersedes the recipe half of:** ADR 047 §4 (the per-front-end typed-binding
   "recipe"); builds on ADR 033 (Core is schema-agnostic), ADR 035 (React binds
   trees, not schemas), ADR 039 (sister front-ends share a conformance oracle).
 - **bd:** `jsonschema-form-bh7.3` (epic `jsonschema-form-bh7`)
 
 ## Context
 
-ADR 041 gave `customize` a path-narrowed surface (`FieldProps<S,P>` etc.), but
+ADR 047 gave `customize` a path-narrowed surface (`FieldProps<S,P>` etc.), but
 the narrowing types are owned by the front-end (`input-jsonschema`,
 `input-zod`) and differ per front-end, while React's `customize` is deliberately
 source-agnostic and imports no front-end. The two were bridged by a **recipe** —
@@ -114,7 +114,7 @@ memoization, and the selector cascade. Layering: `renderNode` (floor) ‹
   `react-jsonschema` / `react-zod` packages are needed.
 - **Front-ends shrink** to the five navigation primitives + a `FormShapeOf<S>`
   assembly; Core owns the widget→control→parts composition once.
-- **Description asymmetry preserved** (ADR 041 follow-up): JSON Schema reports
+- **Description asymmetry preserved** (ADR 047 follow-up): JSON Schema reports
   `'present' | 'absent'` (it can prove presence from the literal); Zod reports
   `'optional'` (descriptions are runtime-registry-only) — both flow through the
   same neutral `DescriptionState`.

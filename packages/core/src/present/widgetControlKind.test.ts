@@ -1,5 +1,5 @@
 // Paired type-level + runtime conformance for the shared widget→control-kind
-// table (ADR 041 §4, bd vg1). The whole point of `WIDGET_CONTROL_KIND` is that
+// table (ADR 047 §4, bd vg1). The whole point of `WIDGET_CONTROL_KIND` is that
 // the runtime archetype `deriveControl(f, w).kind` and the type-level
 // `WidgetToControlKind<w>` read the SAME const, so they cannot drift. These tests
 // pin BOTH sides over the full `WidgetName` matrix and fail the gate on any gap:

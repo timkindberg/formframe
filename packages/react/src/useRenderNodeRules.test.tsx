@@ -1,4 +1,4 @@
-// The generic typed binding (ADR 042): `FieldProps`/`GroupProps` narrow off a
+// The generic typed binding (ADR 048): `FieldProps`/`GroupProps` narrow off a
 // resolved `FormShape` alone — NO front-end import here. This is the proof that
 // React binds off the tree's brand generically (so `react-jsonschema` /
 // `react-zod` never need to exist): a hand-written `FormShape` drives the same
@@ -31,7 +31,7 @@ type Input = Extract<FieldControl, { kind: 'input' }>
 type Choicegroup = Extract<FieldControl, { kind: 'choicegroup' }>
 type Textarea = Extract<FieldControl, { kind: 'textarea' }>
 
-describe('useRenderNodeRules binds off a FormShape generically (ADR 042)', () => {
+describe('useRenderNodeRules binds off a FormShape generically (ADR 048)', () => {
   it('value narrows off the shape', () => {
     expectTypeOf<FieldProps<TS, 'name'>['value']>().toEqualTypeOf<string>()
     expectTypeOf<FieldProps<TS, 'plan'>['value']>().toEqualTypeOf<

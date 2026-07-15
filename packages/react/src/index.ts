@@ -53,7 +53,7 @@ export type {
   EArrayItem,
 } from './renderer'
 
-// The render-node rules layer (ADR 041/042) — a form-scope selector registry
+// The render-node rules layer (ADR 047/048) — a form-scope selector registry
 // lowering to an ordinary `RenderNode` (no engine seam); handlers are mounted
 // components receiving arrangeable parts. Source-agnostic runtime.
 export { renderNodeRules } from './renderNodeRules'
@@ -74,7 +74,7 @@ export type {
   NodeHandlerProps,
 } from './renderNodeRules'
 
-// The typed binding (ADR 042) — reads the `FormShape` a front-end brands onto the
+// The typed binding (ADR 048) — reads the `FormShape` a front-end brands onto the
 // tree and re-types the registrar off it. `useRenderNodeRules(tree, rules)` is the
 // typed + memoized front door; `FieldProps`/`GroupProps` annotate hoisted handlers
 // (keyed on `type Shape = FormShapeOf<typeof schema>` from the front-end).

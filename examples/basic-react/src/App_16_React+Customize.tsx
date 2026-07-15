@@ -13,7 +13,7 @@ import {
 import { createAjvValidator } from '@formframe/validation-ajv'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// The render-node rules layer (ADR 041/042), on the SHIPPED API.
+// The render-node rules layer (ADR 047/048), on the SHIPPED API.
 //
 // No recipe file: `jsonSchemaToTree(schema)` brands the tree with its resolved
 // `FormShapeOf<S>`, and React's `useRenderNodeRules(tree, rules)` reads that brand
@@ -51,7 +51,7 @@ const schema = {
   required: ['name'],
 } as const
 
-// The resolved FormShape — what the typed binding reads (ADR 042). Hoisted
+// The resolved FormShape — what the typed binding reads (ADR 048). Hoisted
 // handlers annotate `FieldProps<Shape, 'name'>` / `GroupProps<Shape, 'address'>`;
 // a module-scope builder is `(r: TypedRuleRegistrar<Shape>) => void`. Inline
 // handlers inside `useRenderNodeRules` need no annotation.
@@ -78,7 +78,7 @@ function RowName({ parts }: FieldProps<Shape, 'name'>) {
         {hint && (
           <small style={{ color: '#666' }}>
             <code>useState</code> in a customize handler — legal because the
-            handler is a mounted component (ADR 041 §1).
+            handler is a mounted component (ADR 047 §1).
           </small>
         )}
         <parts.Errors />
@@ -101,7 +101,7 @@ function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
 
 // FULL control hijack via the TYPED render prop: `c` is narrowed to the input
 // member (`ControlAt<'address.street'>`), so `c.attrs` is the input attrs with no
-// guard. Spread keeps FormData wiring (ADR 041 §5); we add attrs and drop `type`.
+// guard. Spread keeps FormData wiring (ADR 047 §5); we add attrs and drop `type`.
 function StreetInput({ parts }: FieldProps<Shape, 'address.street'>) {
   // presence narrowing: street has no description in the schema.
   // @ts-expect-error 'address.street' has no description part
@@ -175,7 +175,7 @@ function LiveCustomizedForm() {
   } = useFormTree(tree, { validator })
   // `useRenderNodeRules` reads the tree's `FormShape` brand to type the rules,
   // bakes in the memo (stable resolver identity is the contract), and hides the
-  // one intrinsic cast. `tree` is a compile-time type carrier here (ADR 042).
+  // one intrinsic cast. `tree` is a compile-time type carrier here (ADR 048).
   const renderNode = useRenderNodeRules(tree, customizeRules)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (
@@ -219,7 +219,7 @@ void _neutralExample
 export default function App() {
   return (
     <div>
-      <h1>customize — path-narrowed props &amp; arrangeable parts (ADR 041)</h1>
+      <h1>customize — path-narrowed props &amp; arrangeable parts (ADR 047)</h1>
       <p>
         In-editor: <code>{`r.field('…')`}</code>/<code>{`r.group('…')`}</code>{' '}
         narrow to real paths; <code>value</code> and <code>control</code> narrow

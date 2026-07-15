@@ -1,4 +1,4 @@
-// Paired type-level + runtime conformance for the Zod inference layer (ADR 041 §4,
+// Paired type-level + runtime conformance for the Zod inference layer (ADR 047 §4,
 // bd jsonschema-form-bh7.1) — the Zod sister of input-jsonschema's
 // infer.control.test.ts. The control TYPE at a path (`ControlAt<S,P>` → Stage A
 // `DefaultWidgetAt` → Stage B `WidgetToControlKind`, Core) must match the control
@@ -47,7 +47,7 @@ type S = typeof matrix
 
 type KindOfControl<K extends FieldControl['kind']> = K
 
-describe('ControlAt — Stage A type mirror ↔ runtime present() (Zod, ADR 041 §4)', () => {
+describe('ControlAt — Stage A type mirror ↔ runtime present() (Zod, ADR 047 §4)', () => {
   const tree = zodToTree(matrix)
 
   const cases: {
@@ -105,7 +105,7 @@ describe('ControlAt — Stage A type mirror ↔ runtime present() (Zod, ADR 041 
   })
 })
 
-describe('path/kind/value narrowing (Zod, ADR 041 §4)', () => {
+describe('path/kind/value narrowing (Zod, ADR 047 §4)', () => {
   it('FieldPaths accepts only leaf paths; GroupPaths only object paths', () => {
     expectTypeOf<'name'>().toExtend<FieldPaths<S>>()
     expectTypeOf<'plan'>().toExtend<FieldPaths<S>>()
@@ -145,7 +145,7 @@ describe('Zod divergence: descriptions are runtime-only → optional slot (bd js
   })
 })
 
-describe('typed per-path Overrides seam (Zod, ADR 041 §4)', () => {
+describe('typed per-path Overrides seam (Zod, ADR 047 §4)', () => {
   // ONE `const` map drives BOTH the runtime resolver and the control TYPE.
   const overrides = {
     name: 'textarea',

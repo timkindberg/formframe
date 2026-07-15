@@ -14,14 +14,14 @@ import {
 import { createZodValidator } from '@formframe/validation-zod'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// The render-node rules layer (ADR 041/042) over a ZOD schema — the SECOND
+// The render-node rules layer (ADR 047/048) over a ZOD schema — the SECOND
 // front-end (ADR 008), mirroring App_16 field-for-field (bd jsonschema-form-bh7).
 //
 // The whole point: this file is IDENTICAL to App_16 except the front-end import
 // (`@formframe/input-zod` vs `@formframe/input-jsonschema`) and the schema DSL.
 // There is NO per-front-end recipe — `zodToTree(schema)` brands the tree with its
 // resolved `FormShapeOf<S>`, and the SAME `useRenderNodeRules` from React binds
-// off that brand (ADR 042). The one real divergence that still surfaces:
+// off that brand (ADR 048). The one real divergence that still surfaces:
 //   • `name` has a `.meta({ description })`, but Zod keeps descriptions in a
 //     runtime registry invisible to the type. So `parts.Description` is an
 //     OPTIONAL slot here (`PartComponent<…> | undefined` → guard before placing)
@@ -46,7 +46,7 @@ const schema = z.object({
     .meta({ title: 'Address' }),
 })
 
-// The resolved FormShape (ADR 042). A Zod VALUE already carries its precise type,
+// The resolved FormShape (ADR 048). A Zod VALUE already carries its precise type,
 // so there's no `as const` step (unlike the JSON Schema literal in App_16).
 type Shape = FormShapeOf<typeof schema>
 
@@ -75,7 +75,7 @@ function RowName({ parts }: FieldProps<Shape, 'name'>) {
         {hint && (
           <small style={{ color: '#666' }}>
             <code>useState</code> in a customize handler — legal because the
-            handler is a mounted component (ADR 041 §1).
+            handler is a mounted component (ADR 047 §1).
           </small>
         )}
         <parts.Errors />
@@ -98,7 +98,7 @@ function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
 
 // FULL control hijack via the TYPED render prop: `c` is narrowed to the input
 // member (`ControlAt<'address.street'>`), so `c.attrs` is the input attrs with no
-// guard. Spread keeps FormData wiring (ADR 041 §5); we add attrs and drop `type`.
+// guard. Spread keeps FormData wiring (ADR 047 §5); we add attrs and drop `type`.
 function StreetInput({ parts }: FieldProps<Shape, 'address.street'>) {
   return (
     <div>
@@ -170,7 +170,7 @@ function LiveCustomizedForm() {
   } = useFormTree(tree, { validator })
   // `useRenderNodeRules` reads the tree's `FormShape` brand to type the rules,
   // bakes in the memo, and hides the one intrinsic cast — the SAME React hook
-  // App_16 uses, no per-front-end binding (ADR 042).
+  // App_16 uses, no per-front-end binding (ADR 048).
   const renderNode = useRenderNodeRules(tree, customizeRules)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (
@@ -215,7 +215,7 @@ export default function App() {
   return (
     <div>
       <h1>
-        renderNodeRules over Zod — the second front-end (ADR 042 / ADR 008)
+        renderNodeRules over Zod — the second front-end (ADR 048 / ADR 008)
       </h1>
       <p>
         Field-for-field the same as example 16, but the schema is a{' '}
@@ -223,7 +223,7 @@ export default function App() {
         <code>@formframe/input-zod</code>. There is no per-front-end recipe:{' '}
         <code>zodToTree(schema)</code> brands the tree with its{' '}
         <code>FormShapeOf&lt;S&gt;</code>, and the SAME{' '}
-        <code>useRenderNodeRules</code> hook binds off that brand (ADR 042) — so
+        <code>useRenderNodeRules</code> hook binds off that brand (ADR 048) — so
         this file is identical to App_16 except the front-end import + schema
         DSL. The one real divergence: <code>parts.Description</code> is an{' '}
         <em>optional</em> slot for Zod (descriptions live in a runtime registry,

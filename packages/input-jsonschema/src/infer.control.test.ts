@@ -1,4 +1,4 @@
-// Paired type-level + runtime conformance for path-narrowed controls (ADR 041 §4,
+// Paired type-level + runtime conformance for path-narrowed controls (ADR 047 §4,
 // bd y3t + the schema-matrix half of vg1). The control TYPE at a path
 // (`ControlAt<S,P>` → routed through `DefaultWidgetAt` (Stage A) →
 // `WidgetToControlKind` (Stage B, Core)) must match the control the RUNTIME
@@ -58,7 +58,7 @@ type S = typeof matrix
 
 type KindOfControl<K extends FieldControl['kind']> = K
 
-describe('ControlAt — Stage A type mirror ↔ runtime present() (ADR 041 §4)', () => {
+describe('ControlAt — Stage A type mirror ↔ runtime present() (ADR 047 §4)', () => {
   const tree = jsonSchemaToTree(matrix)
 
   const cases: {
@@ -86,7 +86,7 @@ describe('ControlAt — Stage A type mirror ↔ runtime present() (ADR 041 §4)'
       KindOfControl<'input'>
     >()
     // The fix the seam exists for: an enum of ≤5 is a radio → choicegroup, NOT a
-    // select (the old spike hardcoded enum→select — ADR 041 §4).
+    // select (the old spike hardcoded enum→select — ADR 047 §4).
     expectTypeOf<ControlKindAt<S, 'plan'>>().toEqualTypeOf<
       KindOfControl<'choicegroup'>
     >()
@@ -118,7 +118,7 @@ describe('ControlAt — Stage A type mirror ↔ runtime present() (ADR 041 §4)'
   })
 })
 
-describe('path/kind/value narrowing (ADR 041 §4)', () => {
+describe('path/kind/value narrowing (ADR 047 §4)', () => {
   it('FieldPaths accepts only leaf paths; GroupPaths only object paths', () => {
     expectTypeOf<'name'>().toExtend<FieldPaths<S>>()
     expectTypeOf<'plan'>().toExtend<FieldPaths<S>>()
@@ -137,7 +137,7 @@ describe('path/kind/value narrowing (ADR 041 §4)', () => {
   })
 })
 
-describe('typed per-path Overrides seam (ADR 041 §4, bd 4bv)', () => {
+describe('typed per-path Overrides seam (ADR 047 §4, bd 4bv)', () => {
   // ONE `const` map drives BOTH the runtime resolver and the control TYPE.
   const overrides = {
     name: 'textarea',

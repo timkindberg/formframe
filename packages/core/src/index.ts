@@ -75,7 +75,7 @@ export type {
   WidgetToControlKind,
 } from './present/present'
 
-// Typed-tree binding surface (ADR 042) — the neutral `FormShape` a front-end
+// Typed-tree binding surface (ADR 048) — the neutral `FormShape` a front-end
 // brands its tree with, the widget→control→parts composition (moved out of the
 // front-ends so React can bind generically), and the `TypedTree` phantom brand.
 export type {

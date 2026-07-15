@@ -1,4 +1,4 @@
-# ADR 041: The Customize Layer — Component Handlers, Arrangeable Parts, and Path-Narrowed Selectors
+# ADR 047: The Customize Layer — Component Handlers, Arrangeable Parts, and Path-Narrowed Selectors
 
 **Date:** 2026-07-12
 **Status:** Accepted (epic `jsonschema-form-8l8`; spike `jsonschema-form-gjq`)

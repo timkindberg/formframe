@@ -31,12 +31,12 @@ import type {
 } from '../parser/nodeTypes'
 import { serializeNode } from '../parser/utils'
 
-// --- Stage B: the shared widget→control-kind table (ADR 041 §4) -----------------
+// --- Stage B: the shared widget→control-kind table (ADR 047 §4) -----------------
 //
 // The SINGLE source of truth mapping each `WidgetName` to its render archetype
 // (`control.kind`). Both the runtime `deriveControl` (below) and the type-level
 // `WidgetToControlKind<W>` read this ONE const, so the runtime switch and the
-// path-narrowed control types cannot drift (ADR 041 §4, "zero drift" for Stage B).
+// path-narrowed control types cannot drift (ADR 047 §4, "zero drift" for Stage B).
 //
 // `satisfies Record<WidgetName, ControlKind>` is the exhaustiveness check: adding
 // a `WidgetName` without a mapping — or mapping one to a non-`ControlKind` — fails
@@ -52,7 +52,7 @@ export const WIDGET_CONTROL_KIND = {
 
 /**
  * Type-level Stage B: the `control.kind` a widget resolves to, read from the same
- * {@link WIDGET_CONTROL_KIND} const the runtime uses (ADR 041 §4). A path-narrowed
+ * {@link WIDGET_CONTROL_KIND} const the runtime uses (ADR 047 §4). A path-narrowed
  * control type routes through `WidgetToControlKind<WidgetAt<S, P, Overrides>>`
  * (the `WidgetAt` seam lives in the front-end that owns schema shape).
  */
@@ -153,7 +153,7 @@ export function layered<S = unknown>(
 }
 
 /**
- * A **typed per-path widget override** resolver (ADR 041 §4, bd 4bv). Turns a
+ * A **typed per-path widget override** resolver (ADR 047 §4, bd 4bv). Turns a
  * path→widget map into a `PresentationResolver` that assigns the mapped widget to
  * each matching leaf and defers (`undefined`) everywhere else — layer it over the
  * default: `layered(defaultPresentation, overrideWidgets(map))`.
@@ -161,7 +161,7 @@ export function layered<S = unknown>(
  * This is the RUNTIME half of the `WidgetAt<S, P, Overrides>` seam: the SAME map
  * (as a `const`) is passed here to drive presentation and used as the `Overrides`
  * type arg to `ControlAt`/`WidgetAt` (in the front-end) to re-narrow the control
- * type — with no rewrite below (ADR 041 §4). Predicate/fact resolvers cannot be
+ * type — with no rewrite below (ADR 047 §4). Predicate/fact resolvers cannot be
  * typed and stay runtime-guarded (`where(facts => …)` degrades to a union); this
  * exact-path form is the one that carries a static type.
  */
@@ -301,7 +301,7 @@ export function deriveControl(
 ): FieldControl | undefined {
   // The `kind` on every arm below is taken from the shared `WIDGET_CONTROL_KIND`
   // table — never a bare literal — so this switch and `WidgetToControlKind<W>`
-  // read the ONE source (ADR 041 §4). Each arm still builds the widget-specific
+  // read the ONE source (ADR 047 §4). Each arm still builds the widget-specific
   // attrs/options; only the archetype discriminant is table-driven.
   const K = WIDGET_CONTROL_KIND
   switch (widget) {

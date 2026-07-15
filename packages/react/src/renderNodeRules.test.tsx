@@ -1,4 +1,4 @@
-// The renderNodeRules layer (ADR 041 §1–§3) — selector cascade + arrangeable parts.
+// The renderNodeRules layer (ADR 047 §1–§3) — selector cascade + arrangeable parts.
 //
 // Covers: mounted component handlers (safe hooks), the specificity cascade
 // (exact path > predicate > control kind > kind > default), arrangeable parts
@@ -43,7 +43,7 @@ const schema: JSONSchema = {
   required: ['name'],
 }
 
-describe('renderNodeRules — selector cascade (ADR 041 §3)', () => {
+describe('renderNodeRules — selector cascade (ADR 047 §3)', () => {
   it('exact path beats a blanket kind rule (specificity)', async () => {
     const NameHandler = ({ parts }: FieldHandlerProps) => (
       <div data-testid="exact">
@@ -103,7 +103,7 @@ describe('renderNodeRules — selector cascade (ADR 041 §3)', () => {
   })
 })
 
-describe('renderNodeRules — arrangeable parts (ADR 041 §2)', () => {
+describe('renderNodeRules — arrangeable parts (ADR 047 §2)', () => {
   it('places parts in a custom order and hijacks a group label via render prop', async () => {
     const Card = ({ parts, children }: GroupHandlerProps) => (
       <fieldset data-testid="card">
@@ -153,7 +153,7 @@ describe('renderNodeRules — arrangeable parts (ADR 041 §2)', () => {
   })
 })
 
-describe('renderNodeRules — one registrar, cascading scopes (ADR 041 §6)', () => {
+describe('renderNodeRules — one registrar, cascading scopes (ADR 047 §6)', () => {
   it('form scope overrides app scope at equal specificity', async () => {
     const app = (r: import('./renderNodeRules').RuleRegistrar) =>
       r.field('name', ({ Default }: FieldHandlerProps) => (
@@ -194,7 +194,7 @@ describe('renderNodeRules — one registrar, cascading scopes (ADR 041 §6)', ()
   })
 })
 
-describe('renderNodeRules — Errors promoted to a movable part keeps a11y (ADR 041 §2)', () => {
+describe('renderNodeRules — Errors promoted to a movable part keeps a11y (ADR 047 §2)', () => {
   const issues: ValidationError[] = [
     { path: 'name', message: 'Name is too short' },
   ]

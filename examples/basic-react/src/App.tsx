@@ -49,12 +49,12 @@ const examples = [
   },
   {
     id: '16',
-    name: 'React + Customize (ADR 041)',
+    name: 'React + Customize (ADR 047)',
     component: App16,
   },
   {
     id: '17',
-    name: 'React + Customize over Zod (ADR 041 / ADR 008)',
+    name: 'React + Customize over Zod (ADR 047 / ADR 008)',
     component: App17,
   },
 ]

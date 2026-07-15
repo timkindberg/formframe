@@ -122,7 +122,7 @@ function DefaultDescription({ text }: { text: string }): ReactNode {
 }
 
 /** When a field has errors, the root wraps its control in this provider.
- * Exported so the customize layer (ADR 041) can re-establish the same
+ * Exported so the customize layer (ADR 047) can re-establish the same
  * control↔errors linkage when it places a movable `Control` part. */
 export interface FieldA11yState {
   errorId: string

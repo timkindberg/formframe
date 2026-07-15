@@ -271,7 +271,7 @@ export type DescriptionStateOf<S, P extends string> = [S, P] extends [
   : 'optional'
 
 /**
- * The resolved {@link FormShape} for a Zod schema (ADR 042 §2): the
+ * The resolved {@link FormShape} for a Zod schema (ADR 048 §2): the
  * schema-specific facts per path — `value`, `widget`, `description` state —
  * eagerly mapped over the schema's own paths (enum arity narrows `widget`;
  * `description` is uniformly `'optional'`). Byte-for-byte the same SHAPE as the

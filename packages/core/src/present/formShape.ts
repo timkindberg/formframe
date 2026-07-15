@@ -1,10 +1,10 @@
 /**
  * The front-end-agnostic **type surface** a front-end brands its tree with, plus
  * the neutral widget → control → parts *composition* that used to live per
- * front-end (ADR 042). React reads a {@link FormShape} off the tree and types its
+ * front-end (ADR 048). React reads a {@link FormShape} off the tree and types its
  * customize registrar generically — importing no front-end.
  *
- * Split of responsibility (ADR 042 §2): the front-end projects only the
+ * Split of responsibility (ADR 048 §2): the front-end projects only the
  * schema-specific facts per path (`value` / `widget` / `description` state),
  * eagerly mapped over its own field paths. Everything below — deriving the
  * pre-narrowed `FieldControl` member and the present parts bag — is neutral and
@@ -27,7 +27,7 @@ import type { WidgetToControlKind } from './present'
  * can prove presence from the schema literal (JSON Schema) reports
  * `'present' | 'absent'`; one that stores descriptions in a runtime registry
  * (Zod) reports `'optional'` — the slot is always placeable but may render
- * nothing (ADR 041 follow-up / ADR 042).
+ * nothing (ADR 047 follow-up / ADR 048).
  */
 export type DescriptionState = 'present' | 'absent' | 'optional'
 
@@ -69,7 +69,7 @@ export type GroupPartsData<D extends DescriptionState> = {
 
 /**
  * The neutral type surface a front-end resolves from its schema and brands onto
- * its tree (ADR 042 §1). Expressed purely in Core vocabulary so React can index
+ * its tree (ADR 048 §1). Expressed purely in Core vocabulary so React can index
  * it generically. A concrete front-end `FormShapeOf<S>` is a subtype of this.
  */
 export interface FormShape {
@@ -84,7 +84,7 @@ export interface FormShape {
 declare const FORM_SHAPE: unique symbol
 
 /**
- * A `GroupNode` carrying a phantom {@link FormShape} brand (ADR 042 §3). The
+ * A `GroupNode` carrying a phantom {@link FormShape} brand (ADR 048 §3). The
  * brand is a compile-time-only property (never present at runtime; asserted by
  * the front-end's return cast), so a `TypedTree` is an ordinary tree everywhere
  * the runtime looks, and only the type layer sees the resolved surface.

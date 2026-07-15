@@ -6,7 +6,7 @@ import { compileRoot } from './compile'
 
 /**
  * Compile a Zod schema into the neutral @formframe/core tree (ADR 034), branded
- * with its resolved {@link FormShapeOf} (ADR 042).
+ * with its resolved {@link FormShapeOf} (ADR 048).
  *
  * The Zod front-end transcribes the schema into the neutral tree by DIRECT
  * introspection (no Zod → JSON Schema round-trip) — it calls Core's neutral
@@ -16,7 +16,7 @@ import { compileRoot } from './compile'
  * present(), never the front-end. `useFormTree` re-runs present() with a consumer
  * resolver layered on top, identity-preservingly. `S` is captured from the passed
  * schema value (a Zod schema is already a precise type) so paths/values narrow off
- * it; the `FormShapeOf<S>` brand is a compile-time phantom (ADR 042 §3), so the
+ * it; the `FormShapeOf<S>` brand is a compile-time phantom (ADR 048 §3), so the
  * runtime value is an ordinary tree and the cast is honest.
  */
 export function zodToTree<S extends ZodType>(
