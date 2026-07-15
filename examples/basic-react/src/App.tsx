@@ -17,6 +17,7 @@ import App14 from './App_14_React+WidgetCatalog'
 import App15 from './App_15_React+ZodUseFormTree'
 import App16 from './App_16_React+Customize'
 import App17 from './App_17_React+CustomizeZod'
+import App18 from './App_18_React+AsyncValidation'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -57,10 +58,15 @@ const examples = [
     name: 'React + renderNodeRules over Zod (ADR 047 / ADR 008)',
     component: App17,
   },
+  {
+    id: '18',
+    name: 'React + Async Validation (ADR 041–046)',
+    component: App18,
+  },
 ]
 
-/** Landing example — the headline renderNodeRules demo (ADR 047/048). */
-const DEFAULT_EXAMPLE_ID = '16'
+/** Landing example — the async validation demo (newest feature) up front. */
+const DEFAULT_EXAMPLE_ID = '18'
 
 function App() {
   const [currentExample, setCurrentExample] = useState(DEFAULT_EXAMPLE_ID)

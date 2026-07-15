@@ -66,23 +66,32 @@ Adapt any synchronous Standard Schema implementation with
 import { fromStandardSchema } from '@formframe/core'
 import {
   useFormTree,
-  ValidationProvider,
+  FormStoreProvider,
+  SchemaFields,
   ValidationSummary,
 } from '@formframe/renderer-react'
 
 const validator = fromStandardSchema(profileSchema)
 
 export function ProfileForm() {
-  const { SchemaFields, submit, validation } = useFormTree(profileTree, {
-    validator,
-  })
+  const { form, submit, revalidate, handleBlur, store } = useFormTree(
+    profileTree,
+    { validator }
+  )
 
   return (
-    <form noValidate onSubmit={submit((data) => console.log(data))}>
-      <ValidationProvider {...validation}>
+    <form
+      noValidate
+      onSubmit={submit((data) => console.log(data))}
+      onBlur={(event) => {
+        handleBlur(event)
+        revalidate(event)
+      }}
+    >
+      <FormStoreProvider store={store}>
         <ValidationSummary />
-        <SchemaFields />
-      </ValidationProvider>
+        <SchemaFields form={form} />
+      </FormStoreProvider>
       <button type="submit">Save profile</button>
     </form>
   )
@@ -91,9 +100,42 @@ export function ProfileForm() {
 
 Validation runs on submit here. Wire the returned `revalidate` handler to
 `onInput`, `onChange`, or `onBlur` when the product calls for live validation.
-Successful transformed output is passed to the submit callback. The neutral
-validator contract is currently synchronous; async Standard Schema validation
-is not yet supported.
+Successful transformed output is passed to the submit callback. Errors, touched,
+submitted, and pending state all live in the hook's `store`; `FormStoreProvider`
+lets the summary and field errors read it without prop-drilling, and only the
+components whose data changed re-render.
+
+### Async validation
+
+The same `validator` slot takes an **async** validator (one whose result is a
+`Promise`) — `useFormTree` branches on the result's shape, so nothing else in
+the form changes. Async unlocks remote checks (uniqueness, server rules) with
+built-in pending signals and stale-result protection (ADRs 041–046):
+
+```tsx
+import { createZodAsyncValidator } from '@formframe/validation-zod'
+import {
+  useIsValidating,
+  useIsSubmitting,
+  useValidationFailure,
+} from '@formframe/renderer-react'
+
+const validator = createZodAsyncValidator(schemaWithAsyncRule)
+```
+
+- **Pending** — `useIsValidating()` is true while a verdict is in flight;
+  `useIsSubmitting()` stays true across an awaited `submit` handler. Both are
+  fan-out-free reads, so a spinner or disabled button re-renders on its own.
+- **Stale-result protection** — the newest-started run owns the verdict; slower
+  earlier runs can't clobber it, and on-screen errors are retained (never
+  blanked) until the pending run resolves.
+- **Run failure vs. invalid** — a validator that throws/rejects is a run
+  *failure*, not an "invalid" verdict: errors are kept and the raw reason is
+  surfaced via `useValidationFailure()` so you can show a retry banner.
+
+`submit`'s success handler may also be `async` (e.g. an awaited save);
+`useIsSubmitting()` spans it. See `examples/basic-react` example 16 for a
+runnable walkthrough.
 
 ## Customize one generated part
 

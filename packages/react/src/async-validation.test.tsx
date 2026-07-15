@@ -25,8 +25,11 @@ const schema = {
 } as const satisfies JSONSchema
 const tree = jsonSchemaToTree(schema)
 
-const DELAY = 25
-/** An async validator: name must be ≥ 2 chars, after a real microtask delay. */
+// Comfortably longer than event-dispatch + poll-tick overhead, so the in-flight
+// pending window is reliably observable (the store sets it synchronously on
+// submit; we just need the async tail to still be open when poll first reads).
+const DELAY = 200
+/** An async validator: name must be ≥ 2 chars, after a real delay. */
 function makeAsyncValidator(): AsyncValidator {
   return async (data) => {
     await new Promise((r) => setTimeout(r, DELAY))
