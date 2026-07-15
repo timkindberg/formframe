@@ -220,7 +220,9 @@ void _neutralExample
 export default function App() {
   return (
     <div>
-      <h1>customize — path-narrowed props &amp; arrangeable parts (ADR 047)</h1>
+      <h1>
+        renderNodeRules — path-narrowed props &amp; arrangeable parts (ADR 047)
+      </h1>
       <p>
         In-editor: <code>{`r.field('…')`}</code>/<code>{`r.group('…')`}</code>{' '}
         narrow to real paths; <code>value</code> and <code>control</code> narrow
@@ -230,7 +232,7 @@ export default function App() {
         and <code>Default</code> re-enters the whole node. Type into the orange
         Street box and Submit.
       </p>
-      <Section title="customize — narrowed props/parts, typed render-props, Default prop, live errors">
+      <Section title="renderNodeRules — narrowed props/parts, typed render-props, Default prop, live errors">
         <LiveCustomizedForm />
       </Section>
     </div>

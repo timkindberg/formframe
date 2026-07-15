@@ -49,18 +49,18 @@ const examples = [
   },
   {
     id: '16',
-    name: 'React + Customize (ADR 047)',
+    name: 'React + renderNodeRules (ADR 047)',
     component: App16,
   },
   {
     id: '17',
-    name: 'React + Customize over Zod (ADR 047 / ADR 008)',
+    name: 'React + renderNodeRules over Zod (ADR 047 / ADR 008)',
     component: App17,
   },
 ]
 
-/** Landing example — hook-based product path before Core walking demos. */
-const DEFAULT_EXAMPLE_ID = '17'
+/** Landing example — the headline renderNodeRules demo (ADR 047/048). */
+const DEFAULT_EXAMPLE_ID = '16'
 
 function App() {
   const [currentExample, setCurrentExample] = useState(DEFAULT_EXAMPLE_ID)
