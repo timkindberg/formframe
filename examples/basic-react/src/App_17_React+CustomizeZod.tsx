@@ -144,7 +144,8 @@ const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
   // INLINE handler → props inferred as FieldProps<Shape, 'plan'> (no annotation),
   // because `r` is annotated `TypedRuleRegistrar<Shape>` on this builder above.
   r.field('plan', ({ value, Default }) => {
-    // Hover `value`: 'free' | 'pro' | 'enterprise' — from the Zod enum. Arity ≤5
+    // Hover `value`: 'free' | 'pro' | 'enterprise' | undefined — the Zod enum plus
+    // `undefined` (live values await a form-state adapter, ADR 047 §7). Arity ≤5
     // also picks the radio control (choicegroup), same as JSON Schema.
     void value
     return <Default />

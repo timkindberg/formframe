@@ -8,7 +8,7 @@
 // hand-written resolver can't do. What it adds: (1) tree-typed authoring, (2)
 // baked memoization, (3) the selector cascade. Layering: `renderNode` (floor) ‹
 // `renderNodeRules()` (rule sugar) ‹ `useRenderNodeRules()` (typed + memoized).
-import { useMemo, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import type {
   FieldPartsData,
   FormShape,
@@ -21,6 +21,11 @@ import {
   type PartComponent,
   type RulesBuild,
 } from './renderNodeRules'
+
+// Minimal ambient so the dev-only guard below typechecks without pulling in
+// `@types/node`; consumer bundlers (webpack/vite/esbuild) statically replace
+// `process.env.NODE_ENV`, so the whole branch is dead-code-eliminated in prod.
+declare const process: { env: { NODE_ENV?: string } } | undefined
 
 /** Flatten a mapped/conditional type so editors hover it as a plain object
  * literal instead of the raw generic expression. Display-only — no runtime, and
@@ -48,7 +53,12 @@ export type FieldProps<
 > = Pretty<{
   path: P
   node: EField
-  value: TS['fields'][P]['value']
+  /** The field's value, narrowed to the schema type at `P` — but **`| undefined`
+   * until a reactive form-state adapter lands** (ADR 047 §7): the uncontrolled
+   * runtime passes `undefined` today, so the type must not promise a value it
+   * cannot deliver (bd bh7.7). The narrowed member is the forward-compatible
+   * shape — guard before reading. */
+  value: TS['fields'][P]['value'] | undefined
   Default: () => ReactNode
   parts: SlotsOf<
     FieldPartsData<TS['fields'][P]['widget'], TS['fields'][P]['description']>
@@ -92,17 +102,21 @@ export interface TypedRuleRegistrar<TS extends FormShape> {
  *   • **tree-typed authoring** — `r.field('name', …)` autocompletes real paths and
  *     narrows `value`/`parts` off the `FormShape` the front-end branded onto the
  *     tree (React imports no front-end);
- *   • **baked memoization** — the resolver identity is stable, so `NodeRenderer`'s
- *     memo bail holds (an un-memoized resolver remounts handler subtrees, losing
- *     focus/local state);
+ *   • **guaranteed-stable resolver** — the builder is captured ONCE and the
+ *     `RenderNode` identity is held for the component's lifetime, so
+ *     `NodeRenderer`'s memo bail holds even if you pass an inline `(r) => …`.
+ *     A per-render-new resolver would remount every handler subtree and drop
+ *     input focus / local state (bd bh7.5);
  *   • **selector cascade** — the `field`/`group` registrar instead of a per-node
  *     `if` ladder.
  *
  * The `tree` argument is a compile-time type carrier (the runtime is source-
  * agnostic) and a seam for a future dev-time "unknown path" warning.
  *
- * Pass a STABLE builder — a module-scope const or a `useCallback` — so the
- * `[build]` dependency doesn't rebuild every render.
+ * Rules are STRUCTURAL — a stylesheet, not reactive state (ADR 047 §1/§7). The
+ * builder is read once on first render; swapping it later has no effect (and warns
+ * in dev). Reactive behavior belongs INSIDE a handler (it is a real component that
+ * may call hooks), not in rebuilding the rule set.
  *
  * ```ts
  * const tree = useMemo(() => jsonSchemaToTree(schema), [])   // brands with FormShapeOf<S>
@@ -117,5 +131,39 @@ export function useRenderNodeRules<TS extends FormShape, Origin>(
   // `tree` is a compile-time type carrier only (the runtime is source-agnostic);
   // referenced here to reserve it for a future dev-time path-validation warning.
   void tree
-  return useMemo(() => renderNodeRules(build as unknown as RulesBuild), [build])
+
+  // Capture the builder ONCE and hold the resolver for the component's lifetime.
+  // Rules are structural (ADR 047 §1/§7), so a stable identity is mandatory: a new
+  // resolver each render remounts every matched handler subtree and drops input
+  // focus / local state. A ref (not `useMemo`, which React is free to discard)
+  // guarantees the stability even for an inline builder. bd bh7.5.
+  const firstBuild = useRef(build)
+  const resolverRef = useRef<RenderNode>()
+  const resolver = (resolverRef.current ??= renderNodeRules(
+    firstBuild.current as unknown as RulesBuild
+  ))
+
+  // Dev-only: a changed builder identity is either an inline closure (the remount
+  // trap) or an attempt at dynamic rules (unsupported — captured once above).
+  // Warn once so the footgun is loud, not silent. Stripped in production.
+  const warned = useRef(false)
+  if (
+    typeof process !== 'undefined' &&
+    process.env.NODE_ENV !== 'production' &&
+    build !== firstBuild.current &&
+    !warned.current
+  ) {
+    warned.current = true
+    // eslint-disable-next-line no-console
+    console.error(
+      '[formframe] useRenderNodeRules: the `build` function changed identity ' +
+        'between renders, so it is being ignored — rules are captured once (like ' +
+        'a stylesheet). An inline `(r) => …` also defeats memoization and would ' +
+        'remount fields (losing focus). Hoist the builder to a module-scope const ' +
+        'or wrap it in useCallback. Put reactive behavior inside a handler, not in ' +
+        'rebuilding rules. See ADR 047 §1/§7.'
+    )
+  }
+
+  return resolver
 }

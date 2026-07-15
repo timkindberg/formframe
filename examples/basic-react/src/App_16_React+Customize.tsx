@@ -150,7 +150,8 @@ const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
   // INLINE handler → props inferred as FieldProps<Shape, 'plan'> (no annotation),
   // because `r` is annotated `TypedRuleRegistrar<Shape>` on this builder above.
   r.field('plan', ({ value, Default }) => {
-    // Hover `value`: 'free' | 'pro' | 'enterprise' — from the schema enum.
+    // Hover `value`: 'free' | 'pro' | 'enterprise' | undefined — the schema enum,
+    // plus `undefined` because live values await a form-state adapter (ADR 047 §7).
     void value
     return <Default />
   })

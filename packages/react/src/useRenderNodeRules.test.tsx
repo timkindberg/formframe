@@ -32,10 +32,14 @@ type Choicegroup = Extract<FieldControl, { kind: 'choicegroup' }>
 type Textarea = Extract<FieldControl, { kind: 'textarea' }>
 
 describe('useRenderNodeRules binds off a FormShape generically (ADR 048)', () => {
-  it('value narrows off the shape', () => {
-    expectTypeOf<FieldProps<TS, 'name'>['value']>().toEqualTypeOf<string>()
+  it('value narrows off the shape (but is | undefined until form-state lands, bd bh7.7)', () => {
+    // The schema type is preserved AND `| undefined` is added, so a handler must
+    // guard rather than trust a value the uncontrolled runtime does not yet pass.
+    expectTypeOf<FieldProps<TS, 'name'>['value']>().toEqualTypeOf<
+      string | undefined
+    >()
     expectTypeOf<FieldProps<TS, 'plan'>['value']>().toEqualTypeOf<
-      'free' | 'pro'
+      'free' | 'pro' | undefined
     >()
   })
 
