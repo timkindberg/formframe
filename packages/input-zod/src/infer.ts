@@ -20,9 +20,9 @@ import type {
   ArrayNode,
   FieldControl,
   FieldNode,
-  FieldPartsBase,
+  FieldPartsData,
   GroupNode,
-  ValidationError,
+  GroupPartsData,
   WidgetName,
   WidgetToControlKind,
 } from '@formframe/core'
@@ -223,41 +223,30 @@ export type HasDescription<S, P extends string> = [S, P] extends [never, never]
   ? true
   : false
 
-type LabelData = FieldPartsBase['label']
-type TextData = NonNullable<FieldPartsBase['description']>
-
 /**
- * The parts bag derived per field path. `Control` is the pre-narrowed member for
- * the path's widget; `Errors` is runtime validation state.
+ * The parts bag derived per field path, kept as a thin re-expression of Core's
+ * single source of truth ({@link FieldPartsData}) so there is no independent
+ * per-front-end logic to drift (bd bh7.11). Internal to this front-end — NOT
+ * re-exported: the public parts surface is Core's `FieldPartsData`.
  *
- * `Description` is an OPTIONAL (possibly-undefined) slot for Zod — unlike JSON
- * Schema, which can prove presence from the literal, Zod keeps descriptions in a
- * runtime registry invisible to the type ({@link HasDescription} is always
- * `false`). The runtime part component is always in the bag and self-noops when a
- * node has no description, so the honest static model is "always placeable, may
- * render nothing" → guard it before use.
+ * `Description` lands as an OPTIONAL (possibly-undefined) slot because
+ * {@link DescriptionStateOf} is always `'optional'` for Zod — unlike JSON Schema,
+ * which proves presence from the literal, Zod keeps descriptions in a runtime
+ * registry invisible to the type. The runtime part component is always in the bag
+ * and self-noops when a node has no description ("always placeable, may render
+ * nothing") → guard it before use.
  */
-export type FieldPartsFor<
-  S,
-  P extends string,
-  Overrides extends Record<string, WidgetName> = NoOverrides,
-> = {
-  Label: LabelData
-  Control: ControlAt<S, P, Overrides>
-  Errors: ValidationError[]
-  Description?: TextData
-}
+export type FieldPartsFor<S, P extends string> = FieldPartsData<
+  WidgetAt<S, P>,
+  DescriptionStateOf<S, P>
+>
 
-/** The parts bag for a group/array path (captions only). `Description` is the same
- * optional slot as fields — Zod cannot prove group description presence either.
- * (`S`/`P` are kept for signature parity with the JSON Schema front-end; the
- * shape doesn't depend on them since Zod descriptions are runtime-only.) */
-export type GroupPartsFor<S, P extends string> = [S, P] extends [never, never]
-  ? never
-  : {
-      Label: TextData
-      Description?: TextData
-    }
+/** The group/array parts bag (captions only) — a thin alias over Core's
+ * {@link GroupPartsData}. `Description` is the same optional slot as fields since
+ * `DescriptionStateOf` is always `'optional'` for Zod (bd bh7.11). */
+export type GroupPartsFor<S, P extends string> = GroupPartsData<
+  DescriptionStateOf<S, P>
+>
 
 /** Zod cannot prove description presence (runtime-registry-only), so the neutral
  * {@link DescriptionState} is always `'optional'` — an always-placeable slot that

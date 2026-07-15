@@ -85,7 +85,7 @@ export type {
   GroupPartsData,
   FormShape,
   TypedTree,
-  ShapeOf,
+  TreeShapeOf,
 } from './present/formShape'
 
 // JSON Pointer ↔ tree dot-path helpers (ADR 018) — shared with validation

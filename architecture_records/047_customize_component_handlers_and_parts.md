@@ -5,6 +5,8 @@
 **Deciders:** Tim Kindberg
 **Extends / refines:** ADR 010 (continuation primitive), ADR 013 (renderer sets / `createRenderer`), ADR 016 (render by calling, stable types), ADR 017 (component re-entry layer), ADR 012 (per-node part override typing), ADR 031 (present/render boundary), ADR 033 (schema-agnostic Core + front-ends), ADR 038/040 (FormFrame `@formframe/*` package identity)
 
+> **Naming (post-ADR-048):** this ADR designed the feature as `customize`. It **shipped renamed**: the primitive is `renderNodeRules(...)` and the typed, memoized React hook is `useRenderNodeRules(tree, rules)`. The typed-binding "recipe" this ADR §4 introduced was **absorbed into `useRenderNodeRules`** (ADR 048) — front-ends brand the tree with a `FormShape` and React binds off it generically, so there is no per-front-end recipe file to copy. Read every `customize` below as that feature by its design-time name.
+
 ## Context
 
 `renderNode` (ADR 010/017) is the floor of React customization: one primitive, re-enter with `<Default of={node} />`. It is powerful but low-level — real apps end up writing a `renderNode` mega-function of `if (node.isField && node.path === 'x')` branches (see `examples/.../App_08`). Three limitations pushed us past it:
@@ -15,7 +17,7 @@
 
 A fourth pressure is cohesion: the app-wide renderer adapter (`createRenderer`, ADR 013) and a per-form `customize` should not be two unrelated APIs where the app-wide one is *less* expressive. They should be one selector language at two scopes.
 
-This ADR was designed against a runnable spike (bd `gjq`) that proved each decision typechecks and runs on the existing engine, then shipped as epic `8l8`. The spike is retired; the live, gate-checked demonstration is `examples/basic-react/src/App_16_React+Customize.tsx` (which also serves as the typed-binding recipe, ADR 024). `customize` is pure sugar lowering to `renderNode` — no Core change was required for §1–§3; §4 added the shared `WIDGET_CONTROL_KIND` table + `overrideWidgets` resolver to Core.
+This ADR was designed against a runnable spike (bd `gjq`) that proved each decision typechecks and runs on the existing engine, then shipped as epic `8l8`. The spike is retired; the live, gate-checked demonstration is `examples/basic-react/src/App_16_React+Customize.tsx` (with the Zod sister `App_17`). The layer is pure sugar lowering to `renderNode` — no Core change was required for §1–§3; §4 added the shared `WIDGET_CONTROL_KIND` table + `overrideWidgets` resolver to Core.
 
 ## Decision
 

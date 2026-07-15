@@ -11,8 +11,8 @@
 // off a HAND-WRITTEN synthetic `FormShape`) and `infer.control.test.ts` (which
 // probes the raw `infer.ts` helpers), it starts from a real
 // `jsonSchemaToTree(schema)` / `zodToTree(schema)`, extracts the branded shape
-// with `ShapeOf<typeof tree>` — the exact type a consumer sees — and asserts, per
-// path:
+// with `TreeShapeOf<typeof tree>` — the exact type a consumer sees — and asserts,
+// per path:
 //   1. value        — FieldProps<Shape,P>['value'] matches the schema value type
 //                      (`| undefined` per bd bh7.7).
 //   2. widget→control — the Control part narrows to the archetype the RUNTIME
@@ -25,7 +25,7 @@
 //   4. path sets     — TypedRuleRegistrar<Shape>['field'|'group'|'array'] accept
 //                      exactly the real field/group/array paths.
 //
-// Because everything flows from `ShapeOf<typeof jsonSchemaToTree(schema)>`, this
+// Because everything flows from `TreeShapeOf<typeof jsonSchemaToTree(schema)>`, this
 // breaks the moment a front-end's return brand stops matching reality: drop the
 // cast and it degrades to the base `FormShape` (value collapses to `unknown`);
 // brand the wrong control archetype and the runtime pairing goes red.
@@ -36,7 +36,7 @@
 
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import { z } from 'zod'
-import type { FieldControl, FormShape, ShapeOf } from '@formframe/core'
+import type { FieldControl, FormShape, TreeShapeOf } from '@formframe/core'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type {
   ArrayPaths as JsonArrayPaths,
@@ -105,7 +105,7 @@ const jsonSchema = {
 } as const
 
 const jsonTree = jsonSchemaToTree(jsonSchema)
-type JShape = ShapeOf<typeof jsonTree>
+type JShape = TreeShapeOf<typeof jsonTree>
 
 describe('FormShape oracle: jsonSchemaToTree brand ↔ FieldProps (bd bh7.4)', () => {
   it('value narrows off the BRANDED tree (| undefined until form-state lands, bh7.7)', () => {
@@ -210,7 +210,7 @@ const zodSchema = z.object({
 })
 
 const zodTree = zodToTree(zodSchema)
-type ZShape = ShapeOf<typeof zodTree>
+type ZShape = TreeShapeOf<typeof zodTree>
 
 describe('FormShape oracle: zodToTree brand ↔ FieldProps (bd bh7.4)', () => {
   it('value narrows off the BRANDED tree (| undefined until form-state lands, bh7.7)', () => {

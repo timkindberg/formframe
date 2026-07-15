@@ -12,8 +12,9 @@ export { jsonSchemaToTree } from './jsonSchemaToTree'
 export type { JSONSchema, JSONSchemaObject } from './types'
 export type { InferData, FieldPath } from './infer'
 // Path-narrowed presentation types (ADR 047 §4) — the schema-owning half of the
-// customize narrowing. Framework-agnostic; a React binding maps `*PartsFor` DATA
-// payloads onto the customize `parts` slots.
+// renderNodeRules narrowing. Framework-agnostic. The per-path PARTS bag is NOT
+// re-exported here: its single public source is Core's `FieldPartsData` /
+// `GroupPartsData`, which a React binding maps onto the `parts` slots (bd bh7.11).
 export type {
   SchemaAt,
   KindOf,
@@ -28,8 +29,6 @@ export type {
   ControlKindAt,
   ControlAt,
   HasDescription,
-  FieldPartsFor,
-  GroupPartsFor,
   DescriptionStateOf,
   FormShapeOf,
 } from './infer'

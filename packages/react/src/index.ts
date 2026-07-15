@@ -76,11 +76,14 @@ export type {
 
 // The typed binding (ADR 048) — reads the `FormShape` a front-end brands onto the
 // tree and re-types the registrar off it. `useRenderNodeRules(tree, rules)` is the
-// typed + memoized front door; `FieldProps`/`GroupProps` annotate hoisted handlers
-// (keyed on `type Shape = FormShapeOf<typeof schema>` from the front-end).
+// typed + memoized front door; `FieldProps`/`GroupProps`/`ArrayProps`/`ControlProps`
+// annotate hoisted handlers (keyed on `type Shape = FormShapeOf<typeof schema>`
+// from the front-end).
 export { useRenderNodeRules } from './useRenderNodeRules'
 export type {
   FieldProps,
   GroupProps,
+  ArrayProps,
+  ControlProps,
   TypedRuleRegistrar,
 } from './useRenderNodeRules'

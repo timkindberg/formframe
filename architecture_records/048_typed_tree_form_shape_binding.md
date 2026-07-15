@@ -9,10 +9,11 @@
 
 ## Context
 
-ADR 047 gave `customize` a path-narrowed surface (`FieldProps<S,P>` etc.), but
-the narrowing types are owned by the front-end (`input-jsonschema`,
-`input-zod`) and differ per front-end, while React's `customize` is deliberately
-source-agnostic and imports no front-end. The two were bridged by a **recipe** —
+ADR 047 gave the customize layer (shipped as `renderNodeRules` — the rename lands
+in this ADR) a path-narrowed surface (`FieldProps<S,P>` etc.), but the narrowing
+types are owned by the front-end (`input-jsonschema`, `input-zod`) and differ per
+front-end, while React's primitive is deliberately source-agnostic and imports no
+front-end. The two were bridged by a **recipe** —
 a mostly-types module (`customizeJsonSchema.ts` / `customizeZod.ts`) the consumer
 pasted in, which imported one front-end's inference and re-typed the registrar.
 
@@ -23,8 +24,9 @@ should not be duplicated per front-end. It wants to move *into* the tree.
 ## Decision
 
 **The front-end computes a resolved, front-end-agnostic `FormShape` and brands
-its tree with it; React reads the `FormShape` off the tree and types the customize
-registrar generically, importing no front-end.** The recipe evaporates, and so do
+its tree with it; React reads the `FormShape` off the tree and types the
+`renderNodeRules` registrar generically, importing no front-end.** The recipe
+evaporates, and so do
 any prospective `react-jsonschema` / `react-zod` bridge packages.
 
 ### 1. `FormShape` — a neutral type surface (Core owns the contract)
@@ -71,9 +73,9 @@ primitives** — `SchemaAt` / `ValueAt` / `KindOf` (→ `FieldPaths`/`GroupPaths
 
 ```ts
 interface TypedTree<TS extends FormShape = FormShape> extends GroupNode {
-  readonly [FORM_SHAPE]?: TS  // phantom — never present at runtime; asserted by the front-end cast
+  readonly [FORM_SHAPE]: TS  // phantom — never present at runtime; asserted by the front-end cast. REQUIRED so an unbranded GroupNode is rejected (fails loud, not silent).
 }
-type ShapeOf<T> = T extends TypedTree<infer TS> ? TS : FormShape
+type TreeShapeOf<T> = T extends TypedTree<infer TS> ? TS : FormShape
 
 jsonSchemaToTree<const S extends JSONSchema>(schema: S): TypedTree<FormShapeOf<S>>
 zodToTree<S extends ZodType>(schema: S): TypedTree<FormShapeOf<S>>

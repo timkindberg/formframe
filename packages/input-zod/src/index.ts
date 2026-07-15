@@ -28,8 +28,6 @@ export type {
   ControlKindAt,
   ControlAt,
   HasDescription,
-  FieldPartsFor,
-  GroupPartsFor,
   DescriptionStateOf,
   FormShapeOf,
 } from './infer'

@@ -10,15 +10,20 @@
 // `renderNodeRules()` (rule sugar) ‹ `useRenderNodeRules()` (typed + memoized).
 import { useRef, type ReactNode } from 'react'
 import type {
+  ControlKind,
+  FieldControl,
+  FieldPartsBase,
   FieldPartsData,
   FormShape,
   GroupPartsData,
   TypedTree,
+  ValidationError,
 } from '@formframe/core'
-import type { EField, EGroup, RenderNode } from './renderer'
+import type { EArray, EField, EGroup, RenderNode } from './renderer'
 import {
   renderNodeRules,
   type PartComponent,
+  type RuleRegistrar,
   type RulesBuild,
 } from './renderNodeRules'
 
@@ -78,14 +83,61 @@ export type GroupProps<
   children: ReactNode
 }>
 
+/** Path-narrowed array handler props for a resolved {@link FormShape} `TS` at
+ * array path `P` — the group-shaped caption parts plus the rendered items as
+ * `children`. */
+export type ArrayProps<
+  TS extends FormShape,
+  P extends keyof TS['arrays'] & string,
+> = Pretty<{
+  path: P
+  node: EArray
+  Default: () => ReactNode
+  parts: SlotsOf<GroupPartsData<TS['arrays'][P]['description']>>
+  children: ReactNode
+}>
+
+/** The parts DATA bag for a `control(kind)` rule: `Control` is pre-narrowed to the
+ * archetype `K`, but a control selector spans MANY paths, so `Label`/`Description`
+ * cannot be proven and `Description` is optional (guard before placing). */
+type ControlPartsData<K extends ControlKind> = {
+  Label: FieldPartsBase['label']
+  Control: Extract<FieldControl, { kind: K }>
+  Errors: ValidationError[]
+  Description?: NonNullable<FieldPartsBase['description']>
+}
+
+/** Handler props for a `control(kind)` rule: `parts.Control` is narrowed to `K`,
+ * but `path`/`value` stay wide because the rule matches every field of that
+ * archetype, not one path (ADR 047 §3/§5). */
+export type ControlProps<K extends ControlKind> = Pretty<{
+  path: string
+  node: EField
+  value: unknown
+  Default: () => ReactNode
+  parts: SlotsOf<ControlPartsData<K>>
+}>
+
 /**
  * The path-narrowed registrar for a resolved {@link FormShape} `TS` — the neutral
- * {@link RuleRegistrar} re-typed so `field`/`group` accept only real paths and
- * hand back narrowed props. Annotate a module-scope (stable) builder as
- * `(r: TypedRuleRegistrar<Shape>) => void`, or pass the builder inline to
- * `useRenderNodeRules` where `TS` is inferred from the tree.
+ * {@link RuleRegistrar} re-typed so the path axes (`field`/`group`/`array`) accept
+ * only real paths and hand back narrowed props, and `control(kind)` narrows its
+ * `Control` part to the archetype. The cross-node axes (`allFields`/`allGroups`/
+ * `allArrays`/`where`/`default`) are inherited UN-narrowed from the neutral
+ * registrar — they inherently match many nodes, so their props stay the neutral
+ * floor (no path to narrow off). Inheriting them (rather than omitting) means
+ * every selector is present and usable on the typed registrar — no "typing cliff"
+ * where reaching for `r.array`/`r.control`/`r.where` falls off the typed surface
+ * (bd bh7.6).
+ *
+ * Annotate a module-scope (stable) builder as `(r: TypedRuleRegistrar<Shape>) =>
+ * void`, or pass the builder inline to `useRenderNodeRules` where `TS` is inferred
+ * from the tree.
  */
-export interface TypedRuleRegistrar<TS extends FormShape> {
+export type TypedRuleRegistrar<TS extends FormShape> = Omit<
+  RuleRegistrar,
+  'field' | 'group' | 'array' | 'control'
+> & {
   field<P extends keyof TS['fields'] & string>(
     path: P,
     Handler: (props: FieldProps<TS, P>) => ReactNode
@@ -93,6 +145,14 @@ export interface TypedRuleRegistrar<TS extends FormShape> {
   group<P extends keyof TS['groups'] & string>(
     path: P,
     Handler: (props: GroupProps<TS, P>) => ReactNode
+  ): void
+  array<P extends keyof TS['arrays'] & string>(
+    path: P,
+    Handler: (props: ArrayProps<TS, P>) => ReactNode
+  ): void
+  control<K extends ControlKind>(
+    kind: K,
+    Handler: (props: ControlProps<K>) => ReactNode
   ): void
 }
 
@@ -154,7 +214,6 @@ export function useRenderNodeRules<TS extends FormShape, Origin>(
     !warned.current
   ) {
     warned.current = true
-    // eslint-disable-next-line no-console
     console.error(
       '[formframe] useRenderNodeRules: the `build` function changed identity ' +
         'between renders, so it is being ignored — rules are captured once (like ' +

@@ -107,6 +107,8 @@ export interface TypedTree<TS extends FormShape = FormShape, Origin = unknown>
 }
 
 /** Extract the branded {@link FormShape} from a tree (falls back to the permissive
- * base surface for an unbranded `GroupNode`). */
-export type ShapeOf<T> =
+ * base surface for an unbranded `GroupNode`). Named `TreeShapeOf` — not `ShapeOf`
+ * — to avoid colliding with a front-end's own schema-shape helper (e.g. Zod's
+ * internal `ShapeOf`). */
+export type TreeShapeOf<T> =
   T extends TypedTree<infer TS, infer _Origin> ? TS : FormShape

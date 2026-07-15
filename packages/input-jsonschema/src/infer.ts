@@ -9,9 +9,9 @@ import type {
   ArrayNode,
   FieldControl,
   FieldNode,
-  FieldPartsBase,
+  FieldPartsData,
   GroupNode,
-  ValidationError,
+  GroupPartsData,
   WidgetName,
   WidgetToControlKind,
 } from '@formframe/core'
@@ -310,27 +310,21 @@ export type FormShapeOf<S> = {
   }
 }
 
-// The narrowed DATA payload each present part hands its render prop. Core owns
-// these shapes; a React binding wraps each as a `PartComponent<data>`.
-type LabelData = FieldPartsBase['label']
-type TextData = NonNullable<FieldPartsBase['description']>
-
 /**
- * The parts bag DERIVED per field path (ADR 047 §4): `Description` exists only
- * when the schema declares one; `Control` is the pre-narrowed member for the
- * path's widget. `Errors` is runtime validation state (`ValidationError[]`).
+ * The parts bag for a path, kept as a thin re-expression of Core's single source
+ * of truth ({@link FieldPartsData} / {@link GroupPartsData}) so there is no
+ * independent per-front-end logic to drift (bd bh7.11). Internal to this
+ * front-end — NOT re-exported: the public parts surface is Core's `FieldPartsData`
+ * (a React binding wraps each slot as a `PartComponent<data>`). Composed from the
+ * path's widget + description state, exactly what `FormShapeOf` carries.
  */
-export type FieldPartsFor<
-  S,
-  P extends string,
-  Overrides extends Record<string, WidgetName> = NoOverrides,
-> = {
-  Label: LabelData
-  Control: ControlAt<S, P, Overrides>
-  Errors: ValidationError[]
-} & (HasDescription<S, P> extends true ? { Description: TextData } : object)
+export type FieldPartsFor<S, P extends string> = FieldPartsData<
+  WidgetAt<S, P>,
+  DescriptionStateOf<S, P>
+>
 
-/** The parts bag for a group/array path (captions only). */
-export type GroupPartsFor<S, P extends string> = {
-  Label: TextData
-} & (HasDescription<S, P> extends true ? { Description: TextData } : object)
+/** The group/array parts bag (captions only) — a thin alias over Core's
+ * {@link GroupPartsData} keyed on the path's description state (bd bh7.11). */
+export type GroupPartsFor<S, P extends string> = GroupPartsData<
+  DescriptionStateOf<S, P>
+>

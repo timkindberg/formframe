@@ -5,8 +5,10 @@
 // path/value/parts narrowing a real `jsonSchemaToTree`/`zodToTree` brand would.
 
 import { describe, expectTypeOf, it } from 'vitest'
-import type { DescriptionState, FieldControl, FormShape } from '@formframe/core'
+import type { FieldControl, FormShape } from '@formframe/core'
 import type {
+  ArrayProps,
+  ControlProps,
   FieldProps,
   GroupProps,
   TypedRuleRegistrar,
@@ -20,7 +22,7 @@ type TS = {
     bio: { value: string; widget: 'textarea'; description: 'optional' }
   }
   groups: { address: { description: 'absent' } }
-  arrays: Record<string, { description: DescriptionState }>
+  arrays: { tags: { description: 'optional' } }
 }
 
 // The synthetic surface is a valid `FormShape` (subtype of the neutral contract).
@@ -84,16 +86,49 @@ describe('useRenderNodeRules binds off a FormShape generically (ADR 048)', () =>
     >().toEqualTypeOf<true>()
   })
 
-  it('the registrar accepts only real field/group paths', () => {
+  it('the registrar accepts only real field/group/array paths', () => {
     expectTypeOf<
       Parameters<TypedRuleRegistrar<TS>['field']>[0]
     >().toEqualTypeOf<'name' | 'plan' | 'bio'>()
     expectTypeOf<
       Parameters<TypedRuleRegistrar<TS>['group']>[0]
     >().toEqualTypeOf<'address'>()
+    expectTypeOf<
+      Parameters<TypedRuleRegistrar<TS>['array']>[0]
+    >().toEqualTypeOf<'tags'>()
   })
 
-  it('group props expose caption parts', () => {
+  it('group / array props expose caption parts + children', () => {
     expectTypeOf<GroupProps<TS, 'address'>['parts']>().toHaveProperty('Label')
+    expectTypeOf<ArrayProps<TS, 'tags'>['parts']>().toHaveProperty('Label')
+    expectTypeOf<ArrayProps<TS, 'tags'>>().toHaveProperty('children')
+  })
+
+  it('control(kind) narrows the Control part by archetype (path/value stay wide)', () => {
+    // A control selector spans many paths, so `Control` is narrowed to the kind
+    // while `path`/`value` stay wide (bd bh7.6).
+    expectTypeOf<
+      Parameters<
+        NonNullable<
+          Parameters<
+            ControlProps<'choicegroup'>['parts']['Control']
+          >[0]['render']
+        >
+      >[0]
+    >().toEqualTypeOf<Choicegroup>()
+    expectTypeOf<ControlProps<'input'>['value']>().toEqualTypeOf<unknown>()
+    expectTypeOf<ControlProps<'input'>['path']>().toEqualTypeOf<string>()
+  })
+
+  it('the cross-node selectors are present (no typing cliff, bd bh7.6)', () => {
+    // control / allFields / allGroups / allArrays / where / default all exist on
+    // the typed registrar (inherited un-narrowed from the neutral floor) — reaching
+    // for them does not fall off the typed surface.
+    expectTypeOf<TypedRuleRegistrar<TS>>().toHaveProperty('control')
+    expectTypeOf<TypedRuleRegistrar<TS>>().toHaveProperty('allFields')
+    expectTypeOf<TypedRuleRegistrar<TS>>().toHaveProperty('allGroups')
+    expectTypeOf<TypedRuleRegistrar<TS>>().toHaveProperty('allArrays')
+    expectTypeOf<TypedRuleRegistrar<TS>>().toHaveProperty('where')
+    expectTypeOf<TypedRuleRegistrar<TS>>().toHaveProperty('default')
   })
 })
