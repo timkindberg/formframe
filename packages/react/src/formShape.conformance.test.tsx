@@ -36,7 +36,12 @@
 
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import { z } from 'zod'
-import type { FieldControl, FormShape, TreeShapeOf } from '@formframe/core'
+import type {
+  FieldControl,
+  FormShape,
+  GroupNode,
+  TreeShapeOf,
+} from '@formframe/core'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type {
   ArrayPaths as JsonArrayPaths,
@@ -49,6 +54,7 @@ import type {
   FieldPaths as ZodFieldPaths,
   GroupPaths as ZodGroupPaths,
 } from '@formframe/input-zod'
+import { useRenderNodeRules } from './useRenderNodeRules'
 import type {
   FieldProps,
   GroupProps,
@@ -299,5 +305,20 @@ describe('FormShape oracle: zodToTree brand ↔ FieldProps (bd bh7.4)', () => {
         ? true
         : false
     >().toEqualTypeOf<true>()
+  })
+})
+
+describe('the brand is load-bearing: an unbranded tree is rejected (review #1 / bd 120)', () => {
+  it('a plain GroupNode is NOT assignable to the hook input', () => {
+    // The whole binding rests on the REQUIRED `[FORM_SHAPE]` phantom brand: a plain
+    // `GroupNode` (a re-presented tree, or one widened back to the base type) lacks
+    // it, so it is NOT a `TypedTree` and the hook's first parameter rejects it. That
+    // turns "handed an unbranded tree" into a LOUD type error instead of a silent
+    // collapse to the permissive base `FormShape` (where all narrowing vanishes).
+    // Type-only assertion — the hook is never invoked (so it stays hooks-lint-clean).
+    // (The positive direction — branded trees ARE accepted — is covered by the rest
+    // of this file and by App_16/App_17, which call the hook on the branded tree.)
+    type HookInput = Parameters<typeof useRenderNodeRules>[0]
+    expectTypeOf<GroupNode>().not.toExtend<HookInput>()
   })
 })
