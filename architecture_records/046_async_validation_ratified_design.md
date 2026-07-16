@@ -204,10 +204,11 @@ reopened. The fixes applied in response:
   only store-level coverage).
 - **Docs truth.** README now leads with the batteries-included bound
   `SchemaFields`, documents the **superseded-submit-still-fires-`onValid`** hazard
-  (§3 above) with a "disable submit while pending" guard, documents that `onValid`
-  rejections are the consumer's concern (§3), and carries a migration note for the
-  removed `validation` return. Stale JSDoc/comments (`Validator` "async is future",
-  `displayPolicy` referencing the removed `validation`) were corrected.
+  (§3 above) with a "disable submit while pending" guard, and documents that
+  `onValid` rejections are the consumer's concern (§3). Stale JSDoc/comments
+  (`Validator` "async is future", `displayPolicy` referencing the removed
+  `validation`) were corrected. (No migration note is warranted — nothing is
+  published yet.)
 
 **Deferred (captured, not blocking):** a per-field double-subscription micro-cost
 in the default field renderer; `FormStoreProvider` erasing the `Output` generic;

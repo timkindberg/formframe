@@ -130,12 +130,6 @@ Errors, touched, submitted, and pending state all live in the hook's `store`;
 `FormStoreProvider` lets the summary and field errors read it without
 prop-drilling, and only the components whose data changed re-render.
 
-> **Migrating from the old `validation` return.** Earlier versions returned a
-> `validation` object you spread into `ValidationProvider`. That's replaced by
-> the `store` + `FormStoreProvider` above and the selector hooks
-> (`useValidationErrors`, `useIsValidating`, …): swap
-> `<ValidationProvider {...validation}>` for `<FormStoreProvider store={store}>`.
-
 ### Async validation
 
 The same `validator` slot takes an **async** validator (one whose result is a
