@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   useFormTree,
-  ValidationProvider,
+  FormStoreProvider,
   useRenderNodeRules,
   type FieldProps,
   type GroupProps,
@@ -167,7 +167,7 @@ function LiveCustomizedForm() {
     SchemaFields: Fields,
     submit,
     revalidate,
-    errors,
+    store,
   } = useFormTree(tree, { validator })
   // `useRenderNodeRules` reads the tree's `FormShape` brand to type the rules,
   // bakes in the memo, and hides the one intrinsic cast — the SAME React hook
@@ -176,9 +176,9 @@ function LiveCustomizedForm() {
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (
     <form noValidate onSubmit={submit((d) => setData(d))} onInput={revalidate}>
-      <ValidationProvider errors={errors} showErrorsWhen="always">
+      <FormStoreProvider store={store} showErrorsWhen="always">
         <Fields renderNode={renderNode} />
-      </ValidationProvider>
+      </FormStoreProvider>
       <button type="submit" style={{ marginTop: 12 }}>
         Submit
       </button>

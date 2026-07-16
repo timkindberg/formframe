@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import {
   useFormTree,
-  ValidationProvider,
+  FormStoreProvider,
   useRenderNodeRules,
   type FieldProps,
   type GroupProps,
@@ -172,7 +172,7 @@ function LiveCustomizedForm() {
     SchemaFields: Fields,
     submit,
     revalidate,
-    errors,
+    store,
   } = useFormTree(tree, { validator })
   // `useRenderNodeRules` reads the tree's `FormShape` brand to type the rules,
   // bakes in the memo (stable resolver identity is the contract), and hides the
@@ -181,9 +181,9 @@ function LiveCustomizedForm() {
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (
     <form noValidate onSubmit={submit((d) => setData(d))} onInput={revalidate}>
-      <ValidationProvider errors={errors} showErrorsWhen="always">
+      <FormStoreProvider store={store} showErrorsWhen="always">
         <Fields renderNode={renderNode} />
-      </ValidationProvider>
+      </FormStoreProvider>
       <button type="submit" style={{ marginTop: 12 }}>
         Submit
       </button>
