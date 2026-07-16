@@ -137,6 +137,16 @@ const validator = createZodAsyncValidator(schemaWithAsyncRule)
 `useIsSubmitting()` spans it. See `examples/basic-react` example 16 for a
 runnable walkthrough.
 
+**Costs and caveats.** `revalidate` runs the _whole_ validator each time (no
+dirty-diffing), and any async rule makes the whole schema async, so every pass
+flips `useIsValidating()`. Debounce, dedupe, and skip-when-unchanged are
+therefore consumer-owned (ADR 021) — example 16 shows a value-cache plus a
+blur guard. With Zod specifically, prefer **field-level** `.refine` for
+single-field async rules: an object-level `.refine` is skipped whenever any
+field has an `invalid_type` issue, and since `submit` omits empty inputs, a
+blank field arrives as `undefined` (`invalid_type`) — so an object-level remote
+check silently won't run until the unrelated field is filled.
+
 ## Customize one generated part
 
 Every default is also a re-entry point. This adds context to the generated email
