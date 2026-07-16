@@ -127,3 +127,15 @@ memoization, and the selector cascade. Layering: `renderNode` (floor) ‹
   flat on check time. The expensive `FieldControl` extraction + parts assembly
   stays lazy (Core), so real cost tracks the paths you customize, not the schema
   size. The recipe is retained in git history as a fallback.
+
+## Known limitation: default-presentation only (bd bh7.8)
+
+`FormShapeOf` resolves `widget` with `NoOverrides`, so the brand describes the
+**default** presentation. A tree re-presented with `overrideWidgets` (via
+`useFormTree`/`present`) can therefore **desync** the typed control from what
+renders — the type says `choicegroup` while the DOM is a `<select>`. Path, value,
+and description narrowing are unaffected; only the control archetype is at risk,
+and only for overridden paths. This shipped documented (JSDoc on `FormShapeOf` and
+`useRenderNodeRules`) rather than fixed; the real fix threads an `Overrides` map
+through the brand (the `WidgetAt<S,P,Overrides>` seam already exists). Until then,
+treat the narrowed `Control` type as advisory for overridden paths.

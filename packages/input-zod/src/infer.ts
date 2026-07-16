@@ -272,6 +272,11 @@ export type DescriptionStateOf<S, P extends string> = [S, P] extends [
  * (`input-jsonschema`'s `FormShapeOf`, measured): linear in path count,
  * ~6 instantiations/path, no measurable check-time impact — the eager half is
  * cheap and the widget→control→parts composition stays lazy in Core.
+ *
+ * LIMITATION — types reflect the DEFAULT presentation (bd bh7.8): `widget` uses
+ * `NoOverrides`, so re-presenting with `overrideWidgets` can desync the typed
+ * control from what renders. Same caveat as the JSON Schema `FormShapeOf`; treat
+ * this as "default presentation only" for now.
  */
 export type FormShapeOf<S> = {
   fields: {

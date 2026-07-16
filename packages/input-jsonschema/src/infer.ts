@@ -321,6 +321,13 @@ export type DescriptionStateOf<S, P extends string> =
  * blowup), both flat on check time. The eager half here is the cheap half; the
  * expensive `FieldControl` extraction + parts assembly (Core) stays lazy, so real
  * cost tracks the handful of paths you customize, not the whole schema.
+ *
+ * LIMITATION — types reflect the DEFAULT presentation (bd bh7.8): `widget` is
+ * resolved with `NoOverrides`. If you re-present the tree with `overrideWidgets`
+ * (via `useFormTree`/`present`), the typed control can DESYNC from what renders —
+ * the type may say `choicegroup` while the DOM is a `<select>`. Until an `Overrides`
+ * map is threaded through the brand, treat this surface as "default presentation
+ * only"; don't rely on the narrowed `Control` type for overridden paths.
  */
 export type FormShapeOf<S> = {
   fields: {
