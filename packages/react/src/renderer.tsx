@@ -849,6 +849,11 @@ export interface SchemaFieldsProps {
 
 const defaultResolver: AnySchemaResolver<ReactNode> = (node) => node.Default()
 
+// Minimal ambient so the dev-only guard below typechecks without pulling in
+// `@types/node`; consumer bundlers (webpack/vite/esbuild) statically replace
+// `process.env.NODE_ENV`, so the whole branch is dead-code-eliminated in prod.
+declare const process: { env: { NODE_ENV?: string } } | undefined
+
 /**
  * The floor (ADR 013): bind a renderer set and get a `SchemaFields` component.
  * The `adapter` is partial — missing content entries fall back to the visible
@@ -893,6 +898,47 @@ export function createRenderer(adapter: ReactPartialAdapter) {
     renderNode,
     children,
   }: SchemaFieldsProps) {
+    // Dev-only remount guard (bd jsonschema-form-108): `renderNode` changing
+    // identity between renders defeats the `memo` bail below no matter WHY it
+    // changed — a hand-rolled unstable resolver, or the low-level
+    // `renderNodeRules(build)` called fresh inline (that sugar has no `useRef`
+    // of its own to hold an identity across renders; only `useRenderNodeRules`
+    // does). `useRenderNodeRules` already warns on an unstable *builder*; this
+    // mirrors that warning one layer down, at the prop `SchemaFields` actually
+    // consumes, so the footgun is loud even when a consumer bypasses the hook.
+    //
+    // A DELIBERATE rebuild (e.g. `useRenderNodeRules(tree, build, [dep])` after
+    // `dep` changes) also changes this prop's identity ONCE, then stabilizes —
+    // that is the documented, non-silent contract of `deps` and must NOT warn.
+    // An unmemoized inline call instead changes it on EVERY render, forever, so
+    // we only flag TWO consecutive changes (never a chance to stabilize) —
+    // one-off deliberate swaps stay silent; persistent churn is still loud.
+    const prevRenderNode = useRef(renderNode)
+    const consecutiveChanges = useRef(0)
+    const warnedUnstableRenderNode = useRef(false)
+    const changedThisRender = renderNode !== prevRenderNode.current
+    consecutiveChanges.current = changedThisRender
+      ? consecutiveChanges.current + 1
+      : 0
+    if (
+      typeof process !== 'undefined' &&
+      process.env.NODE_ENV !== 'production' &&
+      consecutiveChanges.current >= 2 &&
+      !warnedUnstableRenderNode.current
+    ) {
+      warnedUnstableRenderNode.current = true
+      console.error(
+        '[formframe] SchemaFields: the `renderNode` prop changed identity on ' +
+          'consecutive renders, which remounts every matched field (losing ' +
+          'focus and uncontrolled DOM state). Memoize it — hoist a ' +
+          '`renderNodeRules(…)` call to module scope, or bind it with ' +
+          '`useRenderNodeRules`, which holds a stable identity for you. ' +
+          'Calling `renderNodeRules(…)` inline in the render body (without the ' +
+          'hook) rebuilds it fresh every render.'
+      )
+    }
+    prevRenderNode.current = renderNode
+
     // Adapt the user's 2-arg `RenderNode` to Core's 1-arg `Resolver`, injecting
     // the handle helpers. Memoized on `renderNode` so a stable hook keeps a
     // stable resolver identity (the `memo` bail); an inlined hook re-renders.

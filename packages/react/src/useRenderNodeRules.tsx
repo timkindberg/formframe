@@ -8,7 +8,7 @@
 // hand-written resolver can't do. What it adds: (1) tree-typed authoring, (2)
 // baked memoization, (3) the selector cascade. Layering: `renderNode` (floor) ‹
 // `renderNodeRules()` (rule sugar) ‹ `useRenderNodeRules()` (typed + memoized).
-import { useRef, type ReactNode } from 'react'
+import { useMemo, useRef, type ReactNode } from 'react'
 import type {
   ControlKind,
   FieldControl,
@@ -252,8 +252,28 @@ export type TypedRuleRegistrar<TS extends FormShape> = Omit<
  *
  * Rules are STRUCTURAL — a stylesheet, not reactive state (ADR 047 §1/§7). The
  * builder is read once on first render; swapping it later has no effect (and warns
- * in dev). Reactive behavior belongs INSIDE a handler (it is a real component that
- * may call hooks), not in rebuilding the rule set.
+ * in dev, bd bh7.5). Reactive behavior belongs INSIDE a handler (it is a real
+ * component that may call hooks), not in rebuilding the rule set.
+ *
+ * DYNAMIC RULE SETS (bd jsonschema-form-108): if the rules themselves must change
+ * shape — a feature flag or locale swaps which fields exist, not just what a
+ * handler renders — pass an explicit `deps` array (3rd arg), exactly like
+ * `useMemo`/`useEffect`. The resolver then rebuilds (and matched fields
+ * deliberately remount) whenever a listed dep changes:
+ *
+ * ```ts
+ * const renderNode = useRenderNodeRules(tree, (r) => { … uses locale … }, [locale])
+ * ```
+ *
+ * Don't reach for `useCallback(build, [locale])` instead: `useCallback` gives the
+ * BUILDER a new identity when a listed dep changes (which this hook still only
+ * warns about, per the stylesheet contract above) — it does not rebuild anything.
+ * Worse, a `useCallback` with an INCOMPLETE deps list keeps the SAME identity
+ * while its closed-over value drifts, and this hook has no way to see that a
+ * same-reference function's insides changed — it stays silent, and your rules
+ * are frozen at whatever they were on the first render. `deps` sidesteps the
+ * whole class of bug: you declare what should trigger a rebuild, and the hook
+ * rebuilds on exactly that, the same way `useMemo`'s deps do.
  *
  * OVERRIDES (bd bh7.8, resolved): if you re-present with `overrideWidgets(map)` via
  * `useFormTree`, type this hook off the returned `form` (which carries the override
@@ -270,7 +290,8 @@ export type TypedRuleRegistrar<TS extends FormShape> = Omit<
  */
 export function useRenderNodeRules<TS extends FormShape, Origin>(
   tree: TypedTree<TS, Origin>,
-  build: (r: TypedRuleRegistrar<TS>) => void
+  build: (r: TypedRuleRegistrar<TS>) => void,
+  deps?: readonly unknown[]
 ): RenderNode {
   // `tree` is a compile-time type carrier only (the runtime is source-agnostic);
   // referenced here to reserve it for a future dev-time path-validation warning.
@@ -286,15 +307,18 @@ export function useRenderNodeRules<TS extends FormShape, Origin>(
   // this a guarantee even when the caller passes an inline `(r) => …`.
   const firstBuild = useRef(build)
   const resolverRef = useRef<RenderNode>()
-  const resolver = (resolverRef.current ??= renderNodeRules(
+  const onceResolver = (resolverRef.current ??= renderNodeRules(
     firstBuild.current as unknown as RulesBuild
   ))
 
   // Dev-only: a changed builder identity is either an inline closure (the remount
-  // trap) or an attempt at dynamic rules (unsupported — captured once above).
-  // Warn once so the footgun is loud, not silent. Stripped in production.
+  // trap) or an attempt at dynamic rules without declaring `deps` (unsupported —
+  // captured once above). Warn once so the footgun is loud, not silent. Stripped
+  // in production. Skipped when `deps` is supplied — that path below owns
+  // rebuilding deliberately, so an identity change is expected, not a footgun.
   const warned = useRef(false)
   if (
+    !deps &&
     typeof process !== 'undefined' &&
     process.env.NODE_ENV !== 'production' &&
     build !== firstBuild.current &&
@@ -305,11 +329,27 @@ export function useRenderNodeRules<TS extends FormShape, Origin>(
       '[formframe] useRenderNodeRules: the `build` function changed identity ' +
         'between renders, so it is being ignored — rules are captured once (like ' +
         'a stylesheet). An inline `(r) => …` also defeats memoization and would ' +
-        'remount fields (losing focus). Hoist the builder to a module-scope const ' +
-        'or wrap it in useCallback. Put reactive behavior inside a handler, not in ' +
-        'rebuilding rules. See ADR 047 §1/§7.'
+        'remount fields (losing focus). Hoist the builder to a module-scope const, ' +
+        'or if the rule SET must genuinely change shape, pass an explicit `deps` ' +
+        'array (3rd arg) instead of relying on a wrapped useCallback identity — ' +
+        'see the DYNAMIC RULE SETS section in the doc comment on this hook. Put ' +
+        'reactive per-render behavior INSIDE a handler, not in rebuilding rules. ' +
+        'See ADR 047 §1/§7.'
     )
   }
 
-  return resolver
+  // Explicit escape hatch (bd jsonschema-form-108): the caller owns reactivity via
+  // `deps`, exactly like `useMemo`. Every dep change is a DELIBERATE rebuild (and
+  // remount of matched fields) — never silent staleness, unlike a `useCallback`
+  // whose deps list is missing something the builder closes over. Falls back to
+  // the once-only resolver when `deps` is omitted (the default stylesheet path).
+  // `deps` is caller-owned and intentionally opaque to this hook — it is NOT a
+  // real dependency of the factory in the exhaustive-deps sense, it is the
+  // caller's declared reactivity contract, so the lint rule is disabled below.
+  const depsOrOnce = deps ?? [onceResolver]
+  return useMemo(
+    () =>
+      deps ? renderNodeRules(build as unknown as RulesBuild) : onceResolver,
+    depsOrOnce // eslint-disable-line react-hooks/exhaustive-deps -- `depsOrOnce` IS the full, caller-declared dependency contract
+  )
 }
