@@ -66,7 +66,7 @@ gh issue close <n> --reason completed --comment "Done"
 3. **Work on it**: implement, test, document
 4. **Discover new work?** `gh issue create` and link with `Related to #N` / `Blocked by #N` in the body
 5. **Complete**: `gh issue close <n>`
-6. Legacy bd ids in ADRs resolve via [`scripts/bd-to-github-migration-map.json`](scripts/bd-to-github-migration-map.json)
+6. Historical `jsonschema-form-*` / `bd …` citations in ADRs resolve via [`scripts/bd-to-github-migration-map.json`](scripts/bd-to-github-migration-map.json) — that file is a lookup table only, **not** an active tracker
 
 ### Managing AI-Generated Planning Documents
 

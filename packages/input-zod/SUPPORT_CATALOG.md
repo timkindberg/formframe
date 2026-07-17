@@ -242,16 +242,15 @@ When changing behavior, update **this file** and relevant capability tests in `z
 
 ---
 
-## Known gaps (beads — not a second tracker)
+## Known gaps (GitHub Issues — not a second tracker)
 
-| Gap | Bead |
-|-----|------|
-| Structural / discriminated unions | `jsonschema-form-miu` |
-| Records / maps | `jsonschema-form-33i` |
-| Tuples | `jsonschema-form-6xz` |
-| Lazy / recursive graphs | `jsonschema-form-fng` |
-| Default / prefault prefill | `jsonschema-form-2qx` |
-| **This catalog** | `jsonschema-form-5ss.6` |
+| Gap | Issue |
+|-----|-------|
+| Structural / discriminated unions | [#94](https://github.com/timkindberg/formframe/issues/94) |
+| Records / maps | [#76](https://github.com/timkindberg/formframe/issues/76) |
+| Tuples | [#80](https://github.com/timkindberg/formframe/issues/80) |
+| Lazy / recursive graphs | [#89](https://github.com/timkindberg/formframe/issues/89) |
+| Default / prefault prefill | [#75](https://github.com/timkindberg/formframe/issues/75) |
 
 ---
 

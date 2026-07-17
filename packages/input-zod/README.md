@@ -19,7 +19,7 @@ Pair with `@formframe/renderer-react`'s `useFormTree(tree)` for rendering and su
 
 ## Support catalog
 
-**[SUPPORT_CATALOG.md](./SUPPORT_CATALOG.md)** — evidence-backed matrix of Zod shapes, wrappers, and checks: what `zodToTree` actually does today (supported, qualified, degraded, ignored, rejected), plus validation-only semantics. Links to source, tests, and gap beads.
+**[SUPPORT_CATALOG.md](./SUPPORT_CATALOG.md)** — evidence-backed matrix of Zod shapes, wrappers, and checks: what `zodToTree` actually does today (supported, qualified, degraded, ignored, rejected), plus validation-only semantics. Links to source, tests, and gap GitHub Issues.
 
 Update the catalog when compiler behavior changes.
 

@@ -18,7 +18,7 @@ const tree = jsonSchemaToTree({
 
 ## Support catalog
 
-**[SUPPORT_CATALOG.md](./SUPPORT_CATALOG.md)** — evidence-backed matrix of schema shapes and keywords: what `jsonSchemaToTree` actually does today (supported, supported (qualified), degraded, ignored, rejected), with links to source, tests, and gap beads.
+**[SUPPORT_CATALOG.md](./SUPPORT_CATALOG.md)** — evidence-backed matrix of schema shapes and keywords: what `jsonSchemaToTree` actually does today (supported, supported (qualified), degraded, ignored, rejected), with links to source, tests, and gap GitHub Issues.
 
 Update the catalog when compiler behavior changes.
 

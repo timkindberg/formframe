@@ -25,7 +25,7 @@ Development proceeds as a loop that iterates against a **deterministic gate suit
 
 **The runner is a swappable implementation detail, matched to task shape AND budget, changeable as we go.** Hard constraint: this is built on a $20/mo Claude Pro plan, so token-multiplying orchestration is avoided. Verification is *free* (`npm run gate` is a shell command); agent reasoning — and especially subagents — cost usage.
 
-- **Default — single agent, interactive.** One main agent works one issue at a time (`bd ready`) against the gate. Cheapest mode; the 3-tier autonomy keeps permission round-trips low, which *saves* tokens vs. strict pairing.
+- **Default — single agent, interactive.** One main agent works one issue at a time (`gh issue list`) against the gate. Cheapest mode; the 3-tier autonomy keeps permission round-trips low, which *saves* tokens vs. strict pairing.
 - **tech-lead orchestration (Opus orchestrator + Sonnet subagents):** reserved for *large, well-specified* chunks (e.g., a whole Phase-B adapter) where delegating bulk churn to Sonnet outweighs subagent cold-start + spec/parse overhead. Net savings are **unproven** — measure on the first big chunk before relying on it. Not for small interactive iterations (overhead dominates).
 - **Dynamic Workflows / Sandcastle:** parallel multi-agent orchestration — **token-prohibitive on the Pro plan. Parked** until budget allows.
 

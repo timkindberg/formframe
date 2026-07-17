@@ -243,19 +243,18 @@ When changing behavior, update **this file** and the relevant capability test in
 
 ---
 
-## Known gaps (beads — not a second tracker)
+## Known gaps (GitHub Issues — not a second tracker)
 
-Actionable unsupported areas are tracked in **bd**. This catalog links them for triage:
+Actionable unsupported areas are tracked in **GitHub Issues**. This catalog links them for triage:
 
-| Gap | Bead |
-|-----|------|
-| `anyOf` / structural `oneOf` variant subforms | `jsonschema-form-c5t` |
-| `allOf` merge at compile time | `jsonschema-form-0z9` |
-| `if` / `then` / `else` conditionals | `jsonschema-form-avw` |
-| Tuple / `prefixItems` arrays | `jsonschema-form-a58` |
-| `default` prefill | `jsonschema-form-2qx` |
-| Broader `format` / `pattern` UX | `jsonschema-form-ft3` |
-| Umbrella schema resolution epic | `jsonschema-form-z0t` |
+| Gap | Issue |
+|-----|-------|
+| `anyOf` / structural `oneOf` variant subforms | [#88](https://github.com/timkindberg/formframe/issues/88) |
+| `if` / `then` / `else` conditionals | [#86](https://github.com/timkindberg/formframe/issues/86) |
+| Tuple / `prefixItems` arrays | [#84](https://github.com/timkindberg/formframe/issues/84) |
+| `default` prefill | [#75](https://github.com/timkindberg/formframe/issues/75) |
+
+(`allOf` merge and the old schema-resolution umbrella were closed as stale/superseded during the beads→GitHub migration.)
 
 ---
 
