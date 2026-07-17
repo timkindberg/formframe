@@ -159,9 +159,10 @@ const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
   // ── Guardrails: each is a COMPILE ERROR. ───────────────────────────────────
   // @ts-expect-error 'nope' is not a field path
   r.field('nope', () => null)
-  // @ts-expect-error 'address' is a GROUP, not a field
+  // @ts-expect-error 'address' is a GROUP, not a field — the error NAMES the fix
+  // ("use r.group(), not r.field()"), not just "not assignable to a union" (bd q8v).
   r.field('address', () => null)
-  // @ts-expect-error 'address.city' is a FIELD, not a group
+  // @ts-expect-error 'address.city' is a FIELD, not a group — hints "use r.field()"
   r.group('address.city', () => null)
 }
 

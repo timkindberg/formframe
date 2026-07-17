@@ -139,6 +139,53 @@ export type ControlProps<K extends ControlKind> = Pretty<{
   parts: SlotsOf<ControlPartsData<K>>
 }>
 
+/** The three path axes a resolved {@link FormShape} `TS` partitions its paths
+ * into — one path string belongs to exactly one of these (never two). */
+type FieldPath<TS extends FormShape> = keyof TS['fields'] & string
+type GroupPath<TS extends FormShape> = keyof TS['groups'] & string
+type ArrayPath<TS extends FormShape> = keyof TS['arrays'] & string
+
+// TYPE TOUR — cross-kind DX (bd q8v): before this, `r.field('address', …)` on
+// `'address'` (really a group) errored as `Argument of type '"address"' is not
+// assignable to parameter of type '"name" | "plan"'` — legible (it lists valid
+// field paths) but not PEDAGOGICAL (it never says "'address' IS a real path,
+// just the wrong axis"). Each `<Axis>PathArg` below is the identity on a path
+// that belongs to its OWN axis (so valid calls are untouched), but resolves to a
+// literal-string ERROR MESSAGE — not a union — when `P` belongs to one of the
+// OTHER two axes. TypeScript's "not assignable" diagnostic then prints that
+// message verbatim as the expected type, so the error itself names the fix
+// ("use r.group(), not r.field()"). A path on NO axis (a genuine typo) falls
+// through to the plain union, unchanged from before. `P` is inferred as an
+// ordinary `string` type parameter (same mechanism as `GuardSchema` in
+// `jsonSchemaToTree`, ADR 049) — the conditional lives in the checked position,
+// not the inference position, so valid-path autocomplete is unaffected.
+type FieldPathArg<TS extends FormShape, P extends string> =
+  P extends FieldPath<TS>
+    ? P
+    : P extends GroupPath<TS>
+      ? `'${P}' is a group path here — use r.group(), not r.field()`
+      : P extends ArrayPath<TS>
+        ? `'${P}' is an array path here — use r.array(), not r.field()`
+        : FieldPath<TS>
+
+type GroupPathArg<TS extends FormShape, P extends string> =
+  P extends GroupPath<TS>
+    ? P
+    : P extends FieldPath<TS>
+      ? `'${P}' is a field path here — use r.field(), not r.group()`
+      : P extends ArrayPath<TS>
+        ? `'${P}' is an array path here — use r.array(), not r.group()`
+        : GroupPath<TS>
+
+type ArrayPathArg<TS extends FormShape, P extends string> =
+  P extends ArrayPath<TS>
+    ? P
+    : P extends FieldPath<TS>
+      ? `'${P}' is a field path here — use r.field(), not r.array()`
+      : P extends GroupPath<TS>
+        ? `'${P}' is a group path here — use r.group(), not r.array()`
+        : ArrayPath<TS>
+
 /**
  * The path-narrowed registrar for a resolved {@link FormShape} `TS` — the neutral
  * {@link RuleRegistrar} re-typed so the path axes (`field`/`group`/`array`) accept
@@ -168,17 +215,17 @@ export type TypedRuleRegistrar<TS extends FormShape> = Omit<
   RuleRegistrar,
   'field' | 'group' | 'array' | 'control'
 > & {
-  field<P extends keyof TS['fields'] & string>(
-    path: P,
-    Handler: (props: FieldProps<TS, P>) => ReactNode
+  field<P extends string>(
+    path: FieldPathArg<TS, P>,
+    Handler: (props: FieldProps<TS, Extract<P, FieldPath<TS>>>) => ReactNode
   ): void
-  group<P extends keyof TS['groups'] & string>(
-    path: P,
-    Handler: (props: GroupProps<TS, P>) => ReactNode
+  group<P extends string>(
+    path: GroupPathArg<TS, P>,
+    Handler: (props: GroupProps<TS, Extract<P, GroupPath<TS>>>) => ReactNode
   ): void
-  array<P extends keyof TS['arrays'] & string>(
-    path: P,
-    Handler: (props: ArrayProps<TS, P>) => ReactNode
+  array<P extends string>(
+    path: ArrayPathArg<TS, P>,
+    Handler: (props: ArrayProps<TS, Extract<P, ArrayPath<TS>>>) => ReactNode
   ): void
   control<K extends ControlKind>(
     kind: K,

@@ -184,30 +184,46 @@ describe('FormShape oracle: jsonSchemaToTree brand ↔ FieldProps (bd bh7.4)', (
     >().toEqualTypeOf<false>()
   })
 
-  it('the registrar accepts exactly the real field/group/array paths', () => {
-    expectTypeOf<
-      Parameters<TypedRuleRegistrar<JShape>['field']>[0]
-    >().toEqualTypeOf<JsonFieldPaths<typeof jsonSchema>>()
-    expectTypeOf<
-      Parameters<TypedRuleRegistrar<JShape>['group']>[0]
-    >().toEqualTypeOf<JsonGroupPaths<typeof jsonSchema>>()
+  it('the branded shape carries exactly the real field/group/array paths', () => {
+    // TypedRuleRegistrar's `field`/`group`/`array` are asserted at the CALL SITE
+    // below (bd q8v: each is now a poison-pill conditional, not a plain union in
+    // the erased method signature — `Parameters<>` on the method no longer
+    // reflects it). What DOES stay a plain union is the branded `FormShape` itself
+    // (`keyof JShape['fields'] & string`), which is what the registrar's per-axis
+    // helpers key off — so the oracle asserts THAT against the front-end's
+    // independently-computed `FieldPaths`/`GroupPaths`/`ArrayPaths`.
+    expectTypeOf<keyof JShape['fields'] & string>().toEqualTypeOf<
+      JsonFieldPaths<typeof jsonSchema>
+    >()
+    expectTypeOf<keyof JShape['groups'] & string>().toEqualTypeOf<
+      JsonGroupPaths<typeof jsonSchema>
+    >()
     // Arrays aren't in the registrar yet (bd bh7.6), but the branded shape must
     // still carry exactly the real array paths for that binding to land on.
     expectTypeOf<keyof JShape['arrays'] & string>().toEqualTypeOf<
       JsonArrayPaths<typeof jsonSchema>
     >()
     // Sanity: 'address' is a group, not a field; 'tags' is an array, not a field.
-    expectTypeOf<'address'>().not.toExtend<
-      Parameters<TypedRuleRegistrar<JShape>['field']>[0]
-    >()
-    expectTypeOf<'tags'>().not.toExtend<
-      Parameters<TypedRuleRegistrar<JShape>['field']>[0]
-    >()
+    expectTypeOf<'address'>().not.toExtend<keyof JShape['fields'] & string>()
+    expectTypeOf<'tags'>().not.toExtend<keyof JShape['fields'] & string>()
     // A scalar-choice array ('roles') is a FIELD path, not an array path (bd bh7.9).
-    expectTypeOf<'roles'>().toExtend<
-      Parameters<TypedRuleRegistrar<JShape>['field']>[0]
-    >()
+    expectTypeOf<'roles'>().toExtend<keyof JShape['fields'] & string>()
     expectTypeOf<'roles'>().not.toExtend<keyof JShape['arrays'] & string>()
+  })
+
+  it('the registrar rejects cross-kind paths with a hint, not just "not assignable" (bd q8v)', () => {
+    // Declared, never called — a type-level probe only (see useRenderNodeRules.test.tsx).
+    const probe = (r: TypedRuleRegistrar<JShape>): void => {
+      r.field('name', () => null)
+      r.group('address', () => null)
+      // @ts-expect-error 'address' is a GROUP path — hints "use r.group()"
+      r.field('address', () => null)
+      // @ts-expect-error 'tags' is an ARRAY path — hints "use r.array()"
+      r.field('tags', () => null)
+      // @ts-expect-error 'name' is a FIELD path — hints "use r.field()"
+      r.group('name', () => null)
+    }
+    void probe
   })
 
   it('group props expose caption parts; a plain group omits Description', () => {
@@ -296,27 +312,38 @@ describe('FormShape oracle: zodToTree brand ↔ FieldProps (bd bh7.4)', () => {
     >().toEqualTypeOf<true>()
   })
 
-  it('the registrar accepts exactly the real field/group/array paths', () => {
-    expectTypeOf<
-      Parameters<TypedRuleRegistrar<ZShape>['field']>[0]
-    >().toEqualTypeOf<ZodFieldPaths<typeof zodSchema>>()
-    expectTypeOf<
-      Parameters<TypedRuleRegistrar<ZShape>['group']>[0]
-    >().toEqualTypeOf<ZodGroupPaths<typeof zodSchema>>()
+  it('the branded shape carries exactly the real field/group/array paths', () => {
+    // See the JSON Schema block above (bd q8v) for why this asserts the branded
+    // `FormShape` directly rather than `Parameters<TypedRuleRegistrar<…>['field']>`.
+    expectTypeOf<keyof ZShape['fields'] & string>().toEqualTypeOf<
+      ZodFieldPaths<typeof zodSchema>
+    >()
+    expectTypeOf<keyof ZShape['groups'] & string>().toEqualTypeOf<
+      ZodGroupPaths<typeof zodSchema>
+    >()
     expectTypeOf<keyof ZShape['arrays'] & string>().toEqualTypeOf<
       ZodArrayPaths<typeof zodSchema>
     >()
-    expectTypeOf<'address'>().not.toExtend<
-      Parameters<TypedRuleRegistrar<ZShape>['field']>[0]
-    >()
-    expectTypeOf<'tags'>().not.toExtend<
-      Parameters<TypedRuleRegistrar<ZShape>['field']>[0]
-    >()
+    expectTypeOf<'address'>().not.toExtend<keyof ZShape['fields'] & string>()
+    expectTypeOf<'tags'>().not.toExtend<keyof ZShape['fields'] & string>()
     // A scalar-choice array ('roles') is a FIELD path, not an array path (bd bh7.9).
-    expectTypeOf<'roles'>().toExtend<
-      Parameters<TypedRuleRegistrar<ZShape>['field']>[0]
-    >()
+    expectTypeOf<'roles'>().toExtend<keyof ZShape['fields'] & string>()
     expectTypeOf<'roles'>().not.toExtend<keyof ZShape['arrays'] & string>()
+  })
+
+  it('the registrar rejects cross-kind paths with a hint, not just "not assignable" (bd q8v)', () => {
+    // Declared, never called — a type-level probe only (see useRenderNodeRules.test.tsx).
+    const probe = (r: TypedRuleRegistrar<ZShape>): void => {
+      r.field('name', () => null)
+      r.group('address', () => null)
+      // @ts-expect-error 'address' is a GROUP path — hints "use r.group()"
+      r.field('address', () => null)
+      // @ts-expect-error 'tags' is an ARRAY path — hints "use r.array()"
+      r.field('tags', () => null)
+      // @ts-expect-error 'name' is a FIELD path — hints "use r.field()"
+      r.group('name', () => null)
+    }
+    void probe
   })
 
   it('group props expose caption parts; the group Description is optional', () => {

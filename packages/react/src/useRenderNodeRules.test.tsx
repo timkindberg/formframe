@@ -87,15 +87,40 @@ describe('useRenderNodeRules binds off a FormShape generically (ADR 048)', () =>
   })
 
   it('the registrar accepts only real field/group/array paths', () => {
-    expectTypeOf<
-      Parameters<TypedRuleRegistrar<TS>['field']>[0]
-    >().toEqualTypeOf<'name' | 'plan' | 'bio'>()
-    expectTypeOf<
-      Parameters<TypedRuleRegistrar<TS>['group']>[0]
-    >().toEqualTypeOf<'address'>()
-    expectTypeOf<
-      Parameters<TypedRuleRegistrar<TS>['array']>[0]
-    >().toEqualTypeOf<'tags'>()
+    // Asserted at the CALL SITE (not via `Parameters<>` introspection): each
+    // `<Axis>PathArg` (bd q8v) lives in the CHECKED position of a generic method,
+    // not the constraint, so the erased method type is not a plain union — the
+    // call site is where the narrowing (and the cross-kind hint) actually shows up.
+    // A function BODY type-checks whether or not it runs, so this builder is
+    // declared and never invoked — purely a type-level probe (browser-mode
+    // vitest actually executes the test body; a real registrar call would throw).
+    const probe = (r: TypedRuleRegistrar<TS>): void => {
+      r.field('name', () => null)
+      r.field('plan', () => null)
+      r.field('bio', () => null)
+      r.group('address', () => null)
+      r.array('tags', () => null)
+
+      // A genuine typo falls through to the plain path union — same message as before.
+      // @ts-expect-error 'nope' is not a field path
+      r.field('nope', () => null)
+
+      // Cross-kind: each names the RIGHT selector in the error, not just "not a
+      // field/group/array path" (bd q8v — the DX gap Pocock's review flagged).
+      // @ts-expect-error 'address' is a GROUP path — hints "use r.group()"
+      r.field('address', () => null)
+      // @ts-expect-error 'tags' is an ARRAY path — hints "use r.array()"
+      r.field('tags', () => null)
+      // @ts-expect-error 'name' is a FIELD path — hints "use r.field()"
+      r.group('name', () => null)
+      // @ts-expect-error 'tags' is an ARRAY path — hints "use r.array()"
+      r.group('tags', () => null)
+      // @ts-expect-error 'name' is a FIELD path — hints "use r.field()"
+      r.array('name', () => null)
+      // @ts-expect-error 'address' is a GROUP path — hints "use r.group()"
+      r.array('address', () => null)
+    }
+    void probe
   })
 
   it('group / array props expose caption parts + children', () => {
