@@ -64,7 +64,7 @@ gh issue edit <n> --add-label "in-progress"
 gh issue close <n> --reason completed --comment "Done"
 ```
 
-Legacy bd ids (e.g. `jsonschema-form-bh7`) cited in ADRs map to GitHub numbers in [`scripts/bd-to-github-migration-map.json`](scripts/bd-to-github-migration-map.json).
+Historical `jsonschema-form-*` ids cited in ADRs map to GitHub numbers in [`scripts/bd-to-github-migration-map.json`](scripts/bd-to-github-migration-map.json) (lookup only — not an active tracker).
 
 ## Key Design Decisions
 
