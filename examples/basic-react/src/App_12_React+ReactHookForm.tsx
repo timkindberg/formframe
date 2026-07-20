@@ -38,8 +38,9 @@
 //     exact same per-field mechanism as a structural AJV error — no whole-
 //     document wrapper or summary needed for this recipe.
 //  6. Nested groups (`address.street`/`address.city`) prove nested error paths:
-//     RHF's nested `errors.address.street` shape is walked by the same
-//     `getNested` helper AJV/root-level errors use — no special-casing.
+//     RHF's nested `errors.address.street` shape is walked by RHF's own `get`
+//     utility (the same one `@hookform/error-message`'s `ErrorMessage` uses
+//     internally) — no special-casing, no extra dependency.
 //
 // Upgrade from the pre-renderNodeRules version of this file: the old `RHFField`
 // hand-rolled a `switch (ctl.kind)` for every control kind inline. Registering
@@ -72,6 +73,7 @@ import {
   FormProvider,
   useFormContext,
   useFormState,
+  get,
 } from 'react-hook-form'
 import type { FieldValues } from 'react-hook-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
@@ -85,6 +87,9 @@ import {
   fieldErrorId,
   type ControlProps,
   type TypedRuleRegistrar,
+  type PartComponent,
+  type LabelData,
+  type TextData,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from '@formframe/validation-ajv'
 
@@ -145,6 +150,12 @@ type Shape = FormShapeOf<typeof schema>
 // Attaches its error to `confirmPassword` (a concrete field path), per the #118
 // fixture-design decision — so it needs no root/pathless wrapper downstream.
 // Purity (ADR 025) holds: reads `result.data`/`data`, mutates neither.
+//
+// FORM-LIBRARY-AGNOSTIC, not schema-agnostic: this only touches our own
+// `Validator`/`ValidationResult` types (no RHF import), so it would compose
+// unchanged into the native or TanStack recipes — but it hardcodes the
+// `password`/`confirmPassword` field names, so it's specific to this schema,
+// not a generic "add a cross-field rule" combinator.
 function withCrossFieldRule<T>(validator: Validator<T>): Validator<T> {
   return (data) => {
     const result = validator(data)
@@ -173,20 +184,19 @@ function withCrossFieldRule<T>(validator: Validator<T>): Validator<T> {
   }
 }
 
-function getNested(obj: unknown, path: string): unknown {
-  return path
-    .split('.')
-    .reduce<unknown>(
-      (acc, k) => (acc == null ? acc : (acc as Record<string, unknown>)[k]),
-      obj
-    )
-}
-
 // --- Errors as a PROP, sourced from RHF, never our internal store (#117) -----
+//
+// `useFormState({ name })`'s `name` only scopes WHEN this re-renders (RHF's
+// subscription optimization) — the returned `errors` is always the FULL
+// nested `FieldErrors` tree, so a nested-path lookup is still required. `get`
+// is RHF's own exported utility (the same one `@hookform/error-message`'s
+// `ErrorMessage` component uses internally) — reused here instead of hand-
+// rolling a dot-path walk, and it means the `@hookform/error-message` package
+// itself buys nothing this recipe doesn't already have via `react-hook-form`.
 
 function useRHFFieldError(path: string): { message?: string } | undefined {
   const { errors } = useFormState({ name: path })
-  return getNested(errors, path) as { message?: string } | undefined
+  return get(errors, path) as { message?: string } | undefined
 }
 
 function useA11yAttrs(path: string): {
@@ -215,14 +225,40 @@ function FieldErrors({ path }: { path: string }): ReactNode {
 // `c.attrs` and adding our own), exactly like the top-level `Default of={node}
 // parts={{…}}` override does for a single field, but generically for every
 // field of this archetype.
+//
+// The label/description/error shell is IDENTICAL across every archetype —
+// only what fills `<parts.Control render={…}/>` differs — so it's factored
+// into one wrapper instead of repeated per handler.
+
+interface FieldShellParts {
+  Label: PartComponent<LabelData>
+  Description?: PartComponent<TextData>
+}
+
+function FieldShell({
+  path,
+  parts,
+  children,
+}: {
+  path: string
+  parts: FieldShellParts
+  children: ReactNode
+}): ReactNode {
+  return (
+    <div className="jsf-field">
+      <parts.Label />
+      {parts.Description && <parts.Description />}
+      {children}
+      <FieldErrors path={path} />
+    </div>
+  )
+}
 
 function InputControl({ path, parts }: ControlProps<'input'>): ReactNode {
   const { register } = useFormContext()
   const a11y = useA11yAttrs(path)
   return (
-    <div className="jsf-field">
-      <parts.Label />
-      {parts.Description && <parts.Description />}
+    <FieldShell path={path} parts={parts}>
       <parts.Control
         render={(c) => (
           <input
@@ -237,8 +273,7 @@ function InputControl({ path, parts }: ControlProps<'input'>): ReactNode {
           />
         )}
       />
-      <FieldErrors path={path} />
-    </div>
+    </FieldShell>
   )
 }
 
@@ -246,9 +281,7 @@ function SelectControl({ path, parts }: ControlProps<'select'>): ReactNode {
   const { register } = useFormContext()
   const a11y = useA11yAttrs(path)
   return (
-    <div className="jsf-field">
-      <parts.Label />
-      {parts.Description && <parts.Description />}
+    <FieldShell path={path} parts={parts}>
       <parts.Control
         render={(c) => (
           <select
@@ -274,8 +307,7 @@ function SelectControl({ path, parts }: ControlProps<'select'>): ReactNode {
           </select>
         )}
       />
-      <FieldErrors path={path} />
-    </div>
+    </FieldShell>
   )
 }
 
@@ -286,9 +318,7 @@ function ChoiceGroupControl({
   const { register } = useFormContext()
   const a11y = useA11yAttrs(path)
   return (
-    <div className="jsf-field">
-      <parts.Label />
-      {parts.Description && <parts.Description />}
+    <FieldShell path={path} parts={parts}>
       <parts.Control
         render={(c) => (
           <div role={c.role} aria-labelledby={c.labelledBy} {...a11y}>
@@ -300,8 +330,7 @@ function ChoiceGroupControl({
           </div>
         )}
       />
-      <FieldErrors path={path} />
-    </div>
+    </FieldShell>
   )
 }
 
