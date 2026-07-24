@@ -12,6 +12,7 @@ import App09 from './App_09_React+Validation'
 import App10 from './App_10_React+SchemaRefs'
 import App11 from './App_11_React+LiveValidation'
 import App12 from './App_12_React+ReactHookForm'
+import App12B from './App_12B_React+ReactHookFormZod'
 import App13 from './App_13_React+TouchedErrors'
 import App14 from './App_14_React+WidgetCatalog'
 import App15 from './App_15_React+ZodUseFormTree'
@@ -32,6 +33,11 @@ const examples = [
   { id: '10', name: 'React + Schema $ref/$defs', component: App10 },
   { id: '11', name: 'React + Live Validation (ADR 021)', component: App11 },
   { id: '12', name: 'React + React Hook Form (recipe)', component: App12 },
+  {
+    id: '12B',
+    name: 'React + React Hook Form over Zod (recipe)',
+    component: App12B,
+  },
   {
     id: '13',
     name: 'React + Touched-Gated Errors (ADR 027)',
