@@ -1,8 +1,8 @@
 // RECIPE: React Hook Form as the form-state layer (ADR 024), over the ZOD
 // front-end — the twin of App_12, mirroring the App_16/App_17 pairing
-// convention: identical field-for-field except the front-end import + schema
-// DSL, plus TWO real divergences worth calling out (not incidental — they
-// answer questions raised reviewing App_12):
+// convention: same wiring pattern, front-end + schema DSL swapped, plus
+// deliberate divergences worth calling out (not incidental — they answer
+// questions raised reviewing App_12):
 //
 //  1. NO `withCrossFieldRule` wrapper. App_12's AJV/JSON-Schema path needs a
 //     hand-composed `Validator -> Validator` wrapper because plain JSON Schema
@@ -24,23 +24,28 @@
 //     which goes the OTHER direction — `fromStandardSchema(schema)` — because
 //     `useFormTree` wants our `Validator` shape, not RHF's resolver shape.)
 //
-// A THIRD divergence surfaced while verifying this in-browser, worth knowing
-// rather than fixing: AJV's `allErrors: true` (App_12) collects the cross-
-// field issue independently of any other failing field. Zod's `.refine()`
-// does NOT run until the base object shape is otherwise valid — confirmed via
-// a direct `safeParse` repro: with `contactMethod` still unselected and
-// `address.street` still empty, mismatched passwords produce ONLY those two
-// structural issues, no "Passwords must match." at all; fill every other
-// required field first and the refine issue appears. A partially-filled form
-// with a Zod cross-field rule can look like the rule isn't wired up when it's
-// actually just gated behind the rest of the object being valid first.
+//  3. A THIRD divergence surfaced while verifying this in-browser, worth
+//     knowing rather than fixing: AJV's `allErrors: true` (App_12) collects
+//     the cross-field issue independently of any other failing field. Zod's
+//     `.refine()` does NOT run until the base object shape is otherwise
+//     valid — confirmed via a direct `safeParse` repro: with `contactMethod`
+//     still unselected and `address.street` still empty, mismatched
+//     passwords produce ONLY those two structural issues, no "Passwords must
+//     match." at all; fill every other required field first and the refine
+//     issue appears. A partially-filled form with a Zod cross-field rule can
+//     look like the rule isn't wired up when it's actually just gated behind
+//     the rest of the object being valid first.
+//  4. DIFFERENT `mode` — deliberately, not an oversight. App_12 sets
+//     `mode: 'onTouched'`; this file leaves RHF on its default so the pair
+//     demonstrates two display policies instead of the same one twice. See
+//     the `useForm` call below for exactly how the default behaves.
 //
 // Everything else is identical in spirit to App_12 — same read there for the
-// full story (touched-gated display via `mode`, errors injected as a prop via
-// RHF's own `get` rather than our internal store, one `r.control(kind, …)`
-// handler per archetype, the `FieldShell` dedup, nested error paths, the
-// empty-optional-select normalization).
-import { useMemo, useState, type ReactNode } from 'react'
+// full story (errors injected as a prop via RHF's own `get` rather than our
+// internal store, one `r.control(kind, …)` handler per archetype, the
+// `FieldShell` dedup, nested error paths, the empty-optional-select
+// normalization).
+import { useState, type ReactNode } from 'react'
 import {
   useForm,
   FormProvider,
@@ -49,7 +54,6 @@ import {
   get,
 } from 'react-hook-form'
 import type { FieldValues } from 'react-hook-form'
-import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { z } from 'zod'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
@@ -71,6 +75,19 @@ const schema = z
       .min(2)
       .meta({ title: 'First name', description: 'At least 2 characters.' }),
     email: z.string().email().meta({ title: 'Email' }),
+    // `z.coerce` here is a genuine DX asymmetry with App_12, worth naming
+    // rather than hiding: AJV's `createAjvValidator` turns `coerceTypes: true`
+    // on by DEFAULT (an adapter-level switch, applied uniformly), so the
+    // JSON-Schema recipe gets numeric coercion for free. Zod has no
+    // equivalent "coerce everything" validator-instantiation flag — coercion
+    // is baked per-field into the schema TYPE at author time — so a Zod
+    // consumer must remember `.coerce` on every field bound to a native
+    // uncontrolled input, or get an opaque "expected number, received
+    // string" failure. Core can't paper over this (it doesn't touch
+    // validation, ADR 019/033), and `@formframe/validation-zod` has no
+    // equivalent lever either (Zod's coercion isn't a parse-time option the
+    // way AJV's is) — this is a real candidate for its own issue rather than
+    // a fix folded into this recipe.
     age: z.coerce
       .number()
       .min(18)
@@ -82,7 +99,12 @@ const schema = z
     // 6 options clears the shipped OPTION_COUNT_THRESHOLD (5), so this
     // defaults to a 'select' widget — 'contactMethod' below stays under it
     // and defaults to 'choicegroup' (radio). Same present() heuristic as
-    // App_12 — Core's, not per-front-end.
+    // App_12 — Core's, not per-front-end. The option set is static, read at
+    // present() (compile) time — no async/remote option-set capability in
+    // Core yet (ADR 029 §5, bd cm7); Zod has no native "async enum" either
+    // (`z.enum` takes a literal array at authoring time). A fetched option
+    // list means building the array first, then constructing `z.enum(...)`
+    // from it — the schema (and this tree) only exists once that resolves.
     plan: z
       .enum(['free', 'starter', 'pro', 'team', 'business', 'enterprise'])
       .meta({ title: 'Plan' })
@@ -124,14 +146,18 @@ function useA11yAttrs(path: string): {
   'aria-describedby'?: string
 } {
   const error = useRHFFieldError(path)
-  return error?.message
+  // Canonical "has an error" check is presence of the error object, not
+  // truthiness of `.message` — a validator can legally produce an error with
+  // an empty message, and `error?.message` would silently drop aria-invalid
+  // for it (a real a11y bug, not just a cosmetic one).
+  return error
     ? { 'aria-invalid': true, 'aria-describedby': fieldErrorId(path) }
     : {}
 }
 
 function FieldErrors({ path }: { path: string }): ReactNode {
   const error = useRHFFieldError(path)
-  if (!error?.message) return null
+  if (!error) return null
   return (
     <ul id={fieldErrorId(path)} className="jsf-field-errors" role="alert">
       <li>{error.message}</li>
@@ -247,20 +273,28 @@ const rhfRules = (r: TypedRuleRegistrar<Shape>): void => {
   r.control('choicegroup', ChoiceGroupControl)
 }
 
+// `schema` is a static, module-level literal, so the tree and resolver are
+// built ONCE at module evaluation rather than per-mount via `useMemo` —
+// matching App_15's precedent (see App_12 for the same move + its trade-off
+// note). Zod IS a Standard Schema natively (`schema['~standard'].vendor ===
+// 'zod'`), and its `~standard.types.input` is a concrete object type (not
+// `unknown`), so it satisfies RHF's `Input extends FieldValues` constraint
+// on its own — no cast needed here, unlike App_12's AJV resolver.
+const tree = zodToTree(schema)
+const resolver = standardSchemaResolver(schema)
+
 export default function App() {
-  const tree = useMemo(() => zodToTree(schema), [])
-  // Zod IS a Standard Schema natively — no `toStandardSchema`/
-  // `createZodValidator` round-trip through our own seam (contrast App_12's
-  // AJV path, where that round-trip is the only way in).
-  const resolver = useMemo(
-    () =>
-      standardSchemaResolver(
-        schema as unknown as StandardSchemaV1<FieldValues, FieldValues>
-      ),
-    []
-  )
-  // 'onTouched' == ADR 027's 'touched' display policy — same as App_12.
-  const methods = useForm({ resolver, mode: 'onTouched' })
+  // RHF's DEFAULT mode (no `mode` option) — deliberately NOT App_12's
+  // 'onTouched', so the pair demonstrates two different display policies
+  // rather than the same one twice. Default 'onSubmit' + reValidateMode
+  // 'onChange': nothing validates before the first submit attempt (type
+  // into any field and blur away — no error, no matter how invalid); on
+  // submit the whole form validates and every invalid field's error shows;
+  // AFTER that first submit, a field that has an error revalidates on every
+  // keystroke (clearing as soon as it's fixed), but a field with no error
+  // yet stays silent until the next submit. This is ADR 027's `'submit'`
+  // display policy, not `'touched'`.
+  const methods = useForm({ resolver })
   const renderNode = useRenderNodeRules(tree, rhfRules)
   const [submitted, setSubmitted] = useState<FieldValues | null>(null)
 
@@ -269,13 +303,15 @@ export default function App() {
       <h1>React Hook Form over Zod (recipe, ADR 024 / ADR 008)</h1>
       <p>
         The Zod twin of example 12: same <code>renderNodeRules</code> control-
-        kind dispatch, same errors-as-a-prop seam (#117), same touched-gated{' '}
-        <code>mode</code> — but the schema is a <code>z.object(…)</code> and two
-        things fall away entirely. The password-confirmation rule is Zod&apos;s
-        native <code>.refine(fn, {'{ path }'})</code> — no hand- composed
-        cross-field wrapper, unlike plain JSON Schema. And the resolver wires
-        the schema straight in — Zod already speaks Standard Schema, so
-        there&apos;s no <code>toStandardSchema</code> round-trip through our{' '}
+        kind dispatch, same errors-as-a-prop seam (#117) — but the schema is a{' '}
+        <code>z.object(…)</code>, RHF is left on its <em>default</em> mode
+        (example 12 shows <code>&apos;onTouched&apos;</code>; nothing here
+        validates until the first submit), and two things fall away entirely.
+        The password-confirmation rule is Zod&apos;s native{' '}
+        <code>.refine(fn, {'{ path }'})</code> — no hand-composed cross-field
+        wrapper, unlike plain JSON Schema. And the resolver wires the schema
+        straight in — Zod already speaks Standard Schema, so there&apos;s no{' '}
+        <code>toStandardSchema</code> round-trip through our{' '}
         <code>Validator</code> seam. This is a copy-paste recipe, not a
         published adapter.
       </p>
