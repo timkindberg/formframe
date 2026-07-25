@@ -18,6 +18,7 @@ import App14 from './App_14_React+WidgetCatalog'
 import App15 from './App_15_React+ZodUseFormTree'
 import App16 from './App_16_React+Customize'
 import App17 from './App_17_React+CustomizeZod'
+import App18 from './App_18_React+TanStackForm'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -62,6 +63,11 @@ const examples = [
     id: '17',
     name: 'React + renderNodeRules over Zod (ADR 047 / ADR 008)',
     component: App17,
+  },
+  {
+    id: '18',
+    name: 'React + TanStack Form (recipe)',
+    component: App18,
   },
 ]
 
