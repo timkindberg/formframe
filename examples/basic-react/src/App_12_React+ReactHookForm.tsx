@@ -67,7 +67,7 @@
 //    not exercised here.
 //  - A run-failure-vs-invalid wrapper (only needed to prove a thrown/rejected
 //    validator is distinct from an invalid verdict).
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   useForm,
   FormProvider,
@@ -119,7 +119,11 @@ const schema = {
     },
     // 6 options clears the shipped OPTION_COUNT_THRESHOLD (5), so this defaults
     // to a 'select' widget — 'contactMethod' below stays under it and defaults
-    // to 'choicegroup' (radio), exercising both archetypes.
+    // to 'choicegroup' (radio), exercising both archetypes. The option set is
+    // static, read at present() (compile) time — Core has no async/remote
+    // option-set capability yet (ADR 029 §5, tracked as bd cm7); a fetched
+    // option list is a consumer resolver's job today (`{ widget: 'select' }`,
+    // pinned so a later count change can't re-pick the archetype).
     plan: {
       type: 'string',
       title: 'Plan',
@@ -204,14 +208,18 @@ function useA11yAttrs(path: string): {
   'aria-describedby'?: string
 } {
   const error = useRHFFieldError(path)
-  return error?.message
+  // Canonical "has an error" check is presence of the error object, not
+  // truthiness of `.message` — a validator can legally produce an error with
+  // an empty message, and `error?.message` would silently drop aria-invalid
+  // for it (a real a11y bug, not just a cosmetic one).
+  return error
     ? { 'aria-invalid': true, 'aria-describedby': fieldErrorId(path) }
     : {}
 }
 
 function FieldErrors({ path }: { path: string }): ReactNode {
   const error = useRHFFieldError(path)
-  if (!error?.message) return null
+  if (!error) return null
   return (
     <ul id={fieldErrorId(path)} className="jsf-field-errors" role="alert">
       <li>{error.message}</li>
@@ -340,23 +348,25 @@ const rhfRules = (r: TypedRuleRegistrar<Shape>): void => {
   r.control('choicegroup', ChoiceGroupControl)
 }
 
+// `schema` is a static, module-level literal (not derived from props/state),
+// so the tree and resolver are built ONCE at module evaluation rather than
+// per-mount via `useMemo` — matching App_15's precedent. (Trade-off: this
+// means every example's schema/validator compiles eagerly when the demo
+// bundle loads, not lazily on that tab's first render — fine for a dev-only
+// examples app with ~20 small schemas, worth reconsidering if that stops
+// being true.)
+const tree = jsonSchemaToTree(schema)
+const validator = withCrossFieldRule(createAjvValidator(schema))
+const resolver = standardSchemaResolver(
+  // Core emits input: unknown; RHF's resolver expects FieldValues at the
+  // boundary. This cast IS load-bearing (unlike App_12B's Zod resolver,
+  // which needs none): `toStandardSchema`'s `Input` is `unknown` by design
+  // — our neutral `Validator` type accepts `unknown` data — and `unknown`
+  // does not satisfy RHF's `Input extends FieldValues` constraint.
+  toStandardSchema(validator) as StandardSchemaV1<FieldValues, FieldValues>
+)
+
 export default function App() {
-  const tree = useMemo(() => jsonSchemaToTree(schema), [])
-  const validator = useMemo(
-    () => withCrossFieldRule(createAjvValidator(schema)),
-    []
-  )
-  const resolver = useMemo(
-    () =>
-      standardSchemaResolver(
-        // Core emits input: unknown; RHF's resolver expects FieldValues at the boundary.
-        toStandardSchema(validator) as StandardSchemaV1<
-          FieldValues,
-          FieldValues
-        >
-      ),
-    [validator]
-  )
   // 'onTouched' == ADR 027's 'touched' display policy (glue #4) — RHF gates
   // display itself; we never hand-gate on `touchedFields`.
   const methods = useForm({ resolver, mode: 'onTouched' })
