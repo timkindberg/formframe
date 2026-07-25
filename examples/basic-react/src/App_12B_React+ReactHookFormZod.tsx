@@ -1,8 +1,11 @@
-// RECIPE: React Hook Form as the form-state layer (ADR 024), over the ZOD
-// front-end — the twin of App_12, mirroring the App_16/App_17 pairing
-// convention: same wiring pattern, front-end + schema DSL swapped, plus
-// deliberate divergences worth calling out (not incidental — they answer
-// questions raised reviewing App_12):
+// RECIPE (front-end half): React Hook Form as the form-state layer (ADR 024),
+// over the ZOD front-end — the twin of App_12, mirroring the App_16/App_17
+// pairing convention: same wiring pattern, front-end + schema DSL swapped,
+// plus deliberate divergences worth calling out (not incidental — they
+// answer questions raised reviewing App_12).
+//
+// TWO-FILE RECIPE — copy BOTH this file and `rhfFieldControls.recipe.tsx`
+// (shared with App_12; see that file for why the split). Divergences:
 //
 //  1. NO `withCrossFieldRule` wrapper. App_12's AJV/JSON-Schema path needs a
 //     hand-composed `Validator -> Validator` wrapper because plain JSON Schema
@@ -40,19 +43,13 @@
 //     demonstrates two display policies instead of the same one twice. See
 //     the `useForm` call below for exactly how the default behaves.
 //
-// Everything else is identical in spirit to App_12 — same read there for the
-// full story (errors injected as a prop via RHF's own `get` rather than our
-// internal store, one `r.control(kind, …)` handler per archetype, the
-// `FieldShell` dedup, nested error paths, the empty-optional-select
-// normalization).
-import { useState, type ReactNode } from 'react'
-import {
-  useForm,
-  FormProvider,
-  useFormContext,
-  useFormState,
-  get,
-} from 'react-hook-form'
+// Everything else is identical in spirit to App_12 — errors injected as a
+// prop via RHF's own `get` rather than our internal store, one
+// `r.control(kind, …)` handler per archetype, the `FieldShell` dedup, nested
+// error paths, the empty-optional-select normalization — all of it living in
+// `rhfFieldControls.recipe.tsx`, shared verbatim with App_12 (see that file).
+import { useState } from 'react'
+import { useForm, FormProvider } from 'react-hook-form'
 import type { FieldValues } from 'react-hook-form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { z } from 'zod'
@@ -60,13 +57,13 @@ import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   SchemaFields,
   useRenderNodeRules,
-  fieldErrorId,
-  type ControlProps,
   type TypedRuleRegistrar,
-  type PartComponent,
-  type LabelData,
-  type TextData,
 } from '@formframe/renderer-react'
+import {
+  InputControl,
+  SelectControl,
+  ChoiceGroupControl,
+} from './rhfFieldControls.recipe'
 
 const schema = z
   .object({
@@ -132,140 +129,9 @@ const schema = z
 
 type Shape = FormShapeOf<typeof schema>
 
-// --- Errors as a PROP, sourced from RHF, never our internal store (#117) -----
-// See App_12: `name` only scopes WHEN this re-renders, not what `errors`
-// contains, so the nested-path lookup via RHF's own `get` is still needed.
-
-function useRHFFieldError(path: string): { message?: string } | undefined {
-  const { errors } = useFormState({ name: path })
-  return get(errors, path) as { message?: string } | undefined
-}
-
-function useA11yAttrs(path: string): {
-  'aria-invalid'?: true
-  'aria-describedby'?: string
-} {
-  const error = useRHFFieldError(path)
-  // Canonical "has an error" check is presence of the error object, not
-  // truthiness of `.message` — a validator can legally produce an error with
-  // an empty message, and `error?.message` would silently drop aria-invalid
-  // for it (a real a11y bug, not just a cosmetic one).
-  return error
-    ? { 'aria-invalid': true, 'aria-describedby': fieldErrorId(path) }
-    : {}
-}
-
-function FieldErrors({ path }: { path: string }): ReactNode {
-  const error = useRHFFieldError(path)
-  if (!error) return null
-  return (
-    <ul id={fieldErrorId(path)} className="jsf-field-errors" role="alert">
-      <li>{error.message}</li>
-    </ul>
-  )
-}
-
-// --- One handler per control archetype (ADR 047 §3 `r.control(kind, …)`) -----
-
-interface FieldShellParts {
-  Label: PartComponent<LabelData>
-  Description?: PartComponent<TextData>
-}
-
-function FieldShell({
-  path,
-  parts,
-  children,
-}: {
-  path: string
-  parts: FieldShellParts
-  children: ReactNode
-}): ReactNode {
-  return (
-    <div className="jsf-field">
-      <parts.Label />
-      {parts.Description && <parts.Description />}
-      {children}
-      <FieldErrors path={path} />
-    </div>
-  )
-}
-
-function InputControl({ path, parts }: ControlProps<'input'>): ReactNode {
-  const { register } = useFormContext()
-  const a11y = useA11yAttrs(path)
-  return (
-    <FieldShell path={path} parts={parts}>
-      <parts.Control
-        render={(c) => (
-          <input
-            {...c.attrs}
-            {...register(
-              path,
-              c.attrs.type === 'number'
-                ? { setValueAs: (v) => (v === '' ? undefined : v) }
-                : undefined
-            )}
-            {...a11y}
-          />
-        )}
-      />
-    </FieldShell>
-  )
-}
-
-function SelectControl({ path, parts }: ControlProps<'select'>): ReactNode {
-  const { register } = useFormContext()
-  const a11y = useA11yAttrs(path)
-  return (
-    <FieldShell path={path} parts={parts}>
-      <parts.Control
-        render={(c) => (
-          <select
-            {...c.attrs}
-            {...register(
-              path,
-              c.attrs.multiple
-                ? undefined
-                : { setValueAs: (v) => (v === '' ? undefined : v) }
-            )}
-            {...a11y}
-          >
-            {!c.attrs.multiple && <option value="">-- select --</option>}
-            {c.options.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        )}
-      />
-    </FieldShell>
-  )
-}
-
-function ChoiceGroupControl({
-  path,
-  parts,
-}: ControlProps<'choicegroup'>): ReactNode {
-  const { register } = useFormContext()
-  const a11y = useA11yAttrs(path)
-  return (
-    <FieldShell path={path} parts={parts}>
-      <parts.Control
-        render={(c) => (
-          <div role={c.role} aria-labelledby={c.labelledBy} {...a11y}>
-            {c.options.map((o) => (
-              <label key={o.attrs.id}>
-                <input {...o.attrs} {...register(path)} /> {o.label}
-              </label>
-            ))}
-          </div>
-        )}
-      />
-    </FieldShell>
-  )
-}
+// Errors as a PROP (#117), one handler per control archetype (ADR 047 §3),
+// and the shared `FieldShell` composition all live in
+// `rhfFieldControls.recipe.tsx` — shared verbatim with App_12.
 
 const rhfRules = (r: TypedRuleRegistrar<Shape>): void => {
   r.control('input', InputControl)
@@ -312,8 +178,9 @@ export default function App() {
         wrapper, unlike plain JSON Schema. And the resolver wires the schema
         straight in — Zod already speaks Standard Schema, so there&apos;s no{' '}
         <code>toStandardSchema</code> round-trip through our{' '}
-        <code>Validator</code> seam. This is a copy-paste recipe, not a
-        published adapter.
+        <code>Validator</code> seam. This is a copy-paste recipe (two files —{' '}
+        <code>rhfFieldControls.recipe.tsx</code>, shared verbatim with example
+        12), not a published adapter.
       </p>
 
       <FormProvider {...methods}>

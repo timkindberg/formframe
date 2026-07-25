@@ -1,10 +1,14 @@
-// RECIPE: React Hook Form as the form-state layer (ADR 024), on the shipped
-// `renderNodeRules`/`useRenderNodeRules` API (ADR 047/048). Ticket: #123
-// (wayfinder epic #116 — "demote validation to a non-goal"; seam locked at #117).
+// RECIPE (front-end half): React Hook Form as the form-state layer (ADR 024),
+// on the shipped `renderNodeRules`/`useRenderNodeRules` API (ADR 047/048).
+// Ticket: #123 (wayfinder epic #116 — "demote validation to a non-goal"; seam
+// locked at #117).
 //
-// This is NOT a maintained package — it's a copy-pasteable recipe. It answers
-// the questions the native path (ADR 023) leaves open, and RHF's audit (#120)
-// named the exact glue this file provides:
+// TWO-FILE RECIPE — copy BOTH this file and `rhfFieldControls.recipe.tsx`
+// (see that file for why the split: everything there is front-end-agnostic,
+// everything here is JSON-Schema/AJV-specific). This is NOT a maintained
+// package — it's copy-pasteable. It answers the questions the native path
+// (ADR 023) leaves open, and RHF's audit (#120) named the exact glue this
+// pair of files provides:
 //
 //  1. Our `Validator` seam (ADR 019) survives unchanged — handed to RHF as a
 //     Standard Schema via `toStandardSchema` (ADR 026). `@hookform/resolvers`'s
@@ -27,11 +31,12 @@
 //     a recipe bug.
 //  4. Errors are injected as a PROP, not read from our internal `ValidationStore`
 //     (the locked #117 seam: "the library renders, recipes produce"). Each
-//     control handler below reads its own error from RHF's `useFormState({name})`
-//     and threads it straight into the markup — no `ValidationProvider`, no
-//     `useFieldErrors`. `fieldErrorId`/`fieldControlId` (from `@formframe/
-//     renderer-react`) are reused so the a11y wiring matches the library's own
-//     convention even though the error source is entirely RHF's.
+//     control handler in `rhfFieldControls.recipe.tsx` reads its own error from
+//     RHF's `useFormState({name})` and threads it straight into the markup —
+//     no `ValidationProvider`, no `useFieldErrors`. `fieldErrorId` (from
+//     `@formframe/renderer-react`) is reused there so the a11y wiring matches
+//     the library's own convention even though the error source is entirely
+//     RHF's.
 //  5. Cross-field rules attach to a CONCRETE path, never root/pathless (the #118
 //     fixture-design decision): `confirmPassword`'s "must match password" error
 //     is produced with `path: 'confirmPassword'`, so it renders through the
@@ -40,7 +45,8 @@
 //  6. Nested groups (`address.street`/`address.city`) prove nested error paths:
 //     RHF's nested `errors.address.street` shape is walked by RHF's own `get`
 //     utility (the same one `@hookform/error-message`'s `ErrorMessage` uses
-//     internally) — no special-casing, no extra dependency.
+//     internally, in `rhfFieldControls.recipe.tsx`) — no special-casing, no
+//     extra dependency.
 //
 // Upgrade from the pre-renderNodeRules version of this file: the old `RHFField`
 // hand-rolled a `switch (ctl.kind)` for every control kind inline. Registering
@@ -67,14 +73,8 @@
 //    not exercised here.
 //  - A run-failure-vs-invalid wrapper (only needed to prove a thrown/rejected
 //    validator is distinct from an invalid verdict).
-import { useState, type ReactNode } from 'react'
-import {
-  useForm,
-  FormProvider,
-  useFormContext,
-  useFormState,
-  get,
-} from 'react-hook-form'
+import { useState } from 'react'
+import { useForm, FormProvider } from 'react-hook-form'
 import type { FieldValues } from 'react-hook-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
@@ -84,14 +84,14 @@ import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
   SchemaFields,
   useRenderNodeRules,
-  fieldErrorId,
-  type ControlProps,
   type TypedRuleRegistrar,
-  type PartComponent,
-  type LabelData,
-  type TextData,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from '@formframe/validation-ajv'
+import {
+  InputControl,
+  SelectControl,
+  ChoiceGroupControl,
+} from './rhfFieldControls.recipe'
 
 const schema = {
   type: 'object',
@@ -188,159 +188,12 @@ function withCrossFieldRule<T>(validator: Validator<T>): Validator<T> {
   }
 }
 
-// --- Errors as a PROP, sourced from RHF, never our internal store (#117) -----
-//
-// `useFormState({ name })`'s `name` only scopes WHEN this re-renders (RHF's
-// subscription optimization) — the returned `errors` is always the FULL
-// nested `FieldErrors` tree, so a nested-path lookup is still required. `get`
-// is RHF's own exported utility (the same one `@hookform/error-message`'s
-// `ErrorMessage` component uses internally) — reused here instead of hand-
-// rolling a dot-path walk, and it means the `@hookform/error-message` package
-// itself buys nothing this recipe doesn't already have via `react-hook-form`.
-
-function useRHFFieldError(path: string): { message?: string } | undefined {
-  const { errors } = useFormState({ name: path })
-  return get(errors, path) as { message?: string } | undefined
-}
-
-function useA11yAttrs(path: string): {
-  'aria-invalid'?: true
-  'aria-describedby'?: string
-} {
-  const error = useRHFFieldError(path)
-  // Canonical "has an error" check is presence of the error object, not
-  // truthiness of `.message` — a validator can legally produce an error with
-  // an empty message, and `error?.message` would silently drop aria-invalid
-  // for it (a real a11y bug, not just a cosmetic one).
-  return error
-    ? { 'aria-invalid': true, 'aria-describedby': fieldErrorId(path) }
-    : {}
-}
-
-function FieldErrors({ path }: { path: string }): ReactNode {
-  const error = useRHFFieldError(path)
-  if (!error) return null
-  return (
-    <ul id={fieldErrorId(path)} className="jsf-field-errors" role="alert">
-      <li>{error.message}</li>
-    </ul>
-  )
-}
-
-// --- One handler per control archetype (ADR 047 §3 `r.control(kind, …)`) -----
-// `parts.Control`'s `render` prop hands back the raw, kind-narrowed
-// `FieldControl` — the consumer wires `register()` and owns a11y (spreading
-// `c.attrs` and adding our own), exactly like the top-level `Default of={node}
-// parts={{…}}` override does for a single field, but generically for every
-// field of this archetype.
-//
-// The label/description/error shell is IDENTICAL across every archetype —
-// only what fills `<parts.Control render={…}/>` differs — so it's factored
-// into one wrapper instead of repeated per handler.
-
-interface FieldShellParts {
-  Label: PartComponent<LabelData>
-  Description?: PartComponent<TextData>
-}
-
-function FieldShell({
-  path,
-  parts,
-  children,
-}: {
-  path: string
-  parts: FieldShellParts
-  children: ReactNode
-}): ReactNode {
-  return (
-    <div className="jsf-field">
-      <parts.Label />
-      {parts.Description && <parts.Description />}
-      {children}
-      <FieldErrors path={path} />
-    </div>
-  )
-}
-
-function InputControl({ path, parts }: ControlProps<'input'>): ReactNode {
-  const { register } = useFormContext()
-  const a11y = useA11yAttrs(path)
-  return (
-    <FieldShell path={path} parts={parts}>
-      <parts.Control
-        render={(c) => (
-          <input
-            {...c.attrs}
-            {...register(
-              path,
-              c.attrs.type === 'number'
-                ? { setValueAs: (v) => (v === '' ? undefined : v) }
-                : undefined
-            )}
-            {...a11y}
-          />
-        )}
-      />
-    </FieldShell>
-  )
-}
-
-function SelectControl({ path, parts }: ControlProps<'select'>): ReactNode {
-  const { register } = useFormContext()
-  const a11y = useA11yAttrs(path)
-  return (
-    <FieldShell path={path} parts={parts}>
-      <parts.Control
-        render={(c) => (
-          <select
-            {...c.attrs}
-            {...register(
-              path,
-              // A blank "-- select --" placeholder submits "" for an untouched
-              // optional field, which fails an `enum` check ("" isn't a member).
-              // Map it to `undefined` — mirrors the empty-number normalization
-              // above — so "nothing chosen" round-trips as absent, not invalid.
-              c.attrs.multiple
-                ? undefined
-                : { setValueAs: (v) => (v === '' ? undefined : v) }
-            )}
-            {...a11y}
-          >
-            {!c.attrs.multiple && <option value="">-- select --</option>}
-            {c.options.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        )}
-      />
-    </FieldShell>
-  )
-}
-
-function ChoiceGroupControl({
-  path,
-  parts,
-}: ControlProps<'choicegroup'>): ReactNode {
-  const { register } = useFormContext()
-  const a11y = useA11yAttrs(path)
-  return (
-    <FieldShell path={path} parts={parts}>
-      <parts.Control
-        render={(c) => (
-          <div role={c.role} aria-labelledby={c.labelledBy} {...a11y}>
-            {c.options.map((o) => (
-              <label key={o.attrs.id}>
-                <input {...o.attrs} {...register(path)} /> {o.label}
-              </label>
-            ))}
-          </div>
-        )}
-      />
-    </FieldShell>
-  )
-}
+// Errors as a PROP (#117), one handler per control archetype (ADR 047 §3),
+// and the shared `FieldShell` composition all live in the OTHER half of this
+// two-file recipe — see `rhfFieldControls.recipe.tsx`. Everything there is
+// front-end-agnostic (typed against the neutral `ControlProps<K>`, not this
+// file's `Shape`), which is exactly why it's shared verbatim rather than
+// duplicated per front-end.
 
 const rhfRules = (r: TypedRuleRegistrar<Shape>): void => {
   r.control('input', InputControl)
@@ -387,7 +240,8 @@ export default function App() {
         #117 seam: the library renders, this recipe produces). Touch a field and
         blur to see touched-gated display; mismatch the passwords to see the
         cross-field rule attach to <code>confirmPassword</code>. This is a
-        copy-paste recipe, not a published adapter.
+        copy-paste recipe (two files — <code>rhfFieldControls.recipe.tsx</code>{' '}
+        holds the front-end-agnostic half), not a published adapter.
       </p>
 
       <FormProvider {...methods}>
