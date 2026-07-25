@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
+    "@tanstack/react-form": "^1.33.2",
     "@formframe/core": "*",
     "@formframe/input-jsonschema": "*",
     "@formframe/input-zod": "*",
