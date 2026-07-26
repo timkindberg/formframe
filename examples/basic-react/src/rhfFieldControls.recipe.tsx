@@ -14,9 +14,12 @@
 //     FormFrame renders the field structure, RHF owns the value.
 //   • Errors read from RHF (`useFormState`) and rendered inline, with
 //     `aria-invalid` + `aria-describedby` pointing at the error list.
-//   • A shippable display policy: a field's error appears once the field has
-//     been EDITED and LEFT (dirtied + blurred), everything is revealed on a
-//     submit attempt, and fixes clear live as you type.
+//   • Display timing belongs to RHF: whatever `mode`/`reValidateMode` you pick
+//     decides when errors exist, and this file simply renders what RHF holds.
+//     With RHF's defaults that means the recommended out-of-box UX — quiet
+//     until the first submit attempt, then errors reveal and clear live as
+//     the user fixes them. Want blur-gated display instead? Just pass
+//     `mode: 'onTouched'` to `useForm` — nothing here changes.
 //   • "Empty means absent": every control normalizes "" → undefined, so an
 //     untouched field submits as missing (fails `required` if required) rather
 //     than as an empty string (which would pass `required` but fail
@@ -40,26 +43,21 @@ import {
 // so you don't need that extra package.
 
 /**
- * This field's error, already gated by the display policy — `undefined` means
- * "show nothing", whether because the field is valid or because the error
- * shouldn't be revealed yet. Reveal rules: (dirtied AND blurred) OR a submit
- * has been attempted. `dirtyFields` is comparative, so a field reverted to its
- * default value re-hides its error pre-submit.
+ * This field's current RHF error, or `undefined`. No display gating here —
+ * RHF's `mode`/`reValidateMode` already decide WHEN errors exist, so whatever
+ * RHF holds is what should show. (If you want display timing RHF's modes
+ * can't express — e.g. "only after dirtied AND blurred" — this is the one
+ * place to add the gate: read `touchedFields`/`dirtyFields`/`isSubmitted`
+ * from the same `useFormState` call and return `undefined` until your
+ * condition holds.)
  */
-export function useVisibleFieldError(
-  path: string
-): { message?: string } | undefined {
-  const { errors, touchedFields, dirtyFields, isSubmitted } = useFormState({
-    name: path,
-  })
-  const error = get(errors, path) as { message?: string } | undefined
-  const show =
-    isSubmitted || (!!get(touchedFields, path) && !!get(dirtyFields, path))
-  return show ? error : undefined
+export function useFieldError(path: string): { message?: string } | undefined {
+  const { errors } = useFormState({ name: path })
+  return get(errors, path) as { message?: string } | undefined
 }
 
-/** `aria-invalid` + `aria-describedby` for the control, tracking exactly what
- * is DISPLAYED (not everything the validator computed). The check is presence
+/** `aria-invalid` + `aria-describedby` for the control, tracking exactly the
+ * error that is displayed. The check is presence
  * of the error object, not `error.message` truthiness — a validator can
  * legally produce an error with an empty message, and dropping `aria-invalid`
  * for it would be a real accessibility bug. */
@@ -67,14 +65,14 @@ export function useFieldA11y(path: string): {
   'aria-invalid'?: true
   'aria-describedby'?: string
 } {
-  const error = useVisibleFieldError(path)
+  const error = useFieldError(path)
   return error
     ? { 'aria-invalid': true, 'aria-describedby': fieldErrorId(path) }
     : {}
 }
 
 export function FieldErrors({ path }: { path: string }): ReactNode {
-  const error = useVisibleFieldError(path)
+  const error = useFieldError(path)
   if (!error) return null
   return (
     // Deliberately NO role="alert"/live region: errors revalidate on every
@@ -206,17 +204,20 @@ export function ChoiceGroupControl({
 //
 // • Errors-as-a-prop is the #117 locked seam ("the library renders, recipes
 //   produce") — no ValidationProvider / internal error store here, and
-//   `aria-invalid` tracking the DISPLAYED error + no role="alert" both match
+//   `aria-invalid` tracking the displayed error + no role="alert" both match
 //   the seam's decisions. Handler registration shape is ADR 047 §3.
-// • The display gate lives HERE (not in `mode`) so all three recipes —
-//   App_12, App_12B, App_18 (TanStack) — share one observable policy;
-//   `scripts/recipe-parity-smoke.mjs` drives all three through an identical
-//   interaction script and asserts identical behavior. App_18 matches
-//   `dirtyFields`' comparative semantics via TanStack's `isDefaultValue`
-//   (not its sticky `isDirty`) so revert-to-default re-hides in both.
+// • Display policy = each library's OWN defaults, deliberately: RHF's
+//   default mode (onSubmit + reValidateMode onChange) and TanStack's
+//   `revalidateLogic()` no-args default agree observably (quiet until first
+//   submit, live after) — TanStack's doc comment says revalidateLogic exists
+//   to emulate RHF. That agreement is what `scripts/recipe-parity-smoke.mjs`
+//   asserts across App_12/App_12B/App_18 with one shared interaction script;
+//   no hand-rolled display gate needed in any recipe. (An earlier iteration
+//   imposed a custom dirtied+blurred gate here — reverted in favor of
+//   library defaults; the hook doc above shows where a gate would go.)
 // • "Empty means absent" on ALL controls (not just number/select) was a
 //   parity-smoke finding: DOM-read "" vs controlled undefined produced
 //   different error sets between RHF and TanStack at submit.
-// • `useVisibleFieldError` subscribes twice per field (a11y + error list) —
+// • `useFieldError` subscribes twice per field (a11y + error list) —
 //   deliberate simplicity; `useFormState({name})` is scoped and cheap.
 // ──────────────────────────────────────────────────────────────────────────────

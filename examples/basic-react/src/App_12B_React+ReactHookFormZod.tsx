@@ -98,10 +98,8 @@ const tree = zodToTree(schema)
 const resolver = standardSchemaResolver(schema)
 
 export default function App() {
-  // 'onTouched' = when RHF COMPUTES errors (first blur, then every change);
-  // what SHOWS is the dirty+blur/submit gate in rhfFieldControls.recipe —
-  // the same display policy as App_12 and App_18.
-  const methods = useForm({ resolver, mode: 'onTouched' })
+  // RHF's default mode: validate at first submit, revalidate on change after.
+  const methods = useForm({ resolver })
   const renderNode = useRenderNodeRules(tree, rhfRules)
   // Typed by the schema: `z.output` flows through the resolver into
   // `handleSubmit`, so `data.age` is `number`, `data.contactMethod` is
@@ -112,13 +110,13 @@ export default function App() {
     <div>
       <h1>React Hook Form over Zod (recipe)</h1>
       <p>
-        The Zod twin of example 12 — same shared controls, same display policy
-        (errors reveal once a field is edited and left, everything reveals at
-        submit, fixes clear live) — but the password-confirmation rule is
-        Zod&apos;s native <code>.refine(fn, {'{ path }'})</code> and the schema
-        plugs straight into RHF&apos;s resolver (Zod already speaks Standard
-        Schema — no adapter, no casts). Copy-paste recipe — two files, this one
-        plus <code>rhfFieldControls.recipe.tsx</code>.
+        The Zod twin of example 12 — same shared controls, same RHF default
+        display timing (quiet until Submit, then live) — but the
+        password-confirmation rule is Zod&apos;s native{' '}
+        <code>.refine(fn, {'{ path }'})</code> and the schema plugs straight
+        into RHF&apos;s resolver (Zod already speaks Standard Schema — no
+        adapter, no casts). Copy-paste recipe — two files, this one plus{' '}
+        <code>rhfFieldControls.recipe.tsx</code>.
       </p>
 
       <FormProvider {...methods}>

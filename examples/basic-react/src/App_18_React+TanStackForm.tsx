@@ -1,9 +1,9 @@
 // RECIPE: TanStack Form as the form-state layer, over JSON Schema + AJV.
 //
 // ONE file to copy — TanStack's binding model is different enough from RHF's
-// that nothing from `rhfFieldControls.recipe.tsx` carries over. Same schema
-// and same display policy as App_12/App_12B on purpose, so you can compare
-// "how do I get X" across form libraries side by side.
+// that nothing from `rhfFieldControls.recipe.tsx` carries over. Same schema as
+// App_12/App_12B on purpose, so you can compare "how do I get X" across form
+// libraries side by side.
 //
 // The shape of it:
 //
@@ -23,20 +23,18 @@
 //     AJV's "18" → 18 coercion can't reach form state mid-typing; `onSubmit`
 //     re-runs the validator once more and reads `result.data`. (Yes, that
 //     validates twice on submit — it's the price of coercion recovery.)
-//   • Display policy = `revalidateLogic` (when errors are COMPUTED: every
-//     change, always at submit) + the explicit gate in `displayedErrors`
-//     (when they SHOW: dirtied + blurred, or after a submit attempt). The
-//     dirty check uses `isDefaultValue` — comparative, so reverting a field
-//     to its default re-hides its error — not TanStack's sticky `isDirty`.
+//   • Display timing is `validationLogic: revalidateLogic()` — TanStack's
+//     recommended default, no arguments: quiet until the first submit
+//     attempt, then revalidate on change. (Same observable behavior as RHF's
+//     default mode, which `revalidateLogic` explicitly exists to emulate —
+//     which is why the recipes stay comparable without either hand-rolling a
+//     display policy.) Want blur-gated reveal instead?
+//     `revalidateLogic({ mode: 'blur' })`.
 //   • Seed `defaultValues` with `{}` for EVERY nested group. TanStack's
 //     values are exactly your defaults: with `address` missing entirely, a
 //     required failure lands on the group itself (which no field control
 //     renders); with `address: {}`, it lands on `address.street`, a real
 //     field with an error slot.
-//   • Reactivity trap: read submit state through `form.Subscribe`, never a
-//     bare `form.state` read in render. TanStack skips re-rendering fields
-//     whose own slice didn't change, so a bare read can go stale — a field
-//     blurred before submit would silently never reveal its error.
 import { useState, createContext, useContext, type ReactNode } from 'react'
 import { useForm, revalidateLogic } from '@tanstack/react-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
@@ -170,15 +168,9 @@ interface FieldIssue {
 interface RecipeFieldApi {
   state: {
     value: unknown
-    meta: {
-      errors: ReadonlyArray<FieldIssue>
-      /** Sticky: set on first blur, never unset. */
-      isBlurred: boolean
-      /** Comparative: current value equals the field's default. The analogue
-       * of RHF's `dirtyFields` (which un-dirties on revert) — unlike
-       * TanStack's own `isDirty`, which is sticky. */
-      isDefaultValue: boolean
-    }
+    /** `errors` is already timed by `validationLogic` — whatever is in here
+     * is what should be displayed. */
+    meta: { errors: ReadonlyArray<FieldIssue> }
   }
   handleChange: (value: unknown) => void
   handleBlur: () => void
@@ -188,11 +180,6 @@ interface RecipeFormApi {
   Field: (props: {
     name: string
     children: (field: RecipeFieldApi) => ReactNode
-  }) => ReactNode
-  /** Reactive form-state subscription — see the header's reactivity trap. */
-  Subscribe: (props: {
-    selector: (state: { submissionAttempts: number }) => boolean
-    children: (value: boolean) => ReactNode
   }) => ReactNode
 }
 
@@ -207,27 +194,17 @@ function useTanStackForm(): RecipeFormApi {
 
 // --- Field plumbing shared by every control handler --------------------------
 
-/** The display gate: reveal once dirtied (non-default) AND blurred, or after
- * a submit attempt — the same policy as the RHF recipes. Errors handed out
- * are pre-gated: present means show, and `aria-invalid` tracks exactly that. */
-function displayedErrors(
-  submitted: boolean,
-  field: RecipeFieldApi
-): ReadonlyArray<FieldIssue> {
-  const show =
-    submitted ||
-    (field.state.meta.isBlurred && !field.state.meta.isDefaultValue)
-  return show ? field.state.meta.errors : []
-}
-
 /**
- * Mounts the TanStack field for `path` and hands back `(field, errors)` with
- * the display gate already applied. Combines the reactive submitted-flag
- * subscription (`form.Subscribe` — the boolean flips once, re-rendering each
- * field exactly once at first submit) with the field mount, so control
- * handlers stay flat.
+ * Mounts the TanStack field for `path` and hands back `(field, errors)`.
+ * `errors` is simply what TanStack currently holds — `validationLogic`
+ * already decides when errors exist, so there's no display gate here. (If you
+ * want timing `revalidateLogic` can't express, this is the one place to add
+ * it: `field.state.meta` also carries `isBlurred` and `isDefaultValue`, and
+ * "has a submit been attempted" is `form.Subscribe`'s
+ * `state.submissionAttempts` — read it reactively, never off a bare
+ * `form.state`, or it goes stale.)
  */
-function GatedField({
+function Field({
   path,
   children,
 }: {
@@ -239,13 +216,9 @@ function GatedField({
 }): ReactNode {
   const form = useTanStackForm()
   return (
-    <form.Subscribe selector={(s) => s.submissionAttempts > 0}>
-      {(submitted) => (
-        <form.Field name={path}>
-          {(field) => children(field, displayedErrors(submitted, field))}
-        </form.Field>
-      )}
-    </form.Subscribe>
+    <form.Field name={path}>
+      {(field) => children(field, field.state.meta.errors)}
+    </form.Field>
   )
 }
 
@@ -301,7 +274,7 @@ function a11yAttrs(path: string, errors: ReadonlyArray<FieldIssue>) {
 
 function InputControl({ path, parts }: ControlProps<'input'>): ReactNode {
   return (
-    <GatedField path={path}>
+    <Field path={path}>
       {(field, errors) => (
         <FieldShell path={path} parts={parts} errors={errors}>
           <parts.Control
@@ -321,13 +294,13 @@ function InputControl({ path, parts }: ControlProps<'input'>): ReactNode {
           />
         </FieldShell>
       )}
-    </GatedField>
+    </Field>
   )
 }
 
 function SelectControl({ path, parts }: ControlProps<'select'>): ReactNode {
   return (
-    <GatedField path={path}>
+    <Field path={path}>
       {(field, errors) => (
         <FieldShell path={path} parts={parts} errors={errors}>
           <parts.Control
@@ -354,7 +327,7 @@ function SelectControl({ path, parts }: ControlProps<'select'>): ReactNode {
           />
         </FieldShell>
       )}
-    </GatedField>
+    </Field>
   )
 }
 
@@ -363,7 +336,7 @@ function ChoiceGroupControl({
   parts,
 }: ControlProps<'choicegroup'>): ReactNode {
   return (
-    <GatedField path={path}>
+    <Field path={path}>
       {(field, errors) => (
         <FieldShell path={path} parts={parts} errors={errors}>
           <parts.Control
@@ -389,7 +362,7 @@ function ChoiceGroupControl({
           />
         </FieldShell>
       )}
-    </GatedField>
+    </Field>
   )
 }
 
@@ -407,13 +380,12 @@ export default function App() {
     // see the header for why.
     defaultValues: { address: {} } as Data,
     validators: { onDynamic: standardSchema },
-    // When errors are COMPUTED: every change, always at submit, and live
-    // after submit. When they SHOW is `displayedErrors`' gate — same
-    // compute-vs-show split as the RHF recipes' `mode` vs gate.
-    validationLogic: revalidateLogic({
-      mode: 'change',
-      modeAfterSubmission: 'change',
-    }),
+    // TanStack's own recommended default timing (no arguments): quiet until
+    // the first submit attempt, then revalidate on change. This is the same
+    // observable behavior as RHF's default mode — `revalidateLogic` exists
+    // precisely to emulate it — which is why the recipes stay comparable
+    // without either of them hand-rolling a display policy.
+    validationLogic: revalidateLogic(),
     onSubmit: ({ value }) => {
       // Second validator run, deliberately: TanStack validators return
       // issues only, so this is where AJV's coercion ("18" → 18) is
@@ -474,12 +446,20 @@ export default function App() {
 //   (standardSchemaValidator.js — success returns nothing, transformed value
 //   discarded), revalidateLogic's RHF-mode emulation (ValidationLogic.js's
 //   own doc comment), isBlurred/isDefaultValue semantics (fieldMetaDerived).
-// • The Subscribe reactivity trap and the nested-defaults seeding were both
-//   found by the parity smoke, not by reading docs: a bare `form.state`
-//   read left a pre-submit-blurred field's error unrevealed at submit; and
-//   without `address: {}`, the required failure landed on the group node
-//   (invisible) instead of `address.street`, diverging from RHF's
-//   materialized nested values.
+// • Display policy is each library's own default (see the `Field` doc for
+//   where a custom gate would go). An earlier iteration imposed a shared
+//   dirtied+blurred gate across all three recipes; that required a
+//   `form.Subscribe` submitted-flag plus `isBlurred`/`isDefaultValue` reads
+//   here, and a touched/dirty/isSubmitted gate in the RHF half — all deleted
+//   once we found RHF's and TanStack's defaults already agree observably.
+//   Keep that history in mind before re-adding a gate: the `Subscribe`
+//   reactivity trap (a bare `form.state` read goes stale, leaving a
+//   pre-submit-blurred field's error unrevealed at submit) was a real bug
+//   the parity smoke caught, and it only existed because of the gate.
+// • The nested-defaults seeding was also a parity-smoke find: without
+//   `address: {}`, the required failure landed on the group node (invisible)
+//   instead of `address.street`, diverging from RHF's materialized nested
+//   values.
 // • Array paths: standardSchemaValidator.js emits `contacts[0].email` (not
 //   FormFrame's `contacts.0.email`) — normalization glue is real but
 //   unexercised here (no array field, matching App_12/12B's scoping).
