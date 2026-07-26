@@ -19,6 +19,7 @@ import App15 from './App_15_React+ZodUseFormTree'
 import App16 from './App_16_React+Customize'
 import App17 from './App_17_React+CustomizeZod'
 import App18 from './App_18_React+TanStackForm'
+import App18B from './App_18B_React+TanStackFormZod'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -68,6 +69,11 @@ const examples = [
     id: '18',
     name: 'React + TanStack Form (recipe)',
     component: App18,
+  },
+  {
+    id: '18B',
+    name: 'React + TanStack Form over Zod (recipe)',
+    component: App18B,
   },
 ]
 
