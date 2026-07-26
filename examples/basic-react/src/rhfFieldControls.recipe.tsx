@@ -25,6 +25,7 @@
 //     than as an empty string (which would pass `required` but fail
 //     format/minLength — confusing errors for fields the user never touched).
 import { useFormContext, useFormState, get } from 'react-hook-form'
+import type { FieldError } from 'react-hook-form'
 import type { ReactNode } from 'react'
 import {
   fieldErrorId,
@@ -51,36 +52,43 @@ import {
  * from the same `useFormState` call and return `undefined` until your
  * condition holds.)
  */
-export function useFieldError(path: string): { message?: string } | undefined {
+export function useFieldError(path: string): FieldError | undefined {
   const { errors } = useFormState({ name: path })
-  return get(errors, path) as { message?: string } | undefined
+  return get(errors, path) as FieldError | undefined
 }
 
-/** `aria-invalid` + `aria-describedby` for the control, tracking exactly the
- * error that is displayed. The check is presence
- * of the error object, not `error.message` truthiness — a validator can
- * legally produce an error with an empty message, and dropping `aria-invalid`
- * for it would be a real accessibility bug. */
-export function useFieldA11y(path: string): {
-  'aria-invalid'?: true
-  'aria-describedby'?: string
-} {
-  const error = useFieldError(path)
+/** `aria-invalid` + `aria-describedby` for the control. Pure — hand it the
+ * error you already read, so a field subscribes once and both the control and
+ * the message list work off the same value. Keyed on the error's PRESENCE,
+ * not `message` truthiness: RHF types `message` as optional, and dropping
+ * `aria-invalid` for a message-less error would be a real a11y bug. */
+export function a11yAttrs(
+  path: string,
+  error: FieldError | undefined
+): { 'aria-invalid'?: true; 'aria-describedby'?: string } {
   return error
     ? { 'aria-invalid': true, 'aria-describedby': fieldErrorId(path) }
     : {}
 }
 
-export function FieldErrors({ path }: { path: string }): ReactNode {
-  const error = useFieldError(path)
+export function FieldErrors({
+  path,
+  error,
+}: {
+  path: string
+  error: FieldError | undefined
+}): ReactNode {
   if (!error) return null
   return (
     // Deliberately NO role="alert"/live region: errors revalidate on every
     // keystroke after a submit, and an assertive region would re-announce on
     // every character while the user fixes the field. `aria-describedby`
-    // (wired above) keeps the control↔error association without the noise.
+    // (wired by `a11yAttrs`) keeps the control↔error association without the
+    // noise. The fallback text matters: `message` is optional in RHF's types,
+    // and an empty <li> would leave `aria-describedby` pointing at nothing a
+    // screen reader can announce.
     <ul id={fieldErrorId(path)} className="jsf-field-errors">
-      <li>{error.message}</li>
+      <li>{error.message || 'Invalid value.'}</li>
     </ul>
   )
 }
@@ -100,10 +108,12 @@ export interface FieldShellParts {
 export function FieldShell({
   path,
   parts,
+  error,
   children,
 }: {
   path: string
   parts: FieldShellParts
+  error: FieldError | undefined
   children: ReactNode
 }): ReactNode {
   return (
@@ -111,7 +121,7 @@ export function FieldShell({
       <parts.Label />
       {parts.Description && <parts.Description />}
       {children}
-      <FieldErrors path={path} />
+      <FieldErrors path={path} error={error} />
     </div>
   )
 }
@@ -134,9 +144,10 @@ export function InputControl({
   parts,
 }: ControlProps<'input'>): ReactNode {
   const { register } = useFormContext()
-  const a11y = useFieldA11y(path)
+  const error = useFieldError(path)
+  const a11y = a11yAttrs(path, error)
   return (
-    <FieldShell path={path} parts={parts}>
+    <FieldShell path={path} parts={parts} error={error}>
       <parts.Control
         render={(c) => (
           <input {...c.attrs} {...register(path, emptyToUndefined)} {...a11y} />
@@ -151,9 +162,10 @@ export function SelectControl({
   parts,
 }: ControlProps<'select'>): ReactNode {
   const { register } = useFormContext()
-  const a11y = useFieldA11y(path)
+  const error = useFieldError(path)
+  const a11y = a11yAttrs(path, error)
   return (
-    <FieldShell path={path} parts={parts}>
+    <FieldShell path={path} parts={parts} error={error}>
       <parts.Control
         render={(c) => (
           <select
@@ -179,9 +191,10 @@ export function ChoiceGroupControl({
   parts,
 }: ControlProps<'choicegroup'>): ReactNode {
   const { register } = useFormContext()
-  const a11y = useFieldA11y(path)
+  const error = useFieldError(path)
+  const a11y = a11yAttrs(path, error)
   return (
-    <FieldShell path={path} parts={parts}>
+    <FieldShell path={path} parts={parts} error={error}>
       <parts.Control
         render={(c) => (
           <div role={c.role} aria-labelledby={c.labelledBy} {...a11y}>
