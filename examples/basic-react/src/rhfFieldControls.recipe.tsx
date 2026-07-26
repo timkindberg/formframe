@@ -30,10 +30,27 @@ import {
 // `ErrorMessage` component uses internally) — reused here instead of hand-
 // rolling a dot-path walk, and it means the `@hookform/error-message` package
 // itself buys nothing this recipe doesn't already have via `react-hook-form`.
+//
+// UNIFIED DISPLAY POLICY (shared by all three recipes — App_12, App_12B,
+// App_18): a field's error is revealed only once the field has been DIRTIED
+// (differs from its default) AND BLURRED, or after a submit attempt; after a
+// submit, changed fields revalidate live. The gate lives here — RHF's `mode`
+// only controls when errors are COMPUTED (`'onTouched'` in both RHF recipes:
+// first blur, then every change); this gate decides what SHOWS. Per #117 the
+// injected errors are pre-gated by the recipe — present == show — so
+// `aria-invalid` (below) tracks exactly what's displayed. Note `dirtyFields`
+// is COMPARATIVE (a field reverted to its default value un-dirties and
+// re-hides pre-submit) — App_18 matches this deliberately by gating on
+// TanStack's comparative `isDefaultValue`, not its sticky `isDirty`.
 
 export function useFieldError(path: string): { message?: string } | undefined {
-  const { errors } = useFormState({ name: path })
-  return get(errors, path) as { message?: string } | undefined
+  const { errors, touchedFields, dirtyFields, isSubmitted } = useFormState({
+    name: path,
+  })
+  const error = get(errors, path) as { message?: string } | undefined
+  const show =
+    isSubmitted || (!!get(touchedFields, path) && !!get(dirtyFields, path))
+  return show ? error : undefined
 }
 
 export function useFieldA11y(path: string): {
@@ -54,7 +71,12 @@ export function FieldErrors({ path }: { path: string }): ReactNode {
   const error = useFieldError(path)
   if (!error) return null
   return (
-    <ul id={fieldErrorId(path)} className="jsf-field-errors" role="alert">
+    // No role="alert"/live region — matches the #117 locked seam ("no
+    // role=alert by default") and App_18. With post-submit change-
+    // revalidation, an assertive region would re-announce on every keystroke
+    // while the user fixes a field; `aria-describedby` (wired by
+    // `useFieldA11y`) keeps the control↔error association without that.
+    <ul id={fieldErrorId(path)} className="jsf-field-errors">
       <li>{error.message}</li>
     </ul>
   )
@@ -95,6 +117,25 @@ export function FieldShell({
   )
 }
 
+// "EMPTY MEANS ABSENT", uniformly: EVERY control registers with this
+// normalization, not just number/select. RHF reads native inputs' DOM values
+// at submit, so an untouched text input would otherwise submit `""` — which
+// PASSES `required` but fails `format`/`minLength`, a different error set
+// than a controlled form library (TanStack, App_18) whose untouched fields
+// are genuinely `undefined`. Normalizing "" → undefined everywhere makes an
+// empty field mean "absent" (so `required` fires, not "must match format
+// \"email\"" against an empty string) and keeps all three recipes'
+// validation behavior identical — a divergence found by
+// `scripts/recipe-parity-smoke.mjs`, not by reading docs. The radio-group
+// variant also maps RHF's no-selection values (null/false) to undefined.
+const emptyToUndefined = {
+  setValueAs: (v: unknown) => (v === '' ? undefined : v),
+}
+const noChoiceToUndefined = {
+  setValueAs: (v: unknown) =>
+    v === '' || v === false || v == null ? undefined : v,
+}
+
 export function InputControl({
   path,
   parts,
@@ -105,16 +146,7 @@ export function InputControl({
     <FieldShell path={path} parts={parts}>
       <parts.Control
         render={(c) => (
-          <input
-            {...c.attrs}
-            {...register(
-              path,
-              c.attrs.type === 'number'
-                ? { setValueAs: (v) => (v === '' ? undefined : v) }
-                : undefined
-            )}
-            {...a11y}
-          />
+          <input {...c.attrs} {...register(path, emptyToUndefined)} {...a11y} />
         )}
       />
     </FieldShell>
@@ -133,16 +165,7 @@ export function SelectControl({
         render={(c) => (
           <select
             {...c.attrs}
-            {...register(
-              path,
-              // A blank "-- select --" placeholder submits "" for an untouched
-              // optional field, which fails an `enum` check ("" isn't a member).
-              // Map it to `undefined` — mirrors the empty-number normalization
-              // above — so "nothing chosen" round-trips as absent, not invalid.
-              c.attrs.multiple
-                ? undefined
-                : { setValueAs: (v) => (v === '' ? undefined : v) }
-            )}
+            {...register(path, c.attrs.multiple ? undefined : emptyToUndefined)}
             {...a11y}
           >
             {!c.attrs.multiple && <option value="">-- select --</option>}
@@ -171,7 +194,8 @@ export function ChoiceGroupControl({
           <div role={c.role} aria-labelledby={c.labelledBy} {...a11y}>
             {c.options.map((o) => (
               <label key={o.attrs.id}>
-                <input {...o.attrs} {...register(path)} /> {o.label}
+                <input {...o.attrs} {...register(path, noChoiceToUndefined)} />{' '}
+                {o.label}
               </label>
             ))}
           </div>

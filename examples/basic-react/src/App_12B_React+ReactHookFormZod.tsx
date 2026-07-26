@@ -38,10 +38,13 @@
 //     issue appears. A partially-filled form with a Zod cross-field rule can
 //     look like the rule isn't wired up when it's actually just gated behind
 //     the rest of the object being valid first.
-//  4. DIFFERENT `mode` — deliberately, not an oversight. App_12 sets
-//     `mode: 'onTouched'`; this file leaves RHF on its default so the pair
-//     demonstrates two display policies instead of the same one twice. See
-//     the `useForm` call below for exactly how the default behaves.
+//  4. SAME display policy as App_12 and App_18 (the unified recipe policy:
+//     reveal per-field on dirtied+blurred, reveal all at submit, revalidate
+//     changed fields live after submit) — the gate lives in
+//     `rhfFieldControls.recipe.tsx`; `mode: 'onTouched'` here only controls
+//     when RHF computes. Keeping all three recipes on one observable policy
+//     is what makes the parity smoke (`scripts/recipe-parity-smoke.mjs`)
+//     meaningful.
 //
 // Everything else is identical in spirit to App_12 — errors injected as a
 // prop via RHF's own `get` rather than our internal store, one
@@ -150,17 +153,10 @@ const tree = zodToTree(schema)
 const resolver = standardSchemaResolver(schema)
 
 export default function App() {
-  // RHF's DEFAULT mode (no `mode` option) — deliberately NOT App_12's
-  // 'onTouched', so the pair demonstrates two different display policies
-  // rather than the same one twice. Default 'onSubmit' + reValidateMode
-  // 'onChange': nothing validates before the first submit attempt (type
-  // into any field and blur away — no error, no matter how invalid); on
-  // submit the whole form validates and every invalid field's error shows;
-  // AFTER that first submit, a field that has an error revalidates on every
-  // keystroke (clearing as soon as it's fixed), but a field with no error
-  // yet stays silent until the next submit. This is ADR 027's `'submit'`
-  // display policy, not `'touched'`.
-  const methods = useForm({ resolver })
+  // 'onTouched' = when RHF COMPUTES (first blur, then every change); what
+  // SHOWS is the unified dirty+blur/submit gate in rhfFieldControls.recipe —
+  // same observable policy as App_12 and App_18.
+  const methods = useForm({ resolver, mode: 'onTouched' })
   const renderNode = useRenderNodeRules(tree, rhfRules)
   const [submitted, setSubmitted] = useState<FieldValues | null>(null)
 
@@ -169,11 +165,10 @@ export default function App() {
       <h1>React Hook Form over Zod (recipe, ADR 024 / ADR 008)</h1>
       <p>
         The Zod twin of example 12: same <code>renderNodeRules</code> control-
-        kind dispatch, same errors-as-a-prop seam (#117) — but the schema is a{' '}
-        <code>z.object(…)</code>, RHF is left on its <em>default</em> mode
-        (example 12 shows <code>&apos;onTouched&apos;</code>; nothing here
-        validates until the first submit), and two things fall away entirely.
-        The password-confirmation rule is Zod&apos;s native{' '}
+        kind dispatch, same errors-as-a-prop seam (#117), same display policy
+        (reveal on dirtied+blurred, all at submit, live after) — but the schema
+        is a <code>z.object(…)</code> and two things fall away entirely. The
+        password-confirmation rule is Zod&apos;s native{' '}
         <code>.refine(fn, {'{ path }'})</code> — no hand-composed cross-field
         wrapper, unlike plain JSON Schema. And the resolver wires the schema
         straight in — Zod already speaks Standard Schema, so there&apos;s no{' '}
