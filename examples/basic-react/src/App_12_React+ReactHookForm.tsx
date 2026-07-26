@@ -22,13 +22,15 @@
 //     + `renderNodeRules` (ADR 047) render the structure; `parts.Control`'s
 //     `render` prop wires any control (input AND select) through `register()`,
 //     no engine change.
-//  3. Touched-gated error UX is FREE (glue #4) and we must NOT hand-roll it. RHF
-//     field-scopes resolver errors itself, so `mode: 'onTouched'` alone gives
-//     "show only after touched" — the RHF equivalent of ADR 027's `'touched'`
-//     display policy. `mode: 'onSubmit'` (RHF's default) matches `'submit'`;
-//     there is no exact RHF equivalent of `'always'` (nothing validates before
-//     the first event), which the audit flagged as a real capability delta, not
-//     a recipe bug.
+//  3. UNIFIED display policy across all three recipes (App_12, App_12B,
+//     App_18): reveal a field's error only once it's DIRTIED + BLURRED,
+//     reveal everything at submit, revalidate changed fields live after
+//     submit. RHF's `mode: 'onTouched'` controls when errors are COMPUTED
+//     (first blur, then every change); the dirty+blur/submit display gate
+//     lives in `rhfFieldControls.recipe.tsx` and is what actually SHOWS them.
+//     One policy everywhere is what makes the recipes comparable — verified
+//     by `scripts/recipe-parity-smoke.mjs`, which drives all three through
+//     the identical interaction script.
 //  4. Errors are injected as a PROP, not read from our internal `ValidationStore`
 //     (the locked #117 seam: "the library renders, recipes produce"). Each
 //     control handler in `rhfFieldControls.recipe.tsx` reads its own error from
@@ -220,8 +222,8 @@ const resolver = standardSchemaResolver(
 )
 
 export default function App() {
-  // 'onTouched' == ADR 027's 'touched' display policy (glue #4) — RHF gates
-  // display itself; we never hand-gate on `touchedFields`.
+  // 'onTouched' = when RHF COMPUTES (first blur, then every change); what
+  // SHOWS is the unified dirty+blur/submit gate in rhfFieldControls.recipe.
   const methods = useForm({ resolver, mode: 'onTouched' })
   const renderNode = useRenderNodeRules(tree, rhfRules)
   const [submitted, setSubmitted] = useState<FieldValues | null>(null)
@@ -237,11 +239,13 @@ export default function App() {
         and wired into RHF through <code>standardSchemaResolver</code>. Errors
         are injected as a prop straight from RHF&apos;s{' '}
         <code>useFormState</code> — never our internal validation store (the
-        #117 seam: the library renders, this recipe produces). Touch a field and
-        blur to see touched-gated display; mismatch the passwords to see the
-        cross-field rule attach to <code>confirmPassword</code>. This is a
-        copy-paste recipe (two files — <code>rhfFieldControls.recipe.tsx</code>{' '}
-        holds the front-end-agnostic half), not a published adapter.
+        #117 seam: the library renders, this recipe produces). Type into a field
+        and blur to reveal its error (dirtied + blurred — the unified display
+        policy all three form-library recipes share); mismatch the passwords to
+        see the cross-field rule attach to <code>confirmPassword</code>. This is
+        a copy-paste recipe (two files —{' '}
+        <code>rhfFieldControls.recipe.tsx</code> holds the front-end-agnostic
+        half), not a published adapter.
       </p>
 
       <FormProvider {...methods}>
