@@ -18,15 +18,17 @@
 // the native recipe #122). When #125 lands, this script is superseded.
 //
 // Usage:
-//   npm run dev -w examples/basic-react   # in one terminal
-//   node scripts/recipe-parity-smoke.mjs [baseURL]   # default http://localhost:5173
+//   npm run smoke:recipes                        # starts/stops the dev server
+//   npm run smoke:recipes -- http://host:5173    # reuse a server already up
 //
 // If Playwright can't find a browser, point CHROMIUM_PATH at a Chromium
 // binary. `--no-sandbox` is passed for containerized/root environments.
 
 import { chromium } from 'playwright'
+import { spawn } from 'node:child_process'
 
-const BASE_URL = process.argv[2] ?? 'http://localhost:5173'
+const DEFAULT_URL = 'http://localhost:5173'
+const BASE_URL = process.argv[2] ?? DEFAULT_URL
 
 const RECIPES = [
   { tab: /^12\./, heading: 'React Hook Form as the form-state layer' },
@@ -174,17 +176,55 @@ async function launch() {
   }
 }
 
+async function reachable(url) {
+  try {
+    const probe = await fetch(url)
+    return probe.ok
+  } catch {
+    return false
+  }
+}
+
+/** Start the examples dev server and resolve once it serves; returns a stop
+ * function. Only used when nothing is already listening on BASE_URL, so a
+ * server you started yourself is always reused (and left running). */
+async function startDevServer() {
+  const child = spawn('npm', ['run', 'dev', '-w', 'examples/basic-react'], {
+    stdio: 'ignore',
+    detached: true,
+  })
+  const deadline = Date.now() + 60_000
+  while (Date.now() < deadline) {
+    if (await reachable(DEFAULT_URL)) {
+      return () => {
+        try {
+          process.kill(-child.pid)
+        } catch {
+          /* already gone */
+        }
+      }
+    }
+    if (child.exitCode !== null) break
+    await new Promise((r) => setTimeout(r, 300))
+  }
+  try {
+    process.kill(-child.pid)
+  } catch {
+    /* already gone */
+  }
+  throw new Error('dev server did not become reachable within 60s')
+}
+
 // --- main -------------------------------------------------------------------
 
-try {
-  const probe = await fetch(BASE_URL)
-  if (!probe.ok) throw new Error(String(probe.status))
-} catch {
-  console.error(
-    `Cannot reach ${BASE_URL} — start the dev server first:\n` +
-      '  npm run dev -w examples/basic-react'
-  )
-  process.exit(2)
+let stopServer
+if (!(await reachable(BASE_URL))) {
+  if (BASE_URL !== DEFAULT_URL) {
+    console.error(`Cannot reach ${BASE_URL} (explicitly requested).`)
+    process.exit(2)
+  }
+  console.log('Starting dev server…')
+  stopServer = await startDevServer()
 }
 
 const browser = await launch()
@@ -203,6 +243,7 @@ for (const [i, recipe] of RECIPES.entries()) {
   await page.close()
 }
 await browser.close()
+stopServer?.()
 
 // Cross-recipe: identical submitted output AND identical error sets revealed
 // at the empty-form submit (sorted-key deep equal / sorted id lists).

@@ -37,6 +37,7 @@
 //     field with an error slot.
 import { useState, createContext, useContext, type ReactNode } from 'react'
 import { useForm, revalidateLogic } from '@tanstack/react-form'
+import type { AnyFieldApi } from '@tanstack/react-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { toStandardSchema, type Validator } from '@formframe/core'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
@@ -165,15 +166,33 @@ interface FieldIssue {
   message: string
 }
 
-interface RecipeFieldApi {
+/**
+ * Every member this recipe reads off a TanStack field, written as indexed
+ * lookups into their own `AnyFieldApi`. That's the drift guard: rename or
+ * remove any of these upstream and THIS fails to compile, instead of the
+ * recipe breaking silently at runtime. (The lookups only assert the keys
+ * exist — `AnyFieldApi` is generic-erased, so the types themselves are loose;
+ * `RecipeFieldApi` below re-narrows them to what the handlers should see.)
+ */
+type TanStackFieldMembers = {
+  handleChange: AnyFieldApi['handleChange']
+  handleBlur: AnyFieldApi['handleBlur']
   state: {
+    value: AnyFieldApi['state']['value']
+    meta: { errors: AnyFieldApi['state']['meta']['errors'] }
+  }
+}
+
+interface RecipeFieldApi extends TanStackFieldMembers {
+  state: {
+    /** `unknown`, not their `any` — forces the handlers to coerce explicitly. */
     value: unknown
     /** `errors` is already timed by `validationLogic` — whatever is in here
-     * is what should be displayed. */
-    meta: { errors: ReadonlyArray<FieldIssue> }
+     * is what should be displayed. (Mutable array, not `ReadonlyArray`, only
+     * so it stays assignable to TanStack's own `any[]` above; nothing here
+     * writes to it.) */
+    meta: { errors: FieldIssue[] }
   }
-  handleChange: (value: unknown) => void
-  handleBlur: () => void
 }
 
 interface RecipeFormApi {
@@ -408,9 +427,15 @@ export default function App() {
         Copy-paste recipe — one file.
       </p>
 
-      {/* The one type boundary: `form`'s 12-generic TanStack type collapses
-          to the structural slice the handlers consume (RecipeFormApi). */}
-      <TanStackFormContext.Provider value={form as unknown as RecipeFormApi}>
+      {/* The one type boundary. Building the slice explicitly (rather than
+          casting the whole `form`) means `form.Field` is a CHECKED property
+          lookup — a rename upstream fails here. Only the signature itself is
+          asserted, because TanStack's `Field` is generic over `DeepKeys<Data>`
+          while ours takes a runtime `string`. See `_TanStackDriftGuard` for
+          the field-side equivalent. */}
+      <TanStackFormContext.Provider
+        value={{ Field: form.Field as unknown as RecipeFormApi['Field'] }}
+      >
         <form
           noValidate
           onSubmit={(e) => {
