@@ -1,71 +1,42 @@
-// RECIPE: TanStack Form as the form-state layer (ADR 024), on the shipped
-// `renderNodeRules`/`useRenderNodeRules` API (ADR 047/048). Ticket: #124
-// (wayfinder epic #116; seam locked at #117). Same schema as App_12 (JSON
-// Schema + AJV) on purpose — this is the THIRD implementation of the same
-// capability matrix, after App_12 (RHF) and App_12B (RHF + Zod), all on the
-// SAME observable display policy (reveal a field's error on dirtied +
-// blurred, reveal everything at submit, revalidate changed fields live after
-// submit), so `scripts/recipe-parity-smoke.mjs` can drive all three through
-// one identical interaction script and assert identical behavior.
+// RECIPE: TanStack Form as the form-state layer, over JSON Schema + AJV.
 //
-// TanStack's audit (#121) named the exact glue this file provides, and it's
-// a different shape of glue than RHF's (#120) on several axes:
+// ONE file to copy — TanStack's binding model is different enough from RHF's
+// that nothing from `rhfFieldControls.recipe.tsx` carries over. Same schema
+// and same display policy as App_12/App_12B on purpose, so you can compare
+// "how do I get X" across form libraries side by side.
 //
-//  1. Errors → issues injected as a PROP (#117), same principle as the RHF
-//     recipes — but the mechanism differs because TanStack Form ships no
-//     ambient `useFormContext()`/`FormProvider` the way RHF does. This file
-//     rolls a minimal Context so control handlers can reach the form
-//     instance — the job RHF's `FormProvider` does for free.
-//  2. TanStack Form is CONTROLLED, not RHF's uncontrolled `register()`: every
-//     control binds `field.state.value` / `field.handleChange` /
-//     `field.handleBlur` explicitly. Confirmed by reading `FieldApi.js`
-//     directly — `handleChange`/`handleBlur` are the only mutation surface;
-//     there's no ref-based uncontrolled path.
-//  3. Our whole-object AJV validator plugs in as ONE form-level `onDynamic`
-//     validator (TanStack's escape hatch specifically for "drive validation
-//     like another library would," per `ValidationLogic.js`'s own doc
-//     comment) + `validationLogic: revalidateLogic({ mode: 'change',
-//     modeAfterSubmission: 'change' })`. `mode: 'change'` computes on every
-//     change (matching RHF-`onTouched`'s live recomputation once a field is
-//     in play); WHAT SHOWS is the same explicit dirty+blur/submit gate the
-//     RHF recipes apply in `rhfFieldControls.recipe.tsx` — here read off
-//     `meta.isBlurred && !meta.isDefaultValue`. `isDefaultValue` (not
-//     TanStack's sticky `isDirty`) is deliberate: it's COMPARATIVE, exactly
-//     like RHF's `dirtyFields`, so a field reverted to its default re-hides
-//     in both — identical edge behavior, not just similar happy paths.
-//  4. Standard Schema validators here produce ISSUES ONLY — confirmed by
-//     reading `standardSchemaValidator.js`: on success it returns nothing,
-//     never the validator's transformed/coerced value. So `age`'s AJV
-//     coercion ("18" → 18) never reaches `state.values` mid-typing; `onSubmit`
-//     below re-runs the validator itself and uses `result.data` for the
-//     "submitted" output — the same "re-validate to recover coercion" glue
-//     the audit named, mirroring App_12's coercion story but solved at a
-//     different point in the lifecycle (submit, not per-keystroke).
-//  5. Nested groups (`address.street`/`address.city`) use plain dot paths —
-//     no divergence; TanStack's `DeepKeys` accepts dot paths for object
-//     nesting the same way RHF/FormFrame do. The `foo[0]` vs `foo.0`
-//     array-path divergence the audit names is real (confirmed in
-//     `standardSchemaValidator.js`'s own path-building: it emits
-//     `contacts[0].email`) but isn't exercised here — this schema has no
-//     array field, matching App_12/App_12B's own scoping.
+// The shape of it:
 //
-// (No `role="alert"` on the error list — same as the RHF recipes and the
-// #117 locked seam: with post-submit change-revalidation, an assertive live
-// region would re-announce on every keystroke while the user fixes a field;
-// `aria-describedby` keeps the association without the interruption.)
+//   schema ─→ jsonSchemaToTree(schema) ──→ <SchemaFields> renders the fields
+//   schema ─→ createAjvValidator(schema) → toStandardSchema → one form-level
+//             `onDynamic` validator (TanStack consumes Standard Schemas
+//             directly — no resolver adapter)
 //
-// Cross-field rule: `withCrossFieldRule` is copied verbatim from App_12 —
-// confirmed form-library-agnostic there (it only touches our own `Validator`
-// type), and this is the proof: zero changes needed to reuse it here.
+// What's different from the RHF recipes — each of these is a real TanStack
+// behavior you'll hit adapting this, not a style choice:
 //
-// Out of scope for this recipe (left to #125's shared parity fixtures)
-// -----------------------------------------------------------------------------
-//  - Async validation (`onDynamicAsync`) and its pending/stale-result rows.
-//  - Pathless/whole-document issues — TanStack KEEPS them (unlike RHF, which
-//    drops them), per the audit, but this schema's cross-field rule already
-//    attaches to a concrete path, so there's nothing pathless to observe.
-//  - Array fields — the `foo[0]` path-normalization glue above is real but
-//    unexercised.
+//   • CONTROLLED binds. TanStack has no uncontrolled `register()` — every
+//     control wires `field.state.value` / `handleChange` / `handleBlur`.
+//   • No ambient provider. TanStack doesn't ship a FormProvider/useFormContext;
+//     the small Context below does that one job.
+//   • Validators return issues only — never the coerced/transformed value. So
+//     AJV's "18" → 18 coercion can't reach form state mid-typing; `onSubmit`
+//     re-runs the validator once more and reads `result.data`. (Yes, that
+//     validates twice on submit — it's the price of coercion recovery.)
+//   • Display policy = `revalidateLogic` (when errors are COMPUTED: every
+//     change, always at submit) + the explicit gate in `displayedErrors`
+//     (when they SHOW: dirtied + blurred, or after a submit attempt). The
+//     dirty check uses `isDefaultValue` — comparative, so reverting a field
+//     to its default re-hides its error — not TanStack's sticky `isDirty`.
+//   • Seed `defaultValues` with `{}` for EVERY nested group. TanStack's
+//     values are exactly your defaults: with `address` missing entirely, a
+//     required failure lands on the group itself (which no field control
+//     renders); with `address: {}`, it lands on `address.street`, a real
+//     field with an error slot.
+//   • Reactivity trap: read submit state through `form.Subscribe`, never a
+//     bare `form.state` read in render. TanStack skips re-rendering fields
+//     whose own slice didn't change, so a bare read can go stale — a field
+//     blurred before submit would silently never reveal its error.
 import { useState, createContext, useContext, type ReactNode } from 'react'
 import { useForm, revalidateLogic } from '@tanstack/react-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
@@ -108,6 +79,8 @@ const schema = {
       description: 'Must be 18 or older (string coerced by the validator).',
       minimum: 18,
     },
+    // Widget defaults are option-count driven: 6 options → a compact <select>;
+    // `contactMethod`'s 2 options → an inline radio group.
     plan: {
       type: 'string',
       title: 'Plan',
@@ -135,28 +108,28 @@ const schema = {
 type Shape = FormShapeOf<typeof schema>
 type Data = InferData<typeof schema>
 
-// --- Cross-field rule, copied verbatim from App_12 (form-library-agnostic) --
-function withCrossFieldRule<T>(validator: Validator<T>): Validator<T> {
+/**
+ * Add a "these two fields must match" rule on top of any FormFrame
+ * `Validator` — identical to App_12's copy, and that's the point: it never
+ * touches the form library, so it moves between recipes unchanged. The error
+ * attaches to `field` (a concrete path), so it renders like any other field
+ * error.
+ */
+function withMatchRule<T>(
+  validator: Validator<T>,
+  field: string,
+  mustMatch: string,
+  message: string
+): Validator<T> {
   return (data) => {
     const result = validator(data)
-    const value = (result.data ?? data) as Partial<
-      Record<'password' | 'confirmPassword', unknown>
-    >
-    if (
-      typeof value.password === 'string' &&
-      typeof value.confirmPassword === 'string' &&
-      value.password !== value.confirmPassword
-    ) {
+    const values = (result.data ?? data) as Record<string, unknown>
+    const a = values?.[field]
+    const b = values?.[mustMatch]
+    if (a !== undefined && b !== undefined && a !== b) {
       return {
         valid: false,
-        errors: [
-          ...result.errors,
-          {
-            path: 'confirmPassword',
-            message: 'Passwords must match.',
-            keyword: 'confirmPassword',
-          },
-        ],
+        errors: [...result.errors, { path: field, message, keyword: 'match' }],
         data: result.data,
       }
     }
@@ -165,40 +138,45 @@ function withCrossFieldRule<T>(validator: Validator<T>): Validator<T> {
 }
 
 const tree = jsonSchemaToTree(schema)
-const validator = withCrossFieldRule(createAjvValidator(schema))
-// TanStack consumes a Standard Schema directly (`isStandardSchemaValidator`
-// checks for `'~standard' in validator`) — no resolver adapter needed, same
-// principle as App_12B's Zod path, just via our own bridge instead of a
-// native one. Core emits `Input: unknown` (our neutral `Validator` accepts
-// unknown data); TanStack's validator slot wants `Input: TFormData` — the
-// same load-bearing cast App_12's RHF resolver needs, for the same reason.
+const validator = withMatchRule(
+  createAjvValidator(schema),
+  'confirmPassword',
+  'password',
+  'Passwords must match.'
+)
+// TanStack consumes any Standard Schema as a validator, so FormFrame's
+// bridge plugs straight in. One deliberate cast, same as App_12's resolver:
+// FormFrame's `Validator` accepts `unknown` input by design, and TanStack's
+// validator slot wants the form's data type on the input side.
 const standardSchema = toStandardSchema(validator) as StandardSchemaV1<
   Data,
   Data
 >
 
-// --- The slice of TanStack's API this recipe consumes ----------------------
-// TanStack's precise `FormApi`/`FieldApi` types carry ~12 mutually-
-// referential generic parameters (one per validator lifecycle slot) that
-// cannot be usefully pinned from a RUNTIME path string — our handlers
-// receive `path: string` from the neutral `ControlProps<K>` seam, and
-// TanStack's `Field` wants a compile-time `DeepKeys<Data>` literal.
-// TanStack's own escape hatch for this situation is `AnyFieldApi` (i.e.
-// `any`). We do one better: declare the narrow STRUCTURAL slice of the API
-// the recipe actually uses — every property below verified against
-// `@tanstack/form-core`'s source — and cast ONCE at the Provider boundary.
-// Strictly more typed than `any`, with zero casts at any call site.
+// --- The slice of TanStack's API this recipe uses ----------------------------
+// TanStack's full `FormApi`/`FieldApi` types carry ~12 interlocking generic
+// parameters that can't be pinned from a runtime path string — FormFrame
+// hands each control handler `path: string`, while TanStack's `Field` wants a
+// compile-time key literal. TanStack's own escape hatch for this is
+// `AnyFieldApi` (literally `any`); declaring the narrow structural slice we
+// actually consume is the typed version of the same move: zero `any`, zero
+// casts at call sites, one documented cast at the Provider boundary.
+
+/** One displayed validation issue (Standard Schema guarantees `message`). */
+interface FieldIssue {
+  message: string
+}
 
 interface RecipeFieldApi {
   state: {
     value: unknown
     meta: {
-      errors: ReadonlyArray<{ message?: string }>
-      /** Sticky: set on first blur, never unset (FieldApi.js `handleBlur`). */
+      errors: ReadonlyArray<FieldIssue>
+      /** Sticky: set on first blur, never unset. */
       isBlurred: boolean
-      /** COMPARATIVE: current value === the field's default — the analogue
-       * of RHF's `dirtyFields` (which un-dirties on revert), unlike
-       * TanStack's own sticky `isDirty`. */
+      /** Comparative: current value equals the field's default. The analogue
+       * of RHF's `dirtyFields` (which un-dirties on revert) — unlike
+       * TanStack's own `isDirty`, which is sticky. */
       isDefaultValue: boolean
     }
   }
@@ -211,23 +189,13 @@ interface RecipeFormApi {
     name: string
     children: (field: RecipeFieldApi) => ReactNode
   }) => ReactNode
-  /** Reactive form-state subscription. The submitted half of the display
-   * gate MUST come through here, not a plain `form.state` read: TanStack
-   * aggressively bails out of re-renders when a field's own slice is
-   * referentially unchanged, so a field whose error was already computed
-   * pre-submit may not re-render at submit at all — a non-reactive
-   * `submissionAttempts` read then stays stale and the gate never opens.
-   * (Not hypothetical: the parity smoke caught exactly this — blur a field
-   * pre-submit and its error silently failed to reveal at submit.) */
+  /** Reactive form-state subscription — see the header's reactivity trap. */
   Subscribe: (props: {
     selector: (state: { submissionAttempts: number }) => boolean
     children: (value: boolean) => ReactNode
   }) => ReactNode
 }
 
-// TanStack Form ships no ambient FormProvider/useFormContext of its own — the
-// `form` object from `useForm()` is meant to be threaded explicitly. This
-// Context does the one job RHF's `<FormProvider>` does for free.
 const TanStackFormContext = createContext<RecipeFormApi | null>(null)
 function useTanStackForm(): RecipeFormApi {
   const form = useContext(TanStackFormContext)
@@ -237,34 +205,46 @@ function useTanStackForm(): RecipeFormApi {
   return form
 }
 
-// --- One handler per control archetype (ADR 047 §3 `r.control(kind, …)`) ---
+// --- Field plumbing shared by every control handler --------------------------
 
-/** The unified display gate (same policy as `rhfFieldControls.recipe.tsx`):
- * reveal only once dirtied (non-default) AND blurred, or after a submit
- * attempt. Pre-gated per #117 — present == show — so `aria-invalid` tracks
- * exactly what's displayed. `submitted` must arrive via the reactive
- * `form.Subscribe` (see {@link RecipeFormApi.Subscribe} for why). */
+/** The display gate: reveal once dirtied (non-default) AND blurred, or after
+ * a submit attempt — the same policy as the RHF recipes. Errors handed out
+ * are pre-gated: present means show, and `aria-invalid` tracks exactly that. */
 function displayedErrors(
   submitted: boolean,
   field: RecipeFieldApi
-): ReadonlyArray<{ message?: string }> {
+): ReadonlyArray<FieldIssue> {
   const show =
     submitted ||
     (field.state.meta.isBlurred && !field.state.meta.isDefaultValue)
   return show ? field.state.meta.errors : []
 }
 
-/** One reactive subscription to "has a submit been attempted", shared by all
- * three control handlers — the TanStack equivalent of RHF's `isSubmitted`. */
-function WithSubmitted({
+/**
+ * Mounts the TanStack field for `path` and hands back `(field, errors)` with
+ * the display gate already applied. Combines the reactive submitted-flag
+ * subscription (`form.Subscribe` — the boolean flips once, re-rendering each
+ * field exactly once at first submit) with the field mount, so control
+ * handlers stay flat.
+ */
+function GatedField({
+  path,
   children,
 }: {
-  children: (submitted: boolean) => ReactNode
+  path: string
+  children: (
+    field: RecipeFieldApi,
+    errors: ReadonlyArray<FieldIssue>
+  ) => ReactNode
 }): ReactNode {
   const form = useTanStackForm()
   return (
     <form.Subscribe selector={(s) => s.submissionAttempts > 0}>
-      {children}
+      {(submitted) => (
+        <form.Field name={path}>
+          {(field) => children(field, displayedErrors(submitted, field))}
+        </form.Field>
+      )}
     </form.Subscribe>
   )
 }
@@ -282,7 +262,7 @@ function FieldShell({
 }: {
   path: string
   parts: FieldShellParts
-  errors: ReadonlyArray<{ message?: string }>
+  errors: ReadonlyArray<FieldIssue>
   children: ReactNode
 }): ReactNode {
   return (
@@ -291,7 +271,9 @@ function FieldShell({
       {parts.Description && <parts.Description />}
       {children}
       {errors.length > 0 && (
-        // No role="alert" — see the header note; matches the RHF recipes.
+        // Deliberately NO role="alert" — errors revalidate on every keystroke
+        // after a submit, and an assertive live region would re-announce on
+        // every character. `aria-describedby` (below) keeps the association.
         <ul id={fieldErrorId(path)} className="jsf-field-errors">
           {errors.map((e, i) => (
             <li key={i}>{e.message}</li>
@@ -302,7 +284,7 @@ function FieldShell({
   )
 }
 
-function a11yAttrs(path: string, errors: ReadonlyArray<unknown>) {
+function a11yAttrs(path: string, errors: ReadonlyArray<FieldIssue>) {
   return errors.length > 0
     ? {
         'aria-invalid': true as const,
@@ -311,85 +293,68 @@ function a11yAttrs(path: string, errors: ReadonlyArray<unknown>) {
     : {}
 }
 
+// --- One handler per control archetype ---------------------------------------
+// Registered via `r.control('input' | 'select' | 'choicegroup', …)` below.
+// Every control applies the same "empty means absent" normalization as the
+// RHF recipes: "" becomes undefined, so an untouched field submits as missing
+// instead of failing format/minLength against an empty string.
+
 function InputControl({ path, parts }: ControlProps<'input'>): ReactNode {
-  const form = useTanStackForm()
   return (
-    <WithSubmitted>
-      {(submitted) => (
-        <form.Field name={path}>
-          {(field) => {
-            const errors = displayedErrors(submitted, field)
-            return (
-              <FieldShell path={path} parts={parts} errors={errors}>
-                <parts.Control
-                  render={(c) => (
-                    <input
-                      {...c.attrs}
-                      value={String(field.state.value ?? '')}
-                      onChange={(e) =>
-                        field.handleChange(
-                          // "Empty means absent" — same normalization as the
-                          // RHF recipes' setValueAs, applied to every control.
-                          e.target.value === '' ? undefined : e.target.value
-                        )
-                      }
-                      onBlur={field.handleBlur}
-                      {...a11yAttrs(path, errors)}
-                    />
-                  )}
-                />
-              </FieldShell>
-            )
-          }}
-        </form.Field>
+    <GatedField path={path}>
+      {(field, errors) => (
+        <FieldShell path={path} parts={parts} errors={errors}>
+          <parts.Control
+            render={(c) => (
+              <input
+                {...c.attrs}
+                value={String(field.state.value ?? '')}
+                onChange={(e) =>
+                  field.handleChange(
+                    e.target.value === '' ? undefined : e.target.value
+                  )
+                }
+                onBlur={field.handleBlur}
+                {...a11yAttrs(path, errors)}
+              />
+            )}
+          />
+        </FieldShell>
       )}
-    </WithSubmitted>
+    </GatedField>
   )
 }
 
 function SelectControl({ path, parts }: ControlProps<'select'>): ReactNode {
-  const form = useTanStackForm()
   return (
-    <WithSubmitted>
-      {(submitted) => (
-        <form.Field name={path}>
-          {(field) => {
-            const errors = displayedErrors(submitted, field)
-            return (
-              <FieldShell path={path} parts={parts} errors={errors}>
-                <parts.Control
-                  render={(c) => (
-                    <select
-                      {...c.attrs}
-                      value={String(field.state.value ?? '')}
-                      onChange={(e) =>
-                        field.handleChange(
-                          // "Empty means absent": the "-- select --"
-                          // placeholder round-trips as absent, not "" (which
-                          // would fail the `enum` check).
-                          e.target.value === '' ? undefined : e.target.value
-                        )
-                      }
-                      onBlur={field.handleBlur}
-                      {...a11yAttrs(path, errors)}
-                    >
-                      {!c.attrs.multiple && (
-                        <option value="">-- select --</option>
-                      )}
-                      {c.options.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                />
-              </FieldShell>
-            )
-          }}
-        </form.Field>
+    <GatedField path={path}>
+      {(field, errors) => (
+        <FieldShell path={path} parts={parts} errors={errors}>
+          <parts.Control
+            render={(c) => (
+              <select
+                {...c.attrs}
+                value={String(field.state.value ?? '')}
+                onChange={(e) =>
+                  field.handleChange(
+                    e.target.value === '' ? undefined : e.target.value
+                  )
+                }
+                onBlur={field.handleBlur}
+                {...a11yAttrs(path, errors)}
+              >
+                {!c.attrs.multiple && <option value="">-- select --</option>}
+                {c.options.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
+        </FieldShell>
       )}
-    </WithSubmitted>
+    </GatedField>
   )
 }
 
@@ -397,42 +362,34 @@ function ChoiceGroupControl({
   path,
   parts,
 }: ControlProps<'choicegroup'>): ReactNode {
-  const form = useTanStackForm()
   return (
-    <WithSubmitted>
-      {(submitted) => (
-        <form.Field name={path}>
-          {(field) => {
-            const errors = displayedErrors(submitted, field)
-            return (
-              <FieldShell path={path} parts={parts} errors={errors}>
-                <parts.Control
-                  render={(c) => (
-                    <div
-                      role={c.role}
-                      aria-labelledby={c.labelledBy}
-                      onBlur={field.handleBlur}
-                      {...a11yAttrs(path, errors)}
-                    >
-                      {c.options.map((o) => (
-                        <label key={o.attrs.id}>
-                          <input
-                            {...o.attrs}
-                            checked={field.state.value === o.attrs.value}
-                            onChange={() => field.handleChange(o.attrs.value)}
-                          />{' '}
-                          {o.label}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                />
-              </FieldShell>
-            )
-          }}
-        </form.Field>
+    <GatedField path={path}>
+      {(field, errors) => (
+        <FieldShell path={path} parts={parts} errors={errors}>
+          <parts.Control
+            render={(c) => (
+              <div
+                role={c.role}
+                aria-labelledby={c.labelledBy}
+                onBlur={field.handleBlur}
+                {...a11yAttrs(path, errors)}
+              >
+                {c.options.map((o) => (
+                  <label key={o.attrs.id}>
+                    <input
+                      {...o.attrs}
+                      checked={field.state.value === o.attrs.value}
+                      onChange={() => field.handleChange(o.attrs.value)}
+                    />{' '}
+                    {o.label}
+                  </label>
+                ))}
+              </div>
+            )}
+          />
+        </FieldShell>
       )}
-    </WithSubmitted>
+    </GatedField>
   )
 }
 
@@ -445,56 +402,42 @@ const tanStackRules = (r: TypedRuleRegistrar<Shape>): void => {
 export default function App() {
   const [submitted, setSubmitted] = useState<Data | null>(null)
   const form = useForm({
-    // TanStack wants a full TFormData up front; a form genuinely starts
-    // empty, so this cast is the pragmatic recipe move (their own docs
-    // initialize complete defaultValues instead — fine when you have them).
-    // The nested group object IS seeded: RHF materializes `address` from its
-    // registered leaf names, so a missing street fails `required` at
-    // `address.street` (a field with a control to render the error under).
-    // TanStack's values are exactly these defaults — without the seed,
-    // `address` itself would be the missing property and the error would
-    // land on the group, which no control renders. Found by the parity
-    // smoke, which asserts all three recipes reveal the SAME error set.
+    // TanStack wants full TFormData up front; a form genuinely starts empty,
+    // so the cast is the pragmatic move. Seed `{}` for EVERY nested group —
+    // see the header for why.
     defaultValues: { address: {} } as Data,
     validators: { onDynamic: standardSchema },
-    // 'change' = when TanStack COMPUTES (every change + always at submit);
-    // what SHOWS is the dirty+blur/submit gate in `displayedErrors` — the
-    // same split as the RHF recipes' mode-vs-gate. `modeAfterSubmission:
-    // 'change'` keeps post-submit revalidation live, matching RHF's
-    // reValidateMode default.
+    // When errors are COMPUTED: every change, always at submit, and live
+    // after submit. When they SHOW is `displayedErrors`' gate — same
+    // compute-vs-show split as the RHF recipes' `mode` vs gate.
     validationLogic: revalidateLogic({
       mode: 'change',
       modeAfterSubmission: 'change',
     }),
     onSubmit: ({ value }) => {
-      // Re-run the validator to recover coercion the Standard Schema
-      // validator discarded (header note #4) — `result.data` is the coerced
-      // value; `value` (raw state) is the fallback if nothing transformed.
+      // Second validator run, deliberately: TanStack validators return
+      // issues only, so this is where AJV's coercion ("18" → 18) is
+      // recovered via `result.data`.
       const result = validator(value)
-      setSubmitted((result.data ?? value) as Data)
+      setSubmitted(result.data ?? value)
     },
   })
   const renderNode = useRenderNodeRules(tree, tanStackRules)
 
   return (
     <div>
-      <h1>TanStack Form as the form-state layer (recipe, ADR 024)</h1>
+      <h1>TanStack Form as the form-state layer (recipe)</h1>
       <p>
-        The third implementation of example 12&apos;s capability matrix — same
-        schema, same <code>renderNodeRules</code> control-kind dispatch, same
-        errors-as-a-prop seam (#117), same display policy (reveal on dirtied +
-        blurred, all at submit, live after) — over TanStack Form instead of RHF.
-        TanStack owns state via CONTROLLED binds (<code>field.state.value</code>
-        /<code>handleChange</code>/<code>handleBlur</code>), and our AJV
-        validator plugs in as one <code>onDynamic</code> Standard Schema. This
-        is a copy-paste recipe, not a published adapter.
+        The TanStack twin of examples 12/12B: TanStack Form owns the form state
+        through controlled binds; FormFrame renders the fields from the same
+        JSON Schema; the same AJV validator plugs in as one form-level Standard
+        Schema validator. Same display policy — type into a field and leave it
+        to reveal its error, submit reveals everything, fixes clear as you type.
+        Copy-paste recipe — one file.
       </p>
 
-      {/* The ONE type boundary in this recipe: `form`'s precise 12-generic
-          type collapses to the narrow structural slice the handlers consume
-          (RecipeFormApi — every property verified against form-core source).
-          TanStack's own escape hatch here is `AnyFieldApi`; this is the
-          typed version of the same move. */}
+      {/* The one type boundary: `form`'s 12-generic TanStack type collapses
+          to the structural slice the handlers consume (RecipeFormApi). */}
       <TanStackFormContext.Provider value={form as unknown as RecipeFormApi}>
         <form
           noValidate
@@ -520,3 +463,27 @@ export default function App() {
     </div>
   )
 }
+
+// ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
+// Build-log for the #116 epic; safe to delete when copying this file.
+// • Ticket #124; seam locked at #117; glue list from the TanStack audit
+//   (#121). Third implementation of the #116 capability matrix; parity with
+//   App_12/App_12B proven by `scripts/recipe-parity-smoke.mjs`.
+// • Claims verified against @tanstack/form-core SOURCE (not docs):
+//   controlled-only (FieldApi.js), issues-only Standard Schema validators
+//   (standardSchemaValidator.js — success returns nothing, transformed value
+//   discarded), revalidateLogic's RHF-mode emulation (ValidationLogic.js's
+//   own doc comment), isBlurred/isDefaultValue semantics (fieldMetaDerived).
+// • The Subscribe reactivity trap and the nested-defaults seeding were both
+//   found by the parity smoke, not by reading docs: a bare `form.state`
+//   read left a pre-submit-blurred field's error unrevealed at submit; and
+//   without `address: {}`, the required failure landed on the group node
+//   (invisible) instead of `address.street`, diverging from RHF's
+//   materialized nested values.
+// • Array paths: standardSchemaValidator.js emits `contacts[0].email` (not
+//   FormFrame's `contacts.0.email`) — normalization glue is real but
+//   unexercised here (no array field, matching App_12/12B's scoping).
+// • Out of scope, owned by #125: async (`onDynamicAsync`) + pending/stale
+//   rows, pathless/whole-document issues (TanStack keeps them; RHF drops
+//   them), array fields.
+// ──────────────────────────────────────────────────────────────────────────────

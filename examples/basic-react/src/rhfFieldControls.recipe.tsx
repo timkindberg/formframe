@@ -1,16 +1,26 @@
-// RECIPE (shared half): React Hook Form field controls + error-presentation
-// glue — the front-end-agnostic part of the App_12/App_12B RHF recipes.
+// RECIPE: React Hook Form field controls for FormFrame — the shared half of a
+// two-file copy-paste recipe. Pair this file with a front-end file:
 //
-// This is NOT a maintained package (ADR 024) — it's a second file in a
-// two-file copy-paste recipe. Copying "the RHF recipe" means copying BOTH
-// this file AND the specific front-end file (App_12 for JSON Schema, App_12B
-// for Zod). This split is deliberate, not incidental: every export below is
-// typed against the NEUTRAL seam (`ControlProps<K>`, not `FieldProps<Shape,
-// P>`) — it moved out completely unchanged, no per-front-end variant needed,
-// because none of it was ever front-end-specific to begin with. What stays
-// OUT of this file, in each App_12*.tsx: the schema, the validator/resolver
-// wiring (AJV vs Zod diverge structurally — see App_12's cast vs App_12B's
-// none), `mode`, and any cross-field rule (hardcodes field names).
+//   • App_12  — JSON Schema + AJV
+//   • App_12B — Zod
+//
+// Copy BOTH files into your app; they're yours to edit. Everything here is
+// typed against FormFrame's neutral `ControlProps<K>` seam (no schema
+// generics), which is why one copy serves every front-end unchanged.
+//
+// What you get, per control archetype (input / select / radio group):
+//
+//   • RHF `register()` wired through FormFrame's `parts.Control` render prop —
+//     FormFrame renders the field structure, RHF owns the value.
+//   • Errors read from RHF (`useFormState`) and rendered inline, with
+//     `aria-invalid` + `aria-describedby` pointing at the error list.
+//   • A shippable display policy: a field's error appears once the field has
+//     been EDITED and LEFT (dirtied + blurred), everything is revealed on a
+//     submit attempt, and fixes clear live as you type.
+//   • "Empty means absent": every control normalizes "" → undefined, so an
+//     untouched field submits as missing (fails `required` if required) rather
+//     than as an empty string (which would pass `required` but fail
+//     format/minLength — confusing errors for fields the user never touched).
 import { useFormContext, useFormState, get } from 'react-hook-form'
 import type { ReactNode } from 'react'
 import {
@@ -21,29 +31,24 @@ import {
   type TextData,
 } from '@formframe/renderer-react'
 
-// --- Errors as a PROP, sourced from RHF, never our internal store (#117) -----
+// --- Reading errors out of RHF ----------------------------------------------
 //
-// `useFormState({ name })`'s `name` only scopes WHEN this re-renders (RHF's
-// subscription optimization) — the returned `errors` is always the FULL
-// nested `FieldErrors` tree, so a nested-path lookup is still required. `get`
-// is RHF's own exported utility (the same one `@hookform/error-message`'s
-// `ErrorMessage` component uses internally) — reused here instead of hand-
-// rolling a dot-path walk, and it means the `@hookform/error-message` package
-// itself buys nothing this recipe doesn't already have via `react-hook-form`.
-//
-// UNIFIED DISPLAY POLICY (shared by all three recipes — App_12, App_12B,
-// App_18): a field's error is revealed only once the field has been DIRTIED
-// (differs from its default) AND BLURRED, or after a submit attempt; after a
-// submit, changed fields revalidate live. The gate lives here — RHF's `mode`
-// only controls when errors are COMPUTED (`'onTouched'` in both RHF recipes:
-// first blur, then every change); this gate decides what SHOWS. Per #117 the
-// injected errors are pre-gated by the recipe — present == show — so
-// `aria-invalid` (below) tracks exactly what's displayed. Note `dirtyFields`
-// is COMPARATIVE (a field reverted to its default value un-dirties and
-// re-hides pre-submit) — App_18 matches this deliberately by gating on
-// TanStack's comparative `isDefaultValue`, not its sticky `isDirty`.
+// `useFormState({ name })` scopes WHEN this component re-renders (only on this
+// field's changes), but the returned `errors` is always the FULL nested tree —
+// so the nested-path lookup still happens here, via `get`. `get` is RHF's own
+// exported utility (the same one `@hookform/error-message` uses internally),
+// so you don't need that extra package.
 
-export function useFieldError(path: string): { message?: string } | undefined {
+/**
+ * This field's error, already gated by the display policy — `undefined` means
+ * "show nothing", whether because the field is valid or because the error
+ * shouldn't be revealed yet. Reveal rules: (dirtied AND blurred) OR a submit
+ * has been attempted. `dirtyFields` is comparative, so a field reverted to its
+ * default value re-hides its error pre-submit.
+ */
+export function useVisibleFieldError(
+  path: string
+): { message?: string } | undefined {
   const { errors, touchedFields, dirtyFields, isSubmitted } = useFormState({
     name: path,
   })
@@ -53,45 +58,41 @@ export function useFieldError(path: string): { message?: string } | undefined {
   return show ? error : undefined
 }
 
+/** `aria-invalid` + `aria-describedby` for the control, tracking exactly what
+ * is DISPLAYED (not everything the validator computed). The check is presence
+ * of the error object, not `error.message` truthiness — a validator can
+ * legally produce an error with an empty message, and dropping `aria-invalid`
+ * for it would be a real accessibility bug. */
 export function useFieldA11y(path: string): {
   'aria-invalid'?: true
   'aria-describedby'?: string
 } {
-  const error = useFieldError(path)
-  // Canonical "has an error" check is presence of the error object, not
-  // truthiness of `.message` — a validator can legally produce an error with
-  // an empty message, and `error?.message` would silently drop aria-invalid
-  // for it (a real a11y bug, not just a cosmetic one).
+  const error = useVisibleFieldError(path)
   return error
     ? { 'aria-invalid': true, 'aria-describedby': fieldErrorId(path) }
     : {}
 }
 
 export function FieldErrors({ path }: { path: string }): ReactNode {
-  const error = useFieldError(path)
+  const error = useVisibleFieldError(path)
   if (!error) return null
   return (
-    // No role="alert"/live region — matches the #117 locked seam ("no
-    // role=alert by default") and App_18. With post-submit change-
-    // revalidation, an assertive region would re-announce on every keystroke
-    // while the user fixes a field; `aria-describedby` (wired by
-    // `useFieldA11y`) keeps the control↔error association without that.
+    // Deliberately NO role="alert"/live region: errors revalidate on every
+    // keystroke after a submit, and an assertive region would re-announce on
+    // every character while the user fixes the field. `aria-describedby`
+    // (wired above) keeps the control↔error association without the noise.
     <ul id={fieldErrorId(path)} className="jsf-field-errors">
       <li>{error.message}</li>
     </ul>
   )
 }
 
-// --- One handler per control archetype (ADR 047 §3 `r.control(kind, …)`) -----
-// `parts.Control`'s `render` prop hands back the raw, kind-narrowed
-// `FieldControl` — the consumer wires `register()` and owns a11y (spreading
-// `c.attrs` and adding our own), exactly like the top-level `Default of={node}
-// parts={{…}}` override does for a single field, but generically for every
-// field of this archetype.
-//
-// The label/description/error shell is IDENTICAL across every archetype —
-// only what fills `<parts.Control render={…}/>` differs — so it's factored
-// into one wrapper instead of repeated per handler.
+// --- One handler per control archetype ---------------------------------------
+// Registered via `r.control('input' | 'select' | 'choicegroup', …)` in the
+// front-end file. `parts.Control`'s `render` prop hands back the raw,
+// kind-narrowed control description — you wire `register()` and own the a11y
+// attributes (spread `c.attrs`, add your own). The label/description/error
+// shell is identical across archetypes, so it's one component.
 
 export interface FieldShellParts {
   Label: PartComponent<LabelData>
@@ -117,17 +118,11 @@ export function FieldShell({
   )
 }
 
-// "EMPTY MEANS ABSENT", uniformly: EVERY control registers with this
-// normalization, not just number/select. RHF reads native inputs' DOM values
-// at submit, so an untouched text input would otherwise submit `""` — which
-// PASSES `required` but fails `format`/`minLength`, a different error set
-// than a controlled form library (TanStack, App_18) whose untouched fields
-// are genuinely `undefined`. Normalizing "" → undefined everywhere makes an
-// empty field mean "absent" (so `required` fires, not "must match format
-// \"email\"" against an empty string) and keeps all three recipes'
-// validation behavior identical — a divergence found by
-// `scripts/recipe-parity-smoke.mjs`, not by reading docs. The radio-group
-// variant also maps RHF's no-selection values (null/false) to undefined.
+// "Empty means absent", applied to EVERY control (not just numbers/selects).
+// RHF reads native inputs' DOM values, so an untouched text input would
+// otherwise submit "" — passing `required` but failing format/minLength with
+// errors the user can't make sense of. The radio-group variant also maps
+// RHF's no-selection values (null/false) to undefined.
 const emptyToUndefined = {
   setValueAs: (v: unknown) => (v === '' ? undefined : v),
 }
@@ -204,3 +199,24 @@ export function ChoiceGroupControl({
     </FieldShell>
   )
 }
+
+// ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
+// Build-log for the #116 epic ("demote validation to a non-goal"); safe to
+// delete wholesale when copying this file into your app.
+//
+// • Errors-as-a-prop is the #117 locked seam ("the library renders, recipes
+//   produce") — no ValidationProvider / internal error store here, and
+//   `aria-invalid` tracking the DISPLAYED error + no role="alert" both match
+//   the seam's decisions. Handler registration shape is ADR 047 §3.
+// • The display gate lives HERE (not in `mode`) so all three recipes —
+//   App_12, App_12B, App_18 (TanStack) — share one observable policy;
+//   `scripts/recipe-parity-smoke.mjs` drives all three through an identical
+//   interaction script and asserts identical behavior. App_18 matches
+//   `dirtyFields`' comparative semantics via TanStack's `isDefaultValue`
+//   (not its sticky `isDirty`) so revert-to-default re-hides in both.
+// • "Empty means absent" on ALL controls (not just number/select) was a
+//   parity-smoke finding: DOM-read "" vs controlled undefined produced
+//   different error sets between RHF and TanStack at submit.
+// • `useVisibleFieldError` subscribes twice per field (a11y + error list) —
+//   deliberate simplicity; `useFormState({name})` is scoped and cheap.
+// ──────────────────────────────────────────────────────────────────────────────
