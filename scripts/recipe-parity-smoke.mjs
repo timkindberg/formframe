@@ -4,10 +4,14 @@
 //   18  — TanStack Form over JSON Schema + AJV
 //
 // Drives all three through ONE identical interaction script and asserts the
-// observable behavior is identical — the unified display policy (reveal a
-// field's error only once dirtied + blurred, reveal everything at submit,
-// revalidate changed fields live after submit) plus identical submitted
-// output (including AJV/Zod numeric coercion).
+// observable behavior is identical. Each recipe uses its own library's DEFAULT
+// validation timing — RHF's default mode, TanStack's `revalidateLogic()` with
+// no arguments — which agree observably: quiet until the first submit attempt,
+// then errors reveal and clear live. (TanStack's `revalidateLogic` exists
+// specifically to emulate RHF's behavior, so this is by design, not luck.)
+// That agreement is what makes one shared script meaningful; the assertions
+// below describe that shared timing plus identical error sets and identical
+// submitted output (including AJV/Zod numeric coercion).
 //
 // This is the interim, script-shaped cousin of #125's real parity harness
 // (#118 specced that as a `describe.each` Vitest-browser suite, blocked on
@@ -68,28 +72,36 @@ async function runRecipe(page, { tab, heading }, name) {
   await page.getByRole('button', { name: tab }).click()
   await page.waitForSelector(`text=${heading}`)
 
-  // 1. Pure focus+blur (no typing) reveals nothing — the DIRTY half of the gate.
+  // 1. Pre-submit the form stays QUIET, however you interact with it: focus
+  //    and blur an empty field, then type something invalid and blur again.
+  //    (Both libraries' default modes defer all validation to first submit.)
   await page.locator('#firstName').click()
   await page.locator('#email').click()
   await page.waitForTimeout(300)
   check(
     name,
-    'pure blur reveals nothing',
-    (await errorsFor(page, 'firstName').count()) === 0
+    'blur alone stays quiet pre-submit',
+    (await visibleErrorLists(page).count()) === 0
   )
 
-  // 2. Dirtied + blurred reveals that field's error (and only that field's).
-  await page.locator('#firstName').fill('A')
+  await page.locator('#firstName').fill('A') // too short — still no error yet
   await page.locator('#email').click()
+  await page.waitForTimeout(300)
+  check(
+    name,
+    'invalid value + blur stays quiet pre-submit',
+    (await visibleErrorLists(page).count()) === 0
+  )
+
+  // 2. First submit is what reveals everything. The exact set revealed is
+  //    recorded and cross-compared between recipes at the end — thanks to the
+  //    shared "empty means absent" normalization, all three should fail the
+  //    same fields the same way.
+  await page.getByRole('button', { name: 'Submit' }).click()
   const revealed = await waitFor(
     async () => (await errorsFor(page, 'firstName').count()) === 1
   )
-  check(name, 'dirty+blur reveals the field error', Boolean(revealed))
-  check(
-    name,
-    'exactly one error visible pre-submit',
-    (await visibleErrorLists(page).count()) === 1
-  )
+  check(name, 'submit reveals errors', Boolean(revealed))
   check(
     name,
     'aria-invalid + aria-describedby track the displayed error',
@@ -98,30 +110,21 @@ async function runRecipe(page, { tab, heading }, name) {
       (await page.locator('#firstName').getAttribute('aria-describedby')) ===
         'firstName-errors'
   )
-
-  // 3. Fixing the field clears its error live, without another blur.
-  await page.locator('#firstName').fill('Alice')
-  const cleared = await waitFor(
-    async () => (await errorsFor(page, 'firstName').count()) === 0
-  )
-  check(name, 'pre-submit fix clears live (no blur needed)', Boolean(cleared))
-
-  // 4. Submit with everything else untouched reveals never-touched fields.
-  //    The exact set revealed is recorded and cross-compared between recipes
-  //    at the end — thanks to the shared "empty means absent" normalization,
-  //    all three should fail the same fields the same way.
-  await page.getByRole('button', { name: 'Submit' }).click()
-  const emailRevealed = await waitFor(
-    async () => (await errorsFor(page, 'email').count()) === 1
-  )
-  check(name, 'submit reveals untouched-field errors', Boolean(emailRevealed))
   const revealedIds = (
     await visibleErrorLists(page).evaluateAll((els) => els.map((e) => e.id))
   ).sort()
   console.log(`[${name}] revealed at submit: ${revealedIds.join(', ')}`)
 
-  // 5. Post-submit: filling each field revalidates live; a fresh mismatch
-  //    appears on change alone (no blur), attached to confirmPassword.
+  // 3. After that first submit, fixing a field clears its error live — no
+  //    second submit, no blur needed.
+  await page.locator('#firstName').fill('Alice')
+  const cleared = await waitFor(
+    async () => (await errorsFor(page, 'firstName').count()) === 0
+  )
+  check(name, 'post-submit fix clears live', Boolean(cleared))
+
+  // 4. Fill the rest; a fresh cross-field violation appears on change alone
+  //    (no blur, no second submit), attached to confirmPassword.
   await page.locator('#email').fill('alice@example.com')
   await page.locator('#age').fill('25')
   await page.selectOption('#plan', 'pro')
@@ -142,12 +145,12 @@ async function runRecipe(page, { tab, heading }, name) {
     Boolean(mismatch)
   )
 
-  // 6. Fixing the mismatch clears live; submit succeeds with coerced output.
+  // 5. Fixing the mismatch clears live; submit succeeds with coerced output.
   await page.locator('#confirmPassword').fill('supersecret')
   const mismatchCleared = await waitFor(
     async () => (await visibleErrorLists(page).count()) === 0
   )
-  check(name, 'post-submit fix clears live', Boolean(mismatchCleared))
+  check(name, 'cross-field fix clears live', Boolean(mismatchCleared))
 
   await page.getByRole('button', { name: 'Submit' }).click()
   await page.waitForSelector('text=Submitted valid data:', { timeout: 5000 })

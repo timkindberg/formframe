@@ -18,10 +18,10 @@
 //   • FormFrame's `Validator` is handed to RHF as a Standard Schema —
 //     `standardSchemaResolver` maps its issues into RHF's nested error shape
 //     with no bespoke glue. RHF doesn't replace the validator; it consumes it.
-//   • Display policy: RHF's `mode` controls when errors are COMPUTED
-//     ('onTouched' = first blur, then every change). What SHOWS is the gate in
-//     rhfFieldControls.recipe: revealed once a field is dirtied + blurred, all
-//     revealed at submit, fixes clear live.
+//   • Display timing is RHF's own default (no `mode` option): quiet until
+//     the first submit attempt, then every error reveals and clears live as
+//     the user fixes it. Prefer blur-gated reveal? `mode: 'onTouched'` is a
+//     one-line change; the shared controls render whatever RHF holds.
 //   • Cross-field rules: plain JSON Schema has no "field A must equal field B"
 //     keyword (AJV's `$data` extension gets close, but is off by default and
 //     produces a generic message). `withMatchRule` below composes the rule on
@@ -167,7 +167,8 @@ const resolver = standardSchemaResolver(
 )
 
 export default function App() {
-  const methods = useForm({ resolver, mode: 'onTouched' })
+  // RHF's default mode: validate at first submit, revalidate on change after.
+  const methods = useForm({ resolver })
   const renderNode = useRenderNodeRules(tree, rhfRules)
   // Typed by the schema: `data.age` is `number`, `data.contactMethod` is
   // 'email' | 'phone' — inference flows from the schema literal through
@@ -180,9 +181,9 @@ export default function App() {
       <p>
         React Hook Form owns the form state and submit; FormFrame renders the
         fields from the JSON Schema; one AJV validator serves both, wired into
-        RHF as a Standard Schema. Type into a field and leave it to reveal its
-        error; submitting reveals everything; fixes clear as you type. Mismatch
-        the passwords to see a cross-field rule attach to{' '}
+        RHF as a Standard Schema. RHF&apos;s default display timing: quiet until
+        you press Submit, then errors reveal and clear live as you fix them.
+        Mismatch the passwords to see a cross-field rule attach to{' '}
         <code>confirmPassword</code>. Copy-paste recipe — two files, this one
         plus <code>rhfFieldControls.recipe.tsx</code>.
       </p>
