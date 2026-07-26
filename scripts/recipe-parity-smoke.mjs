@@ -1,9 +1,10 @@
-// Parity smoke for the three form-library recipes (#116 epic):
+// Parity smoke for the four form-library × front-end recipes (#116 epic):
 //   12  — React Hook Form over JSON Schema + AJV
 //   12B — React Hook Form over Zod
 //   18  — TanStack Form over JSON Schema + AJV
+//   18B — TanStack Form over Zod
 //
-// Drives all three through ONE identical interaction script and asserts the
+// Drives all four through ONE identical interaction script and asserts the
 // observable behavior is identical. Each recipe uses its own library's DEFAULT
 // validation timing — RHF's default mode, TanStack's `revalidateLogic()` with
 // no arguments — which agree observably: quiet until the first submit attempt,
@@ -34,7 +35,10 @@ const RECIPES = [
   { tab: /^12\./, heading: 'React Hook Form as the form-state layer' },
   { tab: /^12B\./, heading: 'React Hook Form over Zod' },
   { tab: /^18\./, heading: 'TanStack Form as the form-state layer' },
+  { tab: /^18B\./, heading: 'TanStack Form over Zod' },
 ]
+
+const RECIPE_NAMES = ['12', '12B', '18', '18B']
 
 const failures = []
 function check(recipe, label, ok, detail = '') {
@@ -97,7 +101,7 @@ async function runRecipe(page, { tab, heading }, name) {
 
   // 2. First submit is what reveals everything. The exact set revealed is
   //    recorded and cross-compared between recipes at the end — thanks to the
-  //    shared "empty means absent" normalization, all three should fail the
+  //    shared "empty means absent" normalization, all four should fail the
   //    same fields the same way.
   await page.getByRole('button', { name: 'Submit' }).click()
   const revealed = await waitFor(
@@ -230,7 +234,7 @@ if (!(await reachable(BASE_URL))) {
 const browser = await launch()
 const results = {}
 for (const [i, recipe] of RECIPES.entries()) {
-  const name = ['12', '12B', '18'][i]
+  const name = RECIPE_NAMES[i]
   const page = await browser.newPage()
   const pageErrors = []
   page.on('pageerror', (e) => pageErrors.push(String(e)))
@@ -247,23 +251,23 @@ stopServer?.()
 
 // Cross-recipe: identical submitted output AND identical error sets revealed
 // at the empty-form submit (sorted-key deep equal / sorted id lists).
-const recs = ['12', '12B', '18']
-const [a, b, c] = recs.map((r) =>
+const [base, ...rest] = RECIPE_NAMES
+const submittedOf = (r) =>
   results[r] === undefined ? undefined : sortedStringify(results[r].submitted)
-)
-check('parity', '12 ≡ 12B submitted output', a !== undefined && a === b)
-check('parity', '12 ≡ 18 submitted output', a !== undefined && a === c)
-const [ra, rb, rc] = recs.map((r) => results[r]?.revealedIds.join(','))
-check(
-  'parity',
-  '12 ≡ 12B errors revealed at submit',
-  ra !== undefined && ra === rb
-)
-check(
-  'parity',
-  '12 ≡ 18 errors revealed at submit',
-  ra !== undefined && ra === rc
-)
+const revealedOf = (r) => results[r]?.revealedIds.join(',')
+
+for (const r of rest) {
+  check(
+    'parity',
+    `${base} ≡ ${r} submitted output`,
+    submittedOf(base) !== undefined && submittedOf(base) === submittedOf(r)
+  )
+  check(
+    'parity',
+    `${base} ≡ ${r} errors revealed at submit`,
+    revealedOf(base) !== undefined && revealedOf(base) === revealedOf(r)
+  )
+}
 
 console.log(
   failures.length === 0

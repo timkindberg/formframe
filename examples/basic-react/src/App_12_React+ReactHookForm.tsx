@@ -1,10 +1,13 @@
 // RECIPE: React Hook Form as the form-state layer, over JSON Schema + AJV.
 //
-// TWO files to copy: this one + `rhfFieldControls.recipe.tsx` (the shared,
-// front-end-agnostic half — controls, error display, a11y). This file is the
-// JSON-Schema/AJV-specific half: the schema, the validator wiring, and the
-// form setup. It's a copy-paste recipe, not a package — once copied, it's
-// yours.
+// THREE files to copy — this one plus the two layers beneath it:
+//
+//   fieldPresentation.recipe.tsx   shared shell / errors / a11y (every recipe)
+//   rhfFieldControls.recipe.tsx    RHF control bindings (App_12 + App_12B)
+//   this file                      the JSON Schema + AJV half
+//
+// Only this file knows about JSON Schema or AJV. It's a copy-paste recipe,
+// not a package — once copied, it's yours.
 //
 // The shape of it:
 //
@@ -24,9 +27,10 @@
 //     one-line change; the shared controls render whatever RHF holds.
 //   • Cross-field rules: plain JSON Schema has no "field A must equal field B"
 //     keyword (AJV's `$data` extension gets close, but is off by default and
-//     produces a generic message). `withMatchRule` below composes the rule on
-//     top of any FormFrame `Validator`, attaching the error to a concrete
-//     field path so it renders like any other field error.
+//     produces a generic message). `withMatchRule` (from the shared
+//     presentation layer) composes the rule onto any FormFrame `Validator`,
+//     attaching the error to a concrete field path so it renders like any
+//     other field error.
 //   • Nested fields (`address.street`) just work: AJV reports the nested path,
 //     the resolver nests it into RHF's error tree, and the shared controls
 //     read it back out with RHF's own `get`.
@@ -43,7 +47,7 @@ import { useForm, FormProvider } from 'react-hook-form'
 import type { FieldValues } from 'react-hook-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
-import { toStandardSchema, type Validator } from '@formframe/core'
+import { toStandardSchema } from '@formframe/core'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
 import {
@@ -52,6 +56,7 @@ import {
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from '@formframe/validation-ajv'
+import { withMatchRule } from './fieldPresentation.recipe'
 import {
   InputControl,
   SelectControl,
@@ -112,36 +117,6 @@ const schema = {
 type Shape = FormShapeOf<typeof schema>
 type Data = InferData<typeof schema>
 
-/**
- * Add a "these two fields must match" rule on top of any FormFrame
- * `Validator`. Form-library-agnostic (it never touches RHF) — the same
- * function works unchanged in the TanStack recipe (App_18). The error
- * attaches to `field` (a concrete path), so it renders through the exact
- * same per-field mechanism as a structural AJV error — no special
- * "form-level error" handling needed downstream.
- */
-function withMatchRule<T>(
-  validator: Validator<T>,
-  field: string,
-  mustMatch: string,
-  message: string
-): Validator<T> {
-  return (data) => {
-    const result = validator(data)
-    const values = (result.data ?? data) as Record<string, unknown>
-    const a = values?.[field]
-    const b = values?.[mustMatch]
-    if (a !== undefined && b !== undefined && a !== b) {
-      return {
-        valid: false,
-        errors: [...result.errors, { path: field, message, keyword: 'match' }],
-        data: result.data,
-      }
-    }
-    return result
-  }
-}
-
 const rhfRules = (r: TypedRuleRegistrar<Shape>): void => {
   r.control('input', InputControl)
   r.control('select', SelectControl)
@@ -184,8 +159,9 @@ export default function App() {
         RHF as a Standard Schema. RHF&apos;s default display timing: quiet until
         you press Submit, then errors reveal and clear live as you fix them.
         Mismatch the passwords to see a cross-field rule attach to{' '}
-        <code>confirmPassword</code>. Copy-paste recipe — two files, this one
-        plus <code>rhfFieldControls.recipe.tsx</code>.
+        <code>confirmPassword</code>. Copy-paste recipe — three files, this one
+        plus <code>rhfFieldControls.recipe.tsx</code> and{' '}
+        <code>fieldPresentation.recipe.tsx</code>.
       </p>
 
       <FormProvider {...methods}>

@@ -1,10 +1,14 @@
 // RECIPE: React Hook Form as the form-state layer, over Zod — the twin of
 // App_12 with the front-end swapped.
 //
-// TWO files to copy: this one + `rhfFieldControls.recipe.tsx` (shared verbatim
-// with App_12 — controls, error display, a11y, display policy). This file is
-// the Zod-specific half. Compared to the JSON Schema + AJV version, two
-// things fall away entirely and two gotchas appear:
+// THREE files to copy, TWO of them shared verbatim with App_12:
+//
+//   fieldPresentation.recipe.tsx   shared shell / errors / a11y
+//   rhfFieldControls.recipe.tsx    RHF control bindings
+//   this file                      the Zod half
+//
+// Compared to the JSON Schema + AJV version, two things fall away entirely
+// and two gotchas appear:
 //
 //   • NO cross-field wrapper: Zod does it natively.
 //     `.refine(fn, { message, path })` on the object schema replaces App_12's
@@ -115,8 +119,9 @@ export default function App() {
         password-confirmation rule is Zod&apos;s native{' '}
         <code>.refine(fn, {'{ path }'})</code> and the schema plugs straight
         into RHF&apos;s resolver (Zod already speaks Standard Schema — no
-        adapter, no casts). Copy-paste recipe — two files, this one plus{' '}
-        <code>rhfFieldControls.recipe.tsx</code>.
+        adapter, no casts). Copy-paste recipe — three files, this one plus{' '}
+        <code>rhfFieldControls.recipe.tsx</code> and{' '}
+        <code>fieldPresentation.recipe.tsx</code>.
       </p>
 
       <FormProvider {...methods}>
