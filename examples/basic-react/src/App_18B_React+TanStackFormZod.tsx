@@ -170,7 +170,7 @@ export default function App() {
 //   a second front-end proves that layer is genuinely front-end-agnostic
 //   rather than accidentally shaped around JSON Schema. Mirrors the
 //   App_16/App_17 and App_12/App_12B pairing convention.
-// • Parity with 12/12B/18 asserted by `npm run smoke:recipes`.
+// • Parity with 12/12B/18 asserted by `npm run smoke:recipes` (all four).
 // • Same Zod caveats as App_12B: v4 `.refine()` leaves `def.type`/`def.shape`
 //   intact so `zodToTree`/`FormShapeOf` introspect it normally; the per-field
 //   `.coerce` vs AJV's adapter-level default remains a real DX gap worth its
