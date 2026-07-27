@@ -150,7 +150,7 @@ export default function App() {
 // Build-log for the #116 epic; safe to delete when copying this file.
 // • Twin-of-App_12 pairing mirrors the App_16/App_17 convention (ADR 008's
 //   second-implementation forcing function). Parity proven by
-//   `scripts/recipe-parity-smoke.mjs` across 12/12B/18.
+//   `npm run smoke:recipes` across 12/12B/18/18B.
 // • Zod v4 `.refine()` keeps `def.type === 'object'` and `def.shape` intact
 //   (only appends to `def.checks`), so `zodToTree`/`FormShapeOf` introspect a
 //   refined schema exactly like an unrefined one — verified against Zod
