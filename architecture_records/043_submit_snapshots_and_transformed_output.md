@@ -1,12 +1,16 @@
 # ADR 043: Submit Snapshots, Transformed Output, and `isSubmitting`
 
 **Date:** 2026-07-14
-**Status:** Accepted (bd `jsonschema-form-9jk.1.6`)
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
 **Extends:** ADR 011 (form-state is a shallow slot), ADR 019 (side-loaded
 validation), ADR 025 (validator purity and transformed data), ADR 027 (touched
 tracking and error display policy), ADR 041 (async validator is a sibling seam),
 ADR 042 (validation-run authority, staleness, and failure)
+
+> **Superseded (2026-07-17).** Library-owned submit snapshots / `isSubmitting`
+> around a `Validator` run are demoted; recipes own submit lifecycle.
+> See [ADR 050](./050_validation_is_a_non_goal.md).
 
 ## Context
 

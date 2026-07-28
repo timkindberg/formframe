@@ -1,8 +1,17 @@
 # ADR 011: Form-State Is a Shallow Slot; Validation and UI Are the Primary Swaps
 
 **Date:** 2026-06-19
-**Status:** Accepted
+**Status:** Accepted (annotated by [ADR 050](./050_validation_is_a_non_goal.md))
 **Deciders:** Tim Kindberg
+
+> **Annotation (2026-07-17, [ADR 050](./050_validation_is_a_non_goal.md)).**
+> Form-state remains a shallow slot; the **no first-party reactive store** YAGNI
+> stands and is reaffirmed (PR #71's async runtime was speculative against this
+> ADR). What changes: **"validation and UI are the primary swap axes"** is revised —
+> UI stays a primary swap; **validation production is a non-goal** for the library.
+> Recipes (native / RHF / TanStack) produce errors; the library renders them via the
+> field error-presentation seam. Live validation still needs reactive form-state,
+> but that state lives in the chosen form framework, not a FormFrame store.
 
 ## Context
 

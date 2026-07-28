@@ -1,8 +1,13 @@
 # ADR 021: Reactive (Validate-on-Change) Validation via the Validator Seam
 
 **Date:** 2026-06-25
-**Status:** Accepted
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
+
+> **Superseded (2026-07-17).** Library-owned validate-on-change against the
+> `Validator` seam is demoted. Live/reactive revalidation is a **recipe** concern
+> (RHF `mode` / TanStack validators / native store), not a FormFrame runtime.
+> See [ADR 050](./050_validation_is_a_non_goal.md).
 
 ## Context
 

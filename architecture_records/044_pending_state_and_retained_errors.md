@@ -1,12 +1,15 @@
 # ADR 044: Pending State, Retained Errors, and Store Ownership
 
 **Date:** 2026-07-14
-**Status:** Accepted (bd `jsonschema-form-9jk.1.5`)
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
 **Extends:** ADR 011 (form-state is a shallow slot), ADR 023 (per-path
 publication stability), ADR 027 (touched tracking and error display policy —
 **refined** here), ADR 028 (whole-document validation), ADR 042 (validation-run
 authority, staleness, and failure), ADR 043 (submit snapshots and `isSubmitting`)
+
+> **Superseded (2026-07-17).** Library-owned pending state, retained errors, and
+> store ownership are demoted. See [ADR 050](./050_validation_is_a_non_goal.md).
 
 ## Context
 

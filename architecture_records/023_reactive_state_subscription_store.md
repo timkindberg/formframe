@@ -1,8 +1,14 @@
 # ADR 023: Reactive State as a Fine-Grained Subscription Store
 
 **Date:** 2026-06-29
-**Status:** Accepted
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
+
+> **Superseded (2026-07-17).** The fine-grained first-party error/status
+> subscription store is demoted with library-owned validation.
+> [ADR 011](./011_form_state_is_a_shallow_slot.md)'s YAGNI on a first-party store
+> is reaffirmed; fan-out-free error updates are the form framework's (or recipe's)
+> job. See [ADR 050](./050_validation_is_a_non_goal.md).
 
 ## Context
 

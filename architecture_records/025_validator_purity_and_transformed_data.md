@@ -1,8 +1,13 @@
 # ADR 025: The Validator is Pure and Returns Transformed Data
 
 **Date:** 2026-06-29
-**Status:** Accepted
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
+
+> **Superseded (2026-07-17).** Purity and transformed-data rules for a library
+> `Validator` slot no longer apply — recipes own validation and submit output
+> (including coercion/transforms via the form framework / resolvers).
+> See [ADR 050](./050_validation_is_a_non_goal.md).
 
 ## Context
 

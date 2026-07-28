@@ -1,10 +1,15 @@
 # ADR 036: `useFormTree` Returns a Spreadable Validation Capability
 
 **Date:** 2026-07-10
-**Status:** Accepted (bd `jsonschema-form-5ss.1`)
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
 **Extends:** ADR 023 (fine-grained validation stores), ADR 027 (touched/error
 display policy), ADR 035 (source-agnostic React binding)
+
+> **Superseded (2026-07-17).** Spreading a library-owned validation capability
+> from `useFormTree` is demoted with the stores and `validator` option.
+> Note: this is **not** [ADR 036 dual-build](./036_dual_build_and_development_condition.md),
+> which remains accepted. See [ADR 050](./050_validation_is_a_non_goal.md).
 
 ## Context
 

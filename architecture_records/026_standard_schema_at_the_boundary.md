@@ -1,8 +1,14 @@
 # ADR 026: Speak Standard Schema at the Boundary, Don't Become It
 
 **Date:** 2026-06-30
-**Status:** Accepted
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
+
+> **Superseded (2026-07-17).** Library-boundary Standard Schema interop for the
+> `Validator` slot is demoted (tentative keep/cut left to recipe work under
+> [#116](https://github.com/timkindberg/formframe/issues/116)). Recipes use
+> framework-native SS paths (e.g. `@hookform/resolvers`, TanStack built-in SS).
+> See [ADR 050](./050_validation_is_a_non_goal.md).
 
 ## Context
 
