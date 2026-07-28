@@ -1,8 +1,17 @@
 # ADR 024: Adapters Are Patterns, Not Packages
 
 **Date:** 2026-06-29
-**Status:** Accepted
+**Status:** Accepted (annotated by [ADR 050](./050_validation_is_a_non_goal.md))
 **Deciders:** Tim Kindberg
+
+> **Annotation (2026-07-17, [ADR 050](./050_validation_is_a_non_goal.md)).**
+> The **product is the seams; UI/form-lib adapters are recipes in `examples/`**
+> decision stands and is reinforced — validation *production* joins that recipe
+> axis (wired through RHF / TanStack / native). The clause that **validation
+> adapters remain maintained packages** (`validation-ajv`, `validation-zod`,
+> `validation-contract`) is **superseded**: those packages are demoted with the
+> library-owned `Validator` runtime. What the library keeps is display types + the
+> field error-presentation seam, not a catalog of validators.
 
 ## Context
 

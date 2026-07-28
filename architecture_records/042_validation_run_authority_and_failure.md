@@ -1,12 +1,16 @@
 # ADR 042: Validation-Run Authority, Staleness, and Failure Semantics
 
 **Date:** 2026-07-14
-**Status:** Accepted (bd `jsonschema-form-9jk.1.4`)
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
 **Extends:** ADR 019 (side-loaded validation), ADR 021 (live validation
 orchestration), ADR 023 (per-path publication stability), ADR 027 (touched
 tracking and error display policy), ADR 028 (whole-document validation),
 ADR 041 (async validator is a sibling seam)
+
+> **Superseded (2026-07-17).** Library-owned run authority, staleness, and
+> run-failure surfaces are demoted with the validation runtime.
+> See [ADR 050](./050_validation_is_a_non_goal.md).
 
 ## Context
 

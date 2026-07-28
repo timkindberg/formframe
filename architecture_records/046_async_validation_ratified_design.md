@@ -1,7 +1,7 @@
 # ADR 046: Async Validation — Ratified Design and Implementation Test Matrix
 
 **Date:** 2026-07-14
-**Status:** Accepted (bd `jsonschema-form-9jk.1.8`)
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
 **Consolidates:** ADR 041 (async validator is a sibling seam), ADR 042
 (validation-run authority, staleness, and failure), ADR 043 (submit snapshots and
@@ -11,6 +11,13 @@ ADR 045 (async Standard-Schema interop and conformance)
 ADR 023 (per-path store + reference stability), ADR 025 (purity/transformed data),
 ADR 026 (Standard Schema at the boundary), ADR 027 (display policy), ADR 028
 (whole-document validation)
+
+> **Superseded (2026-07-17).** The ratified async-validation design and its
+> implementation test matrix described a library-owned runtime that
+> [ADR 050](./050_validation_is_a_non_goal.md) demotes. Capability parity across
+> recipes is proven by the [#118](https://github.com/timkindberg/formframe/issues/118) /
+> [#125](https://github.com/timkindberg/formframe/issues/125) harness instead.
+> ADRs 041–045 are superseded with this ratification.
 
 ## Context
 

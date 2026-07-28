@@ -1,11 +1,15 @@
 # ADR 041: Async Validator Is a Sibling Seam
 
 **Date:** 2026-07-13
-**Status:** Accepted (bd `jsonschema-form-9jk.1.3`)
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
 **Extends:** ADR 019 (side-loaded validation), ADR 025 (purity and transformed
 data), ADR 026 (Standard Schema at the boundary), ADR 028 (whole-document
 validation)
+
+> **Superseded (2026-07-17).** Async `Validator` as a sibling library seam is
+> demoted; async validation lives in recipes / form frameworks.
+> See [ADR 050](./050_validation_is_a_non_goal.md) (cluster with ADRs 042–046).
 
 ## Context
 

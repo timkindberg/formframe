@@ -1,8 +1,15 @@
 # ADR 019: Validation as a Side-Loaded Capability Slot — Submit-Time, AJV-First
 
 **Date:** 2026-06-25
-**Status:** Accepted
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
+
+> **Superseded (2026-07-17).** The side-loaded `Validator` capability slot — Core
+> contract, submit-time adapter packages, consumer-run validation — is no longer
+> a product goal. [ADR 050](./050_validation_is_a_non_goal.md): the library
+> **renders** path-keyed errors; **recipes produce** them via the form framework.
+> Retained vocabulary that survives: path-keyed display errors (later renamed
+> `ValidationError` in ADR 037) and `groupErrorsByPath` as render helpers.
 
 ## Context
 

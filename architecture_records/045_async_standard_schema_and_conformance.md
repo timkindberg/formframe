@@ -1,12 +1,15 @@
 # ADR 045: Async Standard-Schema Interop and Conformance Evolution
 
 **Date:** 2026-07-14
-**Status:** Accepted (bd `jsonschema-form-9jk.1.7`)
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
 **Extends:** ADR 019 (side-loaded validation), ADR 020 (shared validator-agnostic
 contract suite), ADR 025 (validator purity and transformed data), ADR 026 (speak
 Standard Schema at the boundary), ADR 041 (async validator is a sibling seam),
 ADR 042 (validation-run authority, staleness, and failure)
+
+> **Superseded (2026-07-17).** Async Standard-Schema interop on the library
+> `Validator` boundary is demoted. See [ADR 050](./050_validation_is_a_non_goal.md).
 
 ## Context
 

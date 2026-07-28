@@ -1,8 +1,14 @@
 # ADR 027: Touched Tracking + `showErrorsWhen` Display Policy
 
 **Date:** 2026-06-30
-**Status:** Proposed
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
+
+> **Superseded (2026-07-17).** Touched tracking and `showErrorsWhen` display
+> policy are demoted to recipes (RHF `mode` / `reValidateMode`, TanStack
+> equivalents, or native). The library injects already-gated `errors` — no
+> `show` flag on the seam ([#117](https://github.com/timkindberg/formframe/issues/117)).
+> See [ADR 050](./050_validation_is_a_non_goal.md).
 
 ## Context
 
