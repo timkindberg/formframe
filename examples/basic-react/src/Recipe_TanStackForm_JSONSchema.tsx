@@ -6,9 +6,9 @@
 //   tanstackFieldControls.recipe.tsx   TanStack control bindings
 //   this file                          the JSON Schema + AJV half
 //
-// Only this file knows about JSON Schema or AJV. Swap it for Recipe_18B and you
+// Only this file knows about JSON Schema or AJV. Swap it for Recipe_TanStackForm_Zod and you
 // get the same form over Zod with the other two files untouched — the same
-// way Recipe_12/Recipe_12B share the RHF controls.
+// way Recipe_ReactHookForm_JSONSchema/Recipe_ReactHookForm_Zod share the RHF controls.
 //
 // The shape of it:
 //
@@ -109,7 +109,7 @@ type Data = InferData<typeof schema>
 const tree = jsonSchemaToTree(schema)
 // Plain JSON Schema has no "field A must equal field B" keyword, so the rule
 // is composed onto the validator (shared helper — Zod does this natively with
-// `.refine`, see Recipe_18B).
+// `.refine`, see Recipe_TanStackForm_Zod).
 const validator = withMatchRule(
   createAjvValidator(schema),
   'confirmPassword',
@@ -192,7 +192,7 @@ export default function App() {
 // ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
 // Build-log for the #116 epic; safe to delete when copying this file.
 // • Ticket #124; seam locked at #117; glue list from the TanStack audit
-//   (#121). Parity with Recipe_12/12B/18B proven by
+//   (#121). Parity with Recipe_ReactHookForm_JSONSchema / Zod + TanStack siblings proven by
 //   `npm run smoke:recipes` (scripts/recipe-parity-smoke.mjs).
 // • The nested-defaults seeding was a parity-smoke find: without
 //   `address: {}`, the required failure landed on the group node (invisible)

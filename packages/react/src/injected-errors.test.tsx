@@ -14,7 +14,7 @@ import {
   ValidationProvider,
   fieldControlId,
   fieldErrorId,
-  type ControlA11yProps,
+  type ErrorA11yProps,
 } from './renderer'
 import type { FieldControl } from '@formframe/core'
 
@@ -191,7 +191,7 @@ describe('<Default errors={ValidationError[]}> inject path (#117/#129)', () => {
               parts={{
                 control: (
                   c: FieldControl & {
-                    a11y: ControlA11yProps
+                    errorA11y: ErrorA11yProps
                     Default(): React.ReactNode
                   }
                 ) =>

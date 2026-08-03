@@ -1,7 +1,7 @@
 // RECIPE: React Hook Form as the form-state layer, over Zod — the twin of
-// Recipe_12 with the front-end swapped.
+// Recipe_ReactHookForm_JSONSchema with the front-end swapped.
 //
-// THREE files to copy, TWO of them shared verbatim with Recipe_12:
+// THREE files to copy, TWO of them shared verbatim with Recipe_ReactHookForm_JSONSchema:
 //
 //   fieldPresentation.recipe.tsx   shared blank/match helpers
 //   rhfFieldControls.recipe.tsx    RHF control bindings
@@ -11,7 +11,7 @@
 // and two gotchas appear:
 //
 //   • NO cross-field wrapper: Zod does it natively.
-//     `.refine(fn, { message, path })` on the object schema replaces Recipe_12's
+//     `.refine(fn, { message, path })` on the object schema replaces Recipe_ReactHookForm_JSONSchema's
 //     `withMatchRule` — `path` attaches the error to a concrete field, so it
 //     renders like any other field error.
 //   • NO `toStandardSchema` adapter and NO cast: a Zod schema already IS a
@@ -21,7 +21,7 @@
 //     required fields still empty, a password mismatch shows ONLY the
 //     structural errors and no "Passwords must match." at all. It can look
 //     like your cross-field rule isn't wired up when it's just queued behind
-//     the rest of the object becoming valid. (AJV + `withMatchRule` in Recipe_12
+//     the rest of the object becoming valid. (AJV + `withMatchRule` in Recipe_ReactHookForm_JSONSchema
 //     reports both at once.)
 //   • GOTCHA — coercion is per-field in Zod. AJV coerces "18" → 18 globally
 //     (an adapter default); Zod needs `.coerce` on each field bound to a
@@ -148,7 +148,7 @@ export default function App() {
 
 // ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
 // Build-log for the #116 epic; safe to delete when copying this file.
-// • Twin-of-Recipe_12 pairing mirrors the App_16/App_17 convention (ADR 008's
+// • Twin-of-Recipe_ReactHookForm_JSONSchema pairing mirrors the App_16/App_17 convention (ADR 008's
 //   second-implementation forcing function). Parity proven by
 //   `npm run smoke:recipes` across 12/12B/18/18B.
 // • Zod v4 `.refine()` keeps `def.type === 'object'` and `def.shape` intact

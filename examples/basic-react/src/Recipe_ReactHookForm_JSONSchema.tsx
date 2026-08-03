@@ -3,7 +3,7 @@
 // THREE files to copy — this one plus the two layers beneath it:
 //
 //   fieldPresentation.recipe.tsx   shared blank/match helpers (every recipe)
-//   rhfFieldControls.recipe.tsx    RHF control bindings (Recipe_12 + Recipe_12B)
+//   rhfFieldControls.recipe.tsx    RHF control bindings (Recipe_ReactHookForm_JSONSchema + Recipe_ReactHookForm_Zod)
 //   this file                      the JSON Schema + AJV half
 //
 // Only this file knows about JSON Schema or AJV. It's a copy-paste recipe,

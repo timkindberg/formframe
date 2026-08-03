@@ -4,14 +4,15 @@
 //
 //   fieldPresentation.recipe.tsx   ← shared blank/match helpers (copy it too)
 //   rhfFieldControls.recipe.tsx    ← you are here. RHF-specific.
-//   Recipe_12 (JSON Schema) / Recipe_12B (Zod)   ← per schema front-end
+//   Recipe_ReactHookForm_JSONSchema (JSON Schema) / Recipe_ReactHookForm_Zod (Zod)   ← per schema front-end
 //
 // Everything here is about RHF and nothing else: `register()` bindings and
 // mapping RHF errors → `ValidationError[]` for FormFrame's
-// `<Default of={node} errors={…} />` inject. Field chrome + a11y come from the
-// library (a11y is merged into `c.attrs` for input/select). Typed against
-// FormFrame's neutral `ControlProps<K>` seam (no schema generics), so ONE copy
-// serves every schema front-end.
+// `<Default of={node} errors={…} />` inject. Field chrome + error-state a11y
+// come from the library (merged into `c.attrs` for input/select; choicegroup
+// spreads `c.errorA11y` on the wrapper). Typed against FormFrame's neutral
+// `ControlProps<K>` seam (no schema generics), so ONE copy serves every schema
+// front-end.
 //
 // Display timing is RHF's, not this file's: whatever `mode`/`reValidateMode`
 // you pass to `useForm` decides when errors exist, and these controls inject
@@ -121,7 +122,7 @@ export function ChoiceGroupControl({
       errors={errors}
       parts={{
         control: (c) => (
-          <div role={c.role} aria-labelledby={c.labelledBy} {...c.a11y}>
+          <div role={c.role} aria-labelledby={c.labelledBy} {...c.errorA11y}>
             {c.options.map((o) => (
               <label key={o.attrs.id}>
                 <input {...o.attrs} {...register(path, unselectedOption)} />{' '}
