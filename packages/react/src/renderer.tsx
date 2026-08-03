@@ -887,13 +887,21 @@ type DefaultOptsOf<H> = H extends { Default(opts?: infer O): ReactNode }
 /** Widen Core's schema-part overrides with the runtime Errors slot + `a11y` on
  * control (neither is a Core IR part — both are React presentation). For
  * input/select/textarea, a11y is also merged into `attrs` so `{...c.attrs}`
- * carries aria-invalid / aria-describedby. */
-type WidenParts<P> = P extends object
+ * carries aria-invalid / aria-describedby.
+ *
+ * Prefer the handle's live `parts.control` type when present — that is how
+ * `ControlProps<'input'>['node']` flows a kind-narrowed control into
+ * `<Default of={node} parts={{ control: (c) => … }}>` without a `c.kind` guard.
+ * Fall back to Core's wide PartsOverrides parameter when `of` is a plain EField. */
+type ControlOverrideOf<H, P> = H extends { parts: { control: infer C } }
+  ? (part: C & { a11y: ControlA11yProps }) => ReactNode
+  : P extends { control?: (part: infer C) => ReactNode }
+    ? (part: C & { a11y: ControlA11yProps }) => ReactNode
+    : (part: { a11y: ControlA11yProps }) => ReactNode
+
+type WidenParts<H, P> = P extends object
   ? Omit<P, 'control'> & {
-      // Control override receives the enriched control plus spreadable a11y.
-      control?: P extends { control?: (part: infer C) => ReactNode }
-        ? (part: C & { a11y: ControlA11yProps }) => ReactNode
-        : (part: { a11y: ControlA11yProps }) => ReactNode
+      control?: ControlOverrideOf<H, P>
       /** Visible field errors (#117 / ADR 047). Present == show. */
       errors?: (errors: ValidationError[]) => ReactNode
     }
@@ -904,7 +912,7 @@ type DefaultExtra<H> =
     parts?: infer P
     renderNode?: unknown
   }
-    ? { parts?: WidenParts<P>; renderNode?: RenderNode }
+    ? { parts?: WidenParts<H, P>; renderNode?: RenderNode }
     : Record<never, never>
 
 /**

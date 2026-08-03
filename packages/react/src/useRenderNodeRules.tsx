@@ -123,8 +123,10 @@ type ControlPartsData<K extends ControlKind> = {
 }
 
 /** Handler props for a `control(kind)` rule: `parts.Control` is narrowed to `K`,
- * but `path`/`value` stay wide because the rule matches every field of that
- * archetype, not one path (ADR 047 §3/§5).
+ * and so is `node.parts.control` — so `<Default of={node} parts={{ control:
+ * (c) => … }}>` sees the same kind (no `c.kind ===` guard). `path`/`value` stay
+ * wide because the rule matches every field of that archetype, not one path
+ * (ADR 047 §3/§5).
  *
  * TYPE TOUR: narrow only what is PROVABLE. A `control('select')` rule fires on many
  * paths, so their shared truth is "the control is a select" — that we narrow. The
@@ -133,7 +135,13 @@ type ControlPartsData<K extends ControlKind> = {
  * which keys off ONE path and can narrow everything. */
 export type ControlProps<K extends ControlKind> = Pretty<{
   path: string
-  node: EField
+  /** Field node whose `parts.control` is narrowed to archetype `K` — so ADR-017
+   * `<Default of={node} parts={{ control }}>` inherits the same narrowing. */
+  node: EField & {
+    parts: Omit<EField['parts'], 'control'> & {
+      control: Extract<FieldControl, { kind: K }> & { Default(): ReactNode }
+    }
+  }
   value: unknown
   Default: () => ReactNode
   parts: SlotsOf<ControlPartsData<K>>

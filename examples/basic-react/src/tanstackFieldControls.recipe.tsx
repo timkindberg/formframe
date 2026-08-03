@@ -154,9 +154,7 @@ function Field({
 // Registered via `r.control('input' | 'select' | 'choicegroup', …)` in the
 // front-end file. Every control applies the shared "empty means absent"
 // normalization on change. Inject errors; override only the control.
-//
-// `c.kind === …` guards are for TypeScript: Default's `parts.control` is typed
-// as Core's full FieldControl union, not the ControlProps<'input'> narrowing.
+// `ControlProps<'input'>` narrows `node.parts.control`, so no `c.kind ===` guard.
 
 export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
   return (
@@ -166,17 +164,16 @@ export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
           of={node}
           errors={errors}
           parts={{
-            control: (c) =>
-              c.kind === 'input' ? (
-                <input
-                  {...c.attrs}
-                  value={String(field.state.value ?? '')}
-                  onChange={(e) =>
-                    field.handleChange(blankToUndefined(e.target.value))
-                  }
-                  onBlur={field.handleBlur}
-                />
-              ) : null,
+            control: (c) => (
+              <input
+                {...c.attrs}
+                value={String(field.state.value ?? '')}
+                onChange={(e) =>
+                  field.handleChange(blankToUndefined(e.target.value))
+                }
+                onBlur={field.handleBlur}
+              />
+            ),
           }}
         />
       )}
@@ -195,24 +192,23 @@ export function SelectControl({
           of={node}
           errors={errors}
           parts={{
-            control: (c) =>
-              c.kind === 'select' ? (
-                <select
-                  {...c.attrs}
-                  value={String(field.state.value ?? '')}
-                  onChange={(e) =>
-                    field.handleChange(blankToUndefined(e.target.value))
-                  }
-                  onBlur={field.handleBlur}
-                >
-                  {!c.attrs.multiple && <option value="">-- select --</option>}
-                  {c.options.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              ) : null,
+            control: (c) => (
+              <select
+                {...c.attrs}
+                value={String(field.state.value ?? '')}
+                onChange={(e) =>
+                  field.handleChange(blankToUndefined(e.target.value))
+                }
+                onBlur={field.handleBlur}
+              >
+                {!c.attrs.multiple && <option value="">-- select --</option>}
+                {c.options.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            ),
           }}
         />
       )}
@@ -231,30 +227,27 @@ export function ChoiceGroupControl({
           of={node}
           errors={errors}
           parts={{
-            control: (c) =>
-              c.kind === 'choicegroup' ? (
-                <div
-                  role={c.role}
-                  aria-labelledby={c.labelledBy}
-                  onBlur={field.handleBlur}
-                  {...c.a11y}
-                >
-                  {c.options.map((o) => (
-                    <label key={o.attrs.id}>
-                      <input
-                        {...o.attrs}
-                        checked={field.state.value === o.attrs.value}
-                        onChange={() =>
-                          field.handleChange(
-                            unselectedToUndefined(o.attrs.value)
-                          )
-                        }
-                      />{' '}
-                      {o.label}
-                    </label>
-                  ))}
-                </div>
-              ) : null,
+            control: (c) => (
+              <div
+                role={c.role}
+                aria-labelledby={c.labelledBy}
+                onBlur={field.handleBlur}
+                {...c.a11y}
+              >
+                {c.options.map((o) => (
+                  <label key={o.attrs.id}>
+                    <input
+                      {...o.attrs}
+                      checked={field.state.value === o.attrs.value}
+                      onChange={() =>
+                        field.handleChange(unselectedToUndefined(o.attrs.value))
+                      }
+                    />{' '}
+                    {o.label}
+                  </label>
+                ))}
+              </div>
+            ),
           }}
         />
       )}
