@@ -145,6 +145,26 @@ export function controlA11yProps(
     : {}
 }
 
+/** Attach a11y for a control *override*: merge into `attrs` when present, and
+ * always expose top-level `a11y` (choicegroup has no attrs bag). */
+function enrichControlA11y<C extends { kind: string }>(
+  control: C,
+  a11y: ControlA11yProps
+): C & { a11y: ControlA11yProps } {
+  if (
+    'attrs' in control &&
+    control.attrs &&
+    typeof control.attrs === 'object'
+  ) {
+    return {
+      ...control,
+      attrs: { ...(control.attrs as object), ...a11y },
+      a11y,
+    } as C & { a11y: ControlA11yProps }
+  }
+  return { ...control, a11y }
+}
+
 /**
  * Internal bridge for `#117` `<Default of={field} errors={…} />`: the ADR-017
  * component cannot forward `errors` through Core's `node.Default(opts)` without
@@ -447,12 +467,13 @@ function DefaultFieldRoot({
   const a11yState = visible ? { errorId: fieldErrorId(node.path) } : null
   const a11y = controlA11yProps(a11yState)
 
-  // Control override gets `a11y` on the part so recipes can
-  // `control: (c) => <input {...c.attrs} {...c.a11y} />` with no context/hook.
+  // Control override: merge a11y into `attrs` when the archetype has them
+  // (input/select/textarea) so `{...c.attrs}` is enough. Always also expose
+  // `a11y` for choicegroup (no top-level attrs — a11y goes on the wrapper).
   const controlPart = node.parts.control
   const controlOverride = overrides?.['control']
   const control = controlOverride ? (
-    controlOverride({ ...controlPart, a11y })
+    controlOverride(enrichControlA11y(controlPart, a11y))
   ) : (
     <FieldA11yContext.Provider value={a11yState}>
       {controlPart.Default()}
@@ -865,7 +886,9 @@ type DefaultOptsOf<H> = H extends { Default(opts?: infer O): ReactNode }
   : never
 
 /** Widen Core's schema-part overrides with the runtime Errors slot + `a11y` on
- * control (neither is a Core IR part — both are React presentation). */
+ * control (neither is a Core IR part — both are React presentation). For
+ * input/select/textarea, a11y is also merged into `attrs` so `{...c.attrs}`
+ * carries aria-invalid / aria-describedby. */
 type WidenParts<P> = P extends object
   ? Omit<P, 'control'> & {
       // Control override receives the enriched control plus spreadable a11y.

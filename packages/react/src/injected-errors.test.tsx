@@ -134,7 +134,49 @@ describe('<Default errors={ValidationError[]}> inject path (#117/#129)', () => {
     ).toContain('Imported Default')
   })
 
-  it('parts.errors hijacks the error list; parts.control gets c.a11y', async () => {
+  it('parts.errors hijacks the error list', async () => {
+    const injected: ValidationError[] = [
+      { path: 'username', message: 'Too short' },
+    ]
+    function Form() {
+      const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
+      return (
+        <SchemaFields form={f}>
+          {(root, { Default: D }) => (
+            <D
+              of={root.children.username}
+              errors={injected}
+              parts={{
+                errors: (errs: ValidationError[]) => (
+                  <p
+                    data-testid="hijacked-errors"
+                    id={fieldErrorId('username')}
+                  >
+                    {errs.map((e) => e.message).join('; ')}
+                  </p>
+                ),
+              }}
+            />
+          )}
+        </SchemaFields>
+      )
+    }
+    await render(<Form />)
+
+    // Default control still gets a11y from the inject path.
+    const username = document.getElementById(fieldControlId('username'))
+    expect(username?.getAttribute('aria-invalid')).toBe('true')
+    expect(username?.getAttribute('aria-describedby')).toBe(
+      fieldErrorId('username')
+    )
+    // Default <ul class="jsf-field-errors"> must not appear.
+    expect(document.querySelector('.jsf-field-errors')).toBeNull()
+    const custom = document.querySelector('[data-testid="hijacked-errors"]')
+    expect(custom?.textContent).toContain('Too short')
+    expect(custom?.id).toBe(fieldErrorId('username'))
+  })
+
+  it('parts.control merges a11y into c.attrs', async () => {
     const injected: ValidationError[] = [
       { path: 'username', message: 'Too short' },
     ]
@@ -154,20 +196,8 @@ describe('<Default errors={ValidationError[]}> inject path (#117/#129)', () => {
                   }
                 ) =>
                   c.kind === 'input' ? (
-                    <input
-                      {...c.attrs}
-                      {...c.a11y}
-                      data-testid="hijacked-control"
-                    />
+                    <input {...c.attrs} data-testid="hijacked-control" />
                   ) : null,
-                errors: (errs: ValidationError[]) => (
-                  <p
-                    data-testid="hijacked-errors"
-                    id={fieldErrorId('username')}
-                  >
-                    {errs.map((e) => e.message).join('; ')}
-                  </p>
-                ),
               }}
             />
           )}
@@ -183,10 +213,5 @@ describe('<Default errors={ValidationError[]}> inject path (#117/#129)', () => {
     expect(control?.getAttribute('aria-describedby')).toBe(
       fieldErrorId('username')
     )
-    // Default <ul class="jsf-field-errors"> must not appear.
-    expect(document.querySelector('.jsf-field-errors')).toBeNull()
-    const custom = document.querySelector('[data-testid="hijacked-errors"]')
-    expect(custom?.textContent).toContain('Too short')
-    expect(custom?.id).toBe(fieldErrorId('username'))
   })
 })

@@ -8,11 +8,11 @@
 //   App_18 (JSON Schema) / App_18B (Zod)      ← per schema front-end
 //
 // Everything here is about TanStack Form and nothing else. Mapping field
-// `meta.errors` → `ValidationError[]` for FormFrame's `#117` inject seam
-// (`<Default of={node} errors={…} />`). Field chrome + a11y come from the
-// library (`c.a11y` on the control override). Typed against FormFrame's neutral
-// `ControlProps<K>` seam (no schema generics), so ONE copy serves every schema
-// front-end.
+// `meta.errors` → `ValidationError[]` for FormFrame's
+// `<Default of={node} errors={…} />` inject. Field chrome + a11y come from the
+// library (a11y is merged into `c.attrs` for input/select). Typed against
+// FormFrame's neutral `ControlProps<K>` seam (no schema generics), so ONE copy
+// serves every schema front-end.
 //
 // How this differs from the RHF controls file, and why:
 //
@@ -129,7 +129,7 @@ function toValidationErrors(
 
 /**
  * Mounts the TanStack field for `path` and hands back the field plus its
- * errors as `ValidationError[]` for the `#117` inject seam.
+ * errors as `ValidationError[]` for FormFrame's error inject.
  *
  * No display gate here: `validationLogic` already decides when errors exist.
  */
@@ -153,7 +153,10 @@ function Field({
 // --- One handler per control archetype ---------------------------------------
 // Registered via `r.control('input' | 'select' | 'choicegroup', …)` in the
 // front-end file. Every control applies the shared "empty means absent"
-// normalization on change. Inject errors via `#117`; override only the control.
+// normalization on change. Inject errors; override only the control.
+//
+// `c.kind === …` guards are for TypeScript: Default's `parts.control` is typed
+// as Core's full FieldControl union, not the ControlProps<'input'> narrowing.
 
 export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
   return (
@@ -172,7 +175,6 @@ export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
                     field.handleChange(blankToUndefined(e.target.value))
                   }
                   onBlur={field.handleBlur}
-                  {...c.a11y}
                 />
               ) : null,
           }}
@@ -202,7 +204,6 @@ export function SelectControl({
                     field.handleChange(blankToUndefined(e.target.value))
                   }
                   onBlur={field.handleBlur}
-                  {...c.a11y}
                 >
                   {!c.attrs.multiple && <option value="">-- select --</option>}
                   {c.options.map((o) => (

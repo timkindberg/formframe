@@ -7,11 +7,11 @@
 //   App_12 (JSON Schema) / App_12B (Zod)   ← per schema front-end
 //
 // Everything here is about RHF and nothing else: `register()` bindings and
-// mapping RHF errors → `ValidationError[]` for FormFrame's `#117` inject seam
-// (`<Default of={node} errors={…} />`). Field chrome + a11y come from the
-// library (`c.a11y` on the control override). Typed against FormFrame's neutral
-// `ControlProps<K>` seam (no schema generics), so ONE copy serves every schema
-// front-end.
+// mapping RHF errors → `ValidationError[]` for FormFrame's
+// `<Default of={node} errors={…} />` inject. Field chrome + a11y come from the
+// library (a11y is merged into `c.attrs` for input/select). Typed against
+// FormFrame's neutral `ControlProps<K>` seam (no schema generics), so ONE copy
+// serves every schema front-end.
 //
 // Display timing is RHF's, not this file's: whatever `mode`/`reValidateMode`
 // you pass to `useForm` decides when errors exist, and these controls inject
@@ -29,7 +29,7 @@ import {
 } from './fieldPresentation.recipe'
 
 /**
- * This field's errors as `ValidationError[]` for the `#117` inject seam.
+ * This field's errors as `ValidationError[]` for FormFrame's error inject.
  * RHF holds at most one error per field, so this yields 0 or 1 entry.
  *
  * `useFormState({ name })` scopes WHEN this re-renders (only on this field's
@@ -61,8 +61,12 @@ const unselectedOption = { setValueAs: unselectedToUndefined }
 
 // --- One handler per control archetype ---------------------------------------
 // Registered via `r.control('input' | 'select' | 'choicegroup', …)` in the
-// front-end file. Inject errors via `#117`; override only the control part so
-// FormFrame keeps label / description / errors / a11y.
+// front-end file. Inject errors; override only the control part so FormFrame
+// keeps label / description / errors / a11y.
+//
+// `c.kind === …` guards are for TypeScript: Default's `parts.control` is typed
+// as Core's full FieldControl union, not the ControlProps<'input'> narrowing.
+// At runtime `r.control('input')` only mounts InputControl for input fields.
 
 export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
   const { register } = useFormContext()
@@ -74,7 +78,7 @@ export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
       parts={{
         control: (c) =>
           c.kind === 'input' ? (
-            <input {...c.attrs} {...register(path, blankOption)} {...c.a11y} />
+            <input {...c.attrs} {...register(path, blankOption)} />
           ) : null,
       }}
     />
@@ -97,7 +101,6 @@ export function SelectControl({
             <select
               {...c.attrs}
               {...register(path, c.attrs.multiple ? undefined : blankOption)}
-              {...c.a11y}
             >
               {!c.attrs.multiple && <option value="">-- select --</option>}
               {c.options.map((o) => (
