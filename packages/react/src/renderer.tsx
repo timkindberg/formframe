@@ -145,24 +145,23 @@ export function controlA11yProps(
     : {}
 }
 
-/** Attach a11y for a control *override*: merge into `attrs` when present, and
- * always expose top-level `a11y` (choicegroup has no attrs bag). */
-function enrichControlA11y<C extends { kind: string }>(
-  control: C,
+/** Attach a11y for a control *override*: merge into `attrs` when the archetype
+ * has them (input/select/textarea); always expose top-level `a11y` for
+ * choicegroup (no attrs bag — a11y goes on the wrapper). */
+function enrichControlA11y(
+  control: FieldControl,
   a11y: ControlA11yProps
-): C & { a11y: ControlA11yProps } {
-  if (
-    'attrs' in control &&
-    control.attrs &&
-    typeof control.attrs === 'object'
-  ) {
-    return {
-      ...control,
-      attrs: { ...(control.attrs as object), ...a11y },
-      a11y,
-    } as C & { a11y: ControlA11yProps }
+): FieldControl & { a11y: ControlA11yProps } {
+  switch (control.kind) {
+    case 'input':
+      return { ...control, attrs: { ...control.attrs, ...a11y }, a11y }
+    case 'select':
+      return { ...control, attrs: { ...control.attrs, ...a11y }, a11y }
+    case 'textarea':
+      return { ...control, attrs: { ...control.attrs, ...a11y }, a11y }
+    case 'choicegroup':
+      return { ...control, a11y }
   }
-  return { ...control, a11y }
 }
 
 /**

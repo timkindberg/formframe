@@ -1,7 +1,7 @@
 // RECIPE: TanStack Form as the form-state layer, over Zod — the twin of
-// App_18 with the schema front-end swapped.
+// Recipe_18 with the schema front-end swapped.
 //
-// THREE files to copy, TWO of them shared verbatim with App_18:
+// THREE files to copy, TWO of them shared verbatim with Recipe_18:
 //
 //   fieldPresentation.recipe.tsx       shared blank/match helpers
 //   tanstackFieldControls.recipe.tsx   TanStack control bindings
@@ -9,11 +9,11 @@
 //
 // This file is the proof that the layering holds: swapping JSON Schema + AJV
 // for Zod changes ONLY this file. The controls and presentation layers are
-// byte-identical to App_18's — exactly as App_12/App_12B share the RHF
+// byte-identical to Recipe_18's — exactly as Recipe_12/Recipe_12B share the RHF
 // controls.
 //
-// Compared to the JSON Schema version (App_18), two things fall away and two
-// gotchas appear — the same trade Zod makes under RHF (App_12 vs App_12B):
+// Compared to the JSON Schema version (Recipe_18), two things fall away and two
+// gotchas appear — the same trade Zod makes under RHF (Recipe_12 vs Recipe_12B):
 //
 //   • NO `withMatchRule`: Zod does cross-field natively via
 //     `.refine(fn, { message, path })`, attaching the error to a concrete
@@ -24,7 +24,7 @@
 //     types the schema's Standard-Schema INPUT as `unknown` (it accepts
 //     anything and coerces), while TanStack requires the validator's input to
 //     match the form's data type exactly. RHF's resolver is laxer and needs
-//     no cast for the same schema (App_12B).
+//     no cast for the same schema (Recipe_12B).
 //   • GOTCHA — `.refine()` only runs once the base object parses. With other
 //     required fields still empty, a password mismatch shows ONLY the
 //     structural errors. It can look like the cross-field rule isn't wired up
@@ -32,7 +32,7 @@
 //   • GOTCHA — coercion is per-field in Zod (`z.coerce`), where AJV coerces
 //     globally by adapter default.
 //
-// One thing that does NOT change from App_18: `onSubmit` still re-runs the
+// One thing that does NOT change from Recipe_18: `onSubmit` still re-runs the
 // validator to recover the coerced value, because TanStack's validators
 // return issues only regardless of which schema library produced them.
 import { useState } from 'react'
@@ -107,7 +107,7 @@ const tanStackRules = (r: TypedRuleRegistrar<Shape>): void => {
 export default function App() {
   const [submitted, setSubmitted] = useState<Data | null>(null)
   const form = useForm({
-    // Seed `{}` for every nested group — see App_18's header for why.
+    // Seed `{}` for every nested group — see Recipe_18's header for why.
     defaultValues: { address: {} } as Data,
     // The Zod schema goes straight in — it already IS a Standard Schema. The
     // cast only reconciles `z.coerce`'s `unknown` input type with TanStack's
@@ -118,7 +118,7 @@ export default function App() {
     validationLogic: revalidateLogic(),
     onSubmit: ({ value }) => {
       // Re-parse to recover Zod's coercion (`age`), which TanStack's
-      // issues-only validator contract discards — same reason as App_18.
+      // issues-only validator contract discards — same reason as Recipe_18.
       const parsed = schema.safeParse(value)
       setSubmitted(parsed.success ? parsed.data : value)
     },
@@ -169,9 +169,9 @@ export default function App() {
 // • Exists as the ADR 008 forcing function for `tanstackFieldControls.recipe`:
 //   a second front-end proves that layer is genuinely front-end-agnostic
 //   rather than accidentally shaped around JSON Schema. Mirrors the
-//   App_16/App_17 and App_12/App_12B pairing convention.
+//   App_16/App_17 and Recipe_12/Recipe_12B pairing convention.
 // • Parity with 12/12B/18 asserted by `npm run smoke:recipes` (all four).
-// • Same Zod caveats as App_12B: v4 `.refine()` leaves `def.type`/`def.shape`
+// • Same Zod caveats as Recipe_12B: v4 `.refine()` leaves `def.type`/`def.shape`
 //   intact so `zodToTree`/`FormShapeOf` introspect it normally; the per-field
 //   `.coerce` vs AJV's adapter-level default remains a real DX gap worth its
 //   own issue.
