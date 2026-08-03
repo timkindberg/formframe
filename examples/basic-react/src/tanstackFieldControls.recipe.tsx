@@ -5,14 +5,15 @@
 //
 //   fieldPresentation.recipe.tsx        ← shared blank/match helpers (copy too)
 //   tanstackFieldControls.recipe.tsx    ← you are here. TanStack-specific.
-//   Recipe_18 (JSON Schema) / Recipe_18B (Zod)      ← per schema front-end
+//   Recipe_TanStackForm_JSONSchema (JSON Schema) / Recipe_TanStackForm_Zod (Zod)      ← per schema front-end
 //
 // Everything here is about TanStack Form and nothing else. Mapping field
 // `meta.errors` → `ValidationError[]` for FormFrame's
-// `<Default of={node} errors={…} />` inject. Field chrome + a11y come from the
-// library (a11y is merged into `c.attrs` for input/select). Typed against
-// FormFrame's neutral `ControlProps<K>` seam (no schema generics), so ONE copy
-// serves every schema front-end.
+// `<Default of={node} errors={…} />` inject. Field chrome + error-state a11y
+// come from the library (merged into `c.attrs` for input/select; choicegroup
+// spreads `c.errorA11y` on the wrapper). Typed against FormFrame's neutral
+// `ControlProps<K>` seam (no schema generics), so ONE copy serves every schema
+// front-end.
 //
 // How this differs from the RHF controls file, and why:
 //
@@ -232,7 +233,7 @@ export function ChoiceGroupControl({
                 role={c.role}
                 aria-labelledby={c.labelledBy}
                 onBlur={field.handleBlur}
-                {...c.a11y}
+                {...c.errorA11y}
               >
                 {c.options.map((o) => (
                   <label key={o.attrs.id}>

@@ -124,43 +124,55 @@ function DefaultDescription({ text }: { text: string }): ReactNode {
 /** When a field has errors, the root wraps its control in this provider.
  * Used by the default `DefaultControl` (and by customize `parts.Control` when
  * no render prop). Hand-wired control *overrides* get the same attrs as
- * `part.a11y` instead — no context read required in the callback. */
+ * `part.errorA11y` instead — no context read required in the callback. */
 export interface FieldA11yState {
   errorId: string
 }
 export const FieldA11yContext = createContext<FieldA11yState | null>(null)
 
-/** Spreadable aria attrs derived from a field's visible errors. Empty when
- * nothing is shown — so `aria-invalid` never disagrees with the error list. */
-export type ControlA11yProps = {
+/** Spreadable aria attrs for *error state only* (`aria-invalid` /
+ * `aria-describedby` → the field error list). Empty when nothing is shown —
+ * so `aria-invalid` never disagrees with the error list. Structural label
+ * a11y (`role`, `aria-labelledby`) stays on the control description itself. */
+export type ErrorA11yProps = {
   'aria-invalid'?: true
   'aria-describedby'?: string
 }
 
-export function controlA11yProps(
-  state: FieldA11yState | null
-): ControlA11yProps {
+export function errorA11yProps(state: FieldA11yState | null): ErrorA11yProps {
   return state
     ? { 'aria-invalid': true, 'aria-describedby': state.errorId }
     : {}
 }
 
-/** Attach a11y for a control *override*: merge into `attrs` when the archetype
- * has them (input/select/textarea); always expose top-level `a11y` for
- * choicegroup (no attrs bag — a11y goes on the wrapper). */
-function enrichControlA11y(
+/** Attach error-state a11y for a control *override*: merge into `attrs` when
+ * the archetype has them (input/select/textarea); always expose top-level
+ * `errorA11y` for choicegroup (no attrs bag — error aria goes on the wrapper). */
+function enrichControlErrorA11y(
   control: FieldControl,
-  a11y: ControlA11yProps
-): FieldControl & { a11y: ControlA11yProps } {
+  errorA11y: ErrorA11yProps
+): FieldControl & { errorA11y: ErrorA11yProps } {
   switch (control.kind) {
     case 'input':
-      return { ...control, attrs: { ...control.attrs, ...a11y }, a11y }
+      return {
+        ...control,
+        attrs: { ...control.attrs, ...errorA11y },
+        errorA11y,
+      }
     case 'select':
-      return { ...control, attrs: { ...control.attrs, ...a11y }, a11y }
+      return {
+        ...control,
+        attrs: { ...control.attrs, ...errorA11y },
+        errorA11y,
+      }
     case 'textarea':
-      return { ...control, attrs: { ...control.attrs, ...a11y }, a11y }
+      return {
+        ...control,
+        attrs: { ...control.attrs, ...errorA11y },
+        errorA11y,
+      }
     case 'choicegroup':
-      return { ...control, a11y }
+      return { ...control, errorA11y }
   }
 }
 
@@ -181,17 +193,17 @@ const InjectedFieldErrorsContext = createContext<ValidationError[] | null>(null)
  * applied once, from the field root's `FieldA11yContext`, for every archetype.
  */
 function DefaultControl(control: FieldControl): ReactNode {
-  const a11y = useContext(FieldA11yContext)
-  const a11yProps = controlA11yProps(a11y)
+  const a11yState = useContext(FieldA11yContext)
+  const errorA11y = errorA11yProps(a11yState)
   switch (control.kind) {
     case 'input':
-      return <input {...control.attrs} {...a11yProps} />
+      return <input {...control.attrs} {...errorA11y} />
     case 'textarea':
-      return <textarea {...control.attrs} {...a11yProps} />
+      return <textarea {...control.attrs} {...errorA11y} />
     case 'select': {
       const { attrs, options } = control
       return (
-        <select {...attrs} {...a11yProps}>
+        <select {...attrs} {...errorA11y}>
           {/* No blank placeholder for multiple — nothing to "un-select" to. */}
           {!attrs.multiple && <option value="">-- select --</option>}
           {options.map((o) => (
@@ -204,17 +216,18 @@ function DefaultControl(control: FieldControl): ReactNode {
     }
     case 'choicegroup': {
       // Radio (single) or checkbox (multi) group — a set of native option inputs,
-      // each implicitly labelled by its wrapping `<label>` (bd cm7). Group a11y is
-      // Core-derived (bd l8j): `control.role` (radiogroup|group) and
+      // each implicitly labelled by its wrapping `<label>` (bd cm7). Group label
+      // a11y is Core-derived (bd l8j): `control.role` (radiogroup|group) and
       // `aria-labelledby={control.labelledBy}` naming the group by its caption id —
-      // no adapter recomputes the role. Each option is uncontrolled with a `value`
-      // attr (radio/checkbox use `checked`, not `value`, so no controlled warning).
+      // no adapter recomputes the role. Error-state aria (`errorA11y`) is separate.
+      // Each option is uncontrolled with a `value` attr (radio/checkbox use
+      // `checked`, not `value`, so no controlled warning).
       return (
         <div
           className="jsf-choicegroup"
           role={control.role}
           aria-labelledby={control.labelledBy}
-          {...a11yProps}
+          {...errorA11y}
         >
           {control.options.map((o) => (
             <label key={o.attrs.id} className="jsf-choice">
@@ -464,15 +477,16 @@ function DefaultFieldRoot({
     ? injected.length > 0
     : storeShow && storeErrors.length > 0
   const a11yState = visible ? { errorId: fieldErrorId(node.path) } : null
-  const a11y = controlA11yProps(a11yState)
+  const errorA11y = errorA11yProps(a11yState)
 
-  // Control override: merge a11y into `attrs` when the archetype has them
-  // (input/select/textarea) so `{...c.attrs}` is enough. Always also expose
-  // `a11y` for choicegroup (no top-level attrs — a11y goes on the wrapper).
+  // Control override: merge error-state a11y into `attrs` when the archetype
+  // has them (input/select/textarea) so `{...c.attrs}` is enough. Always also
+  // expose `errorA11y` for choicegroup (no top-level attrs — error aria goes
+  // on the wrapper; `role` / `labelledBy` stay structural).
   const controlPart = node.parts.control
   const controlOverride = overrides?.['control']
   const control = controlOverride ? (
-    controlOverride(enrichControlA11y(controlPart, a11y))
+    controlOverride(enrichControlErrorA11y(controlPart, errorA11y))
   ) : (
     <FieldA11yContext.Provider value={a11yState}>
       {controlPart.Default()}
@@ -884,20 +898,20 @@ type DefaultOptsOf<H> = H extends { Default(opts?: infer O): ReactNode }
   ? O
   : never
 
-/** Widen Core's schema-part overrides with the runtime Errors slot + `a11y` on
- * control (neither is a Core IR part — both are React presentation). For
- * input/select/textarea, a11y is also merged into `attrs` so `{...c.attrs}`
- * carries aria-invalid / aria-describedby.
+/** Widen Core's schema-part overrides with the runtime Errors slot +
+ * `errorA11y` on control (neither is a Core IR part — both are React
+ * presentation). For input/select/textarea, error-state a11y is also merged
+ * into `attrs` so `{...c.attrs}` carries aria-invalid / aria-describedby.
  *
  * Prefer the handle's live `parts.control` type when present — that is how
  * `ControlProps<'input'>['node']` flows a kind-narrowed control into
  * `<Default of={node} parts={{ control: (c) => … }}>` without a `c.kind` guard.
  * Fall back to Core's wide PartsOverrides parameter when `of` is a plain EField. */
 type ControlOverrideOf<H, P> = H extends { parts: { control: infer C } }
-  ? (part: C & { a11y: ControlA11yProps }) => ReactNode
+  ? (part: C & { errorA11y: ErrorA11yProps }) => ReactNode
   : P extends { control?: (part: infer C) => ReactNode }
-    ? (part: C & { a11y: ControlA11yProps }) => ReactNode
-    : (part: { a11y: ControlA11yProps }) => ReactNode
+    ? (part: C & { errorA11y: ErrorA11yProps }) => ReactNode
+    : (part: { errorA11y: ErrorA11yProps }) => ReactNode
 
 type WidenParts<H, P> = P extends object
   ? Omit<P, 'control'> & {
