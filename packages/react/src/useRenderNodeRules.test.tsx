@@ -145,6 +145,20 @@ describe('useRenderNodeRules binds off a FormShape generically (ADR 048)', () =>
     expectTypeOf<ControlProps<'input'>['path']>().toEqualTypeOf<string>()
   })
 
+  it('ControlProps node.parts.control is kind-narrowed for Default overrides', () => {
+    // So `<Default of={node} parts={{ control: (c) => <input {...c.attrs} /> }}>`
+    // needs no `c.kind === 'input'` guard — attrs is already HtmlInputAttrs.
+    expectTypeOf<
+      ControlProps<'input'>['node']['parts']['control']['kind']
+    >().toEqualTypeOf<'input'>()
+    expectTypeOf<
+      ControlProps<'select'>['node']['parts']['control']['kind']
+    >().toEqualTypeOf<'select'>()
+    expectTypeOf<
+      ControlProps<'choicegroup'>['node']['parts']['control']['kind']
+    >().toEqualTypeOf<'choicegroup'>()
+  })
+
   it('the cross-node selectors are present (no typing cliff, bd bh7.6)', () => {
     // control / allFields / allGroups / allArrays / where / default all exist on
     // the typed registrar (inherited un-narrowed from the neutral floor) — reaching

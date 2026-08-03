@@ -62,11 +62,9 @@ const unselectedOption = { setValueAs: unselectedToUndefined }
 // --- One handler per control archetype ---------------------------------------
 // Registered via `r.control('input' | 'select' | 'choicegroup', …)` in the
 // front-end file. Inject errors; override only the control part so FormFrame
-// keeps label / description / errors / a11y.
-//
-// `c.kind === …` guards are for TypeScript: Default's `parts.control` is typed
-// as Core's full FieldControl union, not the ControlProps<'input'> narrowing.
-// At runtime `r.control('input')` only mounts InputControl for input fields.
+// keeps label / description / errors / a11y. `ControlProps<'input'>` narrows
+// `node.parts.control`, so the override callback is already an input — no
+// `c.kind ===` guard.
 
 export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
   const { register } = useFormContext()
@@ -76,10 +74,7 @@ export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
       of={node}
       errors={errors}
       parts={{
-        control: (c) =>
-          c.kind === 'input' ? (
-            <input {...c.attrs} {...register(path, blankOption)} />
-          ) : null,
+        control: (c) => <input {...c.attrs} {...register(path, blankOption)} />,
       }}
     />
   )
@@ -96,20 +91,19 @@ export function SelectControl({
       of={node}
       errors={errors}
       parts={{
-        control: (c) =>
-          c.kind === 'select' ? (
-            <select
-              {...c.attrs}
-              {...register(path, c.attrs.multiple ? undefined : blankOption)}
-            >
-              {!c.attrs.multiple && <option value="">-- select --</option>}
-              {c.options.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          ) : null,
+        control: (c) => (
+          <select
+            {...c.attrs}
+            {...register(path, c.attrs.multiple ? undefined : blankOption)}
+          >
+            {!c.attrs.multiple && <option value="">-- select --</option>}
+            {c.options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        ),
       }}
     />
   )
@@ -126,17 +120,16 @@ export function ChoiceGroupControl({
       of={node}
       errors={errors}
       parts={{
-        control: (c) =>
-          c.kind === 'choicegroup' ? (
-            <div role={c.role} aria-labelledby={c.labelledBy} {...c.a11y}>
-              {c.options.map((o) => (
-                <label key={o.attrs.id}>
-                  <input {...o.attrs} {...register(path, unselectedOption)} />{' '}
-                  {o.label}
-                </label>
-              ))}
-            </div>
-          ) : null,
+        control: (c) => (
+          <div role={c.role} aria-labelledby={c.labelledBy} {...c.a11y}>
+            {c.options.map((o) => (
+              <label key={o.attrs.id}>
+                <input {...o.attrs} {...register(path, unselectedOption)} />{' '}
+                {o.label}
+              </label>
+            ))}
+          </div>
+        ),
       }}
     />
   )
