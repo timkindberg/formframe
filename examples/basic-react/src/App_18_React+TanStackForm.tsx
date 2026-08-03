@@ -2,7 +2,7 @@
 //
 // THREE files to copy — this one plus the two layers beneath it:
 //
-//   fieldPresentation.recipe.tsx       shared shell / errors / a11y
+//   fieldPresentation.recipe.tsx       shared blank/match helpers
 //   tanstackFieldControls.recipe.tsx   TanStack control bindings
 //   this file                          the JSON Schema + AJV half
 //

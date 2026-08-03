@@ -3,7 +3,7 @@
 //
 // THREE files to copy, TWO of them shared verbatim with App_18:
 //
-//   fieldPresentation.recipe.tsx       shared shell / errors / a11y
+//   fieldPresentation.recipe.tsx       shared blank/match helpers
 //   tanstackFieldControls.recipe.tsx   TanStack control bindings
 //   this file                          the Zod half
 //

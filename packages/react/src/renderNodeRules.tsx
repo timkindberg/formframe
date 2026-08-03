@@ -80,9 +80,14 @@ export interface TextData {
  * markup; `<Part render={data => …} />` hand-authors it from the part's narrowed
  * `data` (the type shown inside `PartComponent<…>` on hover). It is an ordinary
  * React component, so it composes and re-renders like any other.
+ *
+ * `errors` (#117) is the lexical inject for `Control` / `Errors` — handlers that
+ * own a field's errors pass them here instead of relying on the store. Ignored
+ * on caption parts.
  */
 export type PartComponent<D> = (props: {
   render?: (data: D) => ReactNode
+  errors?: ValidationError[]
 }) => ReactNode
 
 // ---------------------------------------------------------------------------
@@ -91,10 +96,19 @@ export type PartComponent<D> = (props: {
 
 /** Shared a11y derivation: a field with currently-displayed issues links its
  * control to the error list by id, so `Control` and `Errors` stay wired together
- * no matter where a handler places them (ADR 047 §2). */
-function useFieldA11y(path: string): { errorId: string } | null {
-  const issues = useFieldErrors(path)
-  const show = useFieldErrorDisplay(path)
+ * no matter where a handler places them (ADR 047 §2). Injected `errors` win
+ * over the store (present == show). */
+function useFieldA11y(
+  path: string,
+  injected?: ValidationError[]
+): { errorId: string } | null {
+  const storeIssues = useFieldErrors(path)
+  const storeShow = useFieldErrorDisplay(path)
+  const issues = injected !== undefined ? injected : storeIssues
+  const show =
+    injected !== undefined
+      ? injected.length > 0
+      : storeShow && storeIssues.length > 0
   return show && issues.length > 0 ? { errorId: fieldErrorId(path) } : null
 }
 
@@ -102,6 +116,7 @@ function Label({
   render,
 }: {
   render?: (data: LabelData) => ReactNode
+  errors?: ValidationError[]
 }): ReactNode {
   const h = useContext(HandleCtx)
   if (!h) return null
@@ -115,6 +130,7 @@ function Description({
   render,
 }: {
   render?: (data: TextData) => ReactNode
+  errors?: ValidationError[]
 }): ReactNode {
   const h = useContext(HandleCtx)
   if (!h) return null
@@ -126,19 +142,28 @@ function Description({
 
 function Control({
   render,
+  errors: injectedErrors,
 }: {
   render?: (data: FieldControl) => ReactNode
+  errors?: ValidationError[]
 }): ReactNode {
   const h = useContext(HandleCtx)
   const path = h && h.node.isField ? h.node.path : ''
   // Hook runs unconditionally (rules-of-hooks); ignored for non-field handles.
-  const a11y = useFieldA11y(path)
+  const a11y = useFieldA11y(path, injectedErrors)
   if (!h || !h.node.isField) return null
   const control = h.node.parts.control
   // A render-prop control is hand-authored: the consumer owns a11y by spreading
-  // `c.attrs` and adding their own (ADR 047 §5). The default control gets the
-  // linkage via `FieldA11yContext`, exactly as the field Root does.
-  if (render) return render(control)
+  // `c.attrs` and adding their own (ADR 047 §5) — or by reading FieldA11yContext
+  // under this provider. The default control gets the linkage via
+  // `FieldA11yContext`, exactly as the field Root does.
+  if (render) {
+    return (
+      <FieldA11yContext.Provider value={a11y}>
+        {render(control)}
+      </FieldA11yContext.Provider>
+    )
+  }
   return (
     <FieldA11yContext.Provider value={a11y}>
       <h.helpers.Default of={control} />
@@ -146,23 +171,31 @@ function Control({
   )
 }
 
-// Errors are RUNTIME validation state (not a schema part), read from the store —
-// possible only because parts are real components (ADR 047 §2). The id/class/role
-// match the default field Root's error list, so promoting Errors to a movable
-// part keeps `aria-describedby` (set by `Control`) pointing at a real element.
+// Errors are RUNTIME validation state (not a schema part) — from an injected
+// `errors` prop (#117) or the store. Possible only because parts are real
+// components (ADR 047 §2). The id/class match the default field Root's error
+// list (no `role="alert"`), so promoting Errors to a movable part keeps
+// `aria-describedby` (set by `Control`) pointing at a real element.
 function Errors({
   render,
+  errors: injectedErrors,
 }: {
   render?: (data: ValidationError[]) => ReactNode
+  errors?: ValidationError[]
 }): ReactNode {
   const h = useContext(HandleCtx)
   const path = h && h.node.isField ? h.node.path : ''
-  const issues = useFieldErrors(path)
-  const show = useFieldErrorDisplay(path)
+  const storeIssues = useFieldErrors(path)
+  const storeShow = useFieldErrorDisplay(path)
+  const issues = injectedErrors !== undefined ? injectedErrors : storeIssues
+  const show =
+    injectedErrors !== undefined
+      ? injectedErrors.length > 0
+      : storeShow && storeIssues.length > 0
   if (!path || !show || issues.length === 0) return null
   if (render) return render(issues)
   return (
-    <ul id={fieldErrorId(path)} className="jsf-field-errors" role="alert">
+    <ul id={fieldErrorId(path)} className="jsf-field-errors">
       {issues.map((issue, i) => (
         <li key={i}>{issue.message}</li>
       ))}

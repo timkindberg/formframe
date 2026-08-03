@@ -32,6 +32,7 @@ export {
   useValidationErrors,
   fieldControlId,
   fieldErrorId,
+  controlA11yProps,
 } from './renderer'
 // Error-display policy (ADR 027): touched-gated / submit-gated error visibility.
 export {
@@ -51,6 +52,8 @@ export type {
   EGroup,
   EArray,
   EArrayItem,
+  ControlA11yProps,
+  FieldA11yState,
 } from './renderer'
 
 // The render-node rules layer (ADR 047/048) — a form-scope selector registry

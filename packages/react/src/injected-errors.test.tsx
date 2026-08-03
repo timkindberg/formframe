@@ -1,0 +1,192 @@
+// #117 / #129 — field error-presentation seam: inject via
+// `<Default of={field} errors={ValidationError[]} />` (recipe-pre-gated, no show
+// flag). Dual path: omit-prop keeps the store/provider until #126 demotes it.
+
+import { useMemo } from 'react'
+import { describe, it, expect } from 'vitest'
+import { render } from 'vitest-browser-react'
+import type { ValidationError } from '@formframe/core'
+import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
+import type { JSONSchema } from '@formframe/input-jsonschema'
+import {
+  SchemaFields,
+  Default,
+  ValidationProvider,
+  fieldControlId,
+  fieldErrorId,
+  type ControlA11yProps,
+} from './renderer'
+import type { FieldControl } from '@formframe/core'
+
+const schema: JSONSchema = {
+  type: 'object',
+  required: ['username'],
+  properties: {
+    username: { type: 'string', title: 'Username', minLength: 3 },
+    zip: { type: 'string', title: 'Zip', pattern: '^[0-9]{5}$' },
+  },
+}
+
+describe('<Default errors={ValidationError[]}> inject path (#117/#129)', () => {
+  it('injected errors render and drive a11y; no role=alert', async () => {
+    const injected: ValidationError[] = [
+      { path: 'username', message: 'Too short' },
+    ]
+    function Form() {
+      const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
+      return (
+        <SchemaFields form={f}>
+          {(root, { Default: D }) => (
+            <>
+              <D of={root.children.username} errors={injected} />
+              <D of={root.children.zip} errors={[]} />
+            </>
+          )}
+        </SchemaFields>
+      )
+    }
+    await render(<Form />)
+
+    const username = document.getElementById(fieldControlId('username'))
+    expect(username?.getAttribute('aria-invalid')).toBe('true')
+    expect(username?.getAttribute('aria-describedby')).toBe(
+      fieldErrorId('username')
+    )
+    const list = document.getElementById(fieldErrorId('username'))
+    expect(list).not.toBeNull()
+    expect(list?.getAttribute('role')).toBeNull()
+    expect(list?.textContent).toContain('Too short')
+
+    const zip = document.getElementById(fieldControlId('zip'))
+    expect(zip?.hasAttribute('aria-invalid')).toBe(false)
+    expect(document.getElementById(fieldErrorId('zip'))).toBeNull()
+  })
+
+  it('omit-prop still uses ValidationProvider / store', async () => {
+    const storeErrors: ValidationError[] = [
+      { path: 'username', message: 'From store' },
+    ]
+    function Form() {
+      const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
+      return (
+        <ValidationProvider errors={storeErrors} showErrorsWhen="always">
+          <SchemaFields form={f} />
+        </ValidationProvider>
+      )
+    }
+    await render(<Form />)
+
+    const list = document.getElementById(fieldErrorId('username'))
+    expect(list?.textContent).toContain('From store')
+    expect(list?.getAttribute('role')).toBeNull()
+    const username = document.getElementById(fieldControlId('username'))
+    expect(username?.getAttribute('aria-invalid')).toBe('true')
+  })
+
+  it('injected errors win over a present store', async () => {
+    const storeErrors: ValidationError[] = [
+      { path: 'username', message: 'From store' },
+    ]
+    const injected: ValidationError[] = [
+      { path: 'username', message: 'From inject' },
+    ]
+    function Form() {
+      const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
+      return (
+        <ValidationProvider errors={storeErrors} showErrorsWhen="always">
+          <SchemaFields form={f}>
+            {(root, { Default: D }) => (
+              <D of={root.children.username} errors={injected} />
+            )}
+          </SchemaFields>
+        </ValidationProvider>
+      )
+    }
+    await render(<Form />)
+
+    const list = document.getElementById(fieldErrorId('username'))
+    expect(list?.textContent).toContain('From inject')
+    expect(list?.textContent).not.toContain('From store')
+  })
+
+  it('imported Default of={field} errors={…} works from renderNode', async () => {
+    const injected: ValidationError[] = [
+      { path: 'username', message: 'Imported Default' },
+    ]
+    function Form() {
+      const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
+      return (
+        <SchemaFields
+          form={f}
+          renderNode={(node) =>
+            node.isField && node.path === 'username' ? (
+              <Default of={node} errors={injected} />
+            ) : (
+              <Default of={node} />
+            )
+          }
+        />
+      )
+    }
+    await render(<Form />)
+    expect(
+      document.getElementById(fieldErrorId('username'))?.textContent
+    ).toContain('Imported Default')
+  })
+
+  it('parts.errors hijacks the error list; parts.control gets c.a11y', async () => {
+    const injected: ValidationError[] = [
+      { path: 'username', message: 'Too short' },
+    ]
+    function Form() {
+      const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
+      return (
+        <SchemaFields form={f}>
+          {(root, { Default: D }) => (
+            <D
+              of={root.children.username}
+              errors={injected}
+              parts={{
+                control: (
+                  c: FieldControl & {
+                    a11y: ControlA11yProps
+                    Default(): React.ReactNode
+                  }
+                ) =>
+                  c.kind === 'input' ? (
+                    <input
+                      {...c.attrs}
+                      {...c.a11y}
+                      data-testid="hijacked-control"
+                    />
+                  ) : null,
+                errors: (errs: ValidationError[]) => (
+                  <p
+                    data-testid="hijacked-errors"
+                    id={fieldErrorId('username')}
+                  >
+                    {errs.map((e) => e.message).join('; ')}
+                  </p>
+                ),
+              }}
+            />
+          )}
+        </SchemaFields>
+      )
+    }
+    await render(<Form />)
+
+    const control = document.querySelector(
+      '[data-testid="hijacked-control"]'
+    ) as HTMLInputElement | null
+    expect(control?.getAttribute('aria-invalid')).toBe('true')
+    expect(control?.getAttribute('aria-describedby')).toBe(
+      fieldErrorId('username')
+    )
+    // Default <ul class="jsf-field-errors"> must not appear.
+    expect(document.querySelector('.jsf-field-errors')).toBeNull()
+    const custom = document.querySelector('[data-testid="hijacked-errors"]')
+    expect(custom?.textContent).toContain('Too short')
+    expect(custom?.id).toBe(fieldErrorId('username'))
+  })
+})

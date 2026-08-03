@@ -3,13 +3,16 @@
 // Layer 2 of the three-layer recipe stack — the peer of
 // `rhfFieldControls.recipe.tsx`:
 //
-//   fieldPresentation.recipe.tsx        ← shared shell/errors/a11y (copy too)
+//   fieldPresentation.recipe.tsx        ← shared blank/match helpers (copy too)
 //   tanstackFieldControls.recipe.tsx    ← you are here. TanStack-specific.
 //   App_18 (JSON Schema) / App_18B (Zod)      ← per schema front-end
 //
-// Everything here is about TanStack Form and nothing else. It's typed against
-// FormFrame's neutral `ControlProps<K>` seam (no schema generics), so ONE copy
-// serves every schema front-end — App_18 and App_18B import it unchanged.
+// Everything here is about TanStack Form and nothing else. Mapping field
+// `meta.errors` → `ValidationError[]` for FormFrame's `#117` inject seam
+// (`<Default of={node} errors={…} />`). Field chrome + a11y come from the
+// library (`c.a11y` on the control override). Typed against FormFrame's neutral
+// `ControlProps<K>` seam (no schema generics), so ONE copy serves every schema
+// front-end.
 //
 // How this differs from the RHF controls file, and why:
 //
@@ -19,17 +22,15 @@
 //     this file supplies a small Context. Wrap your form in
 //     `<TanStackFormProvider form={form}>`.
 //   • Display timing is `validationLogic`'s, not this file's. These controls
-//     render whatever TanStack holds; `revalidateLogic()` (no arguments) is
+//     inject whatever TanStack holds; `revalidateLogic()` (no arguments) is
 //     TanStack's recommended default and matches RHF's out-of-box behavior.
 import { createContext, useContext, type ReactNode } from 'react'
 import type { AnyFieldApi } from '@tanstack/react-form'
-import type { ControlProps } from '@formframe/renderer-react'
+import type { ValidationError } from '@formframe/core'
+import { Default, type ControlProps } from '@formframe/renderer-react'
 import {
-  FieldShell,
-  a11yAttrs,
   blankToUndefined,
   unselectedToUndefined,
-  type FieldMessages,
 } from './fieldPresentation.recipe'
 
 // --- The slice of TanStack's API these controls consume ----------------------
@@ -119,32 +120,31 @@ function useTanStackForm(): RecipeFormApi {
   return form
 }
 
+function toValidationErrors(
+  path: string,
+  issues: FieldIssue[]
+): ValidationError[] {
+  return issues.map((e) => ({ path, message: e.message }))
+}
+
 /**
  * Mounts the TanStack field for `path` and hands back the field plus its
- * messages, normalized to the shared `FieldMessages` shape.
+ * errors as `ValidationError[]` for the `#117` inject seam.
  *
  * No display gate here: `validationLogic` already decides when errors exist.
- * (If you need timing `revalidateLogic` can't express, this is the one place
- * to add it — `field.state.meta` also carries `isBlurred` and
- * `isDefaultValue`, and "has a submit been attempted" is `form.Subscribe`'s
- * `state.submissionAttempts`, which must be read reactively through
- * `Subscribe` rather than off a bare `form.state`, or it goes stale.)
  */
 function Field({
   path,
   children,
 }: {
   path: string
-  children: (field: RecipeFieldApi, messages: FieldMessages) => ReactNode
+  children: (field: RecipeFieldApi, errors: ValidationError[]) => ReactNode
 }): ReactNode {
   const form = useTanStackForm()
   return (
     <form.Field name={path}>
       {(field) =>
-        children(
-          field,
-          field.state.meta.errors.map((e) => e.message)
-        )
+        children(field, toValidationErrors(path, field.state.meta.errors))
       }
     </form.Field>
   )
@@ -153,30 +153,30 @@ function Field({
 // --- One handler per control archetype ---------------------------------------
 // Registered via `r.control('input' | 'select' | 'choicegroup', …)` in the
 // front-end file. Every control applies the shared "empty means absent"
-// normalization on change.
+// normalization on change. Inject errors via `#117`; override only the control.
 
-export function InputControl({
-  path,
-  parts,
-}: ControlProps<'input'>): ReactNode {
+export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
   return (
     <Field path={path}>
-      {(field, messages) => (
-        <FieldShell path={path} parts={parts} messages={messages}>
-          <parts.Control
-            render={(c) => (
-              <input
-                {...c.attrs}
-                value={String(field.state.value ?? '')}
-                onChange={(e) =>
-                  field.handleChange(blankToUndefined(e.target.value))
-                }
-                onBlur={field.handleBlur}
-                {...a11yAttrs(path, messages)}
-              />
-            )}
-          />
-        </FieldShell>
+      {(field, errors) => (
+        <Default
+          of={node}
+          errors={errors}
+          parts={{
+            control: (c) =>
+              c.kind === 'input' ? (
+                <input
+                  {...c.attrs}
+                  value={String(field.state.value ?? '')}
+                  onChange={(e) =>
+                    field.handleChange(blankToUndefined(e.target.value))
+                  }
+                  onBlur={field.handleBlur}
+                  {...c.a11y}
+                />
+              ) : null,
+          }}
+        />
       )}
     </Field>
   )
@@ -184,33 +184,36 @@ export function InputControl({
 
 export function SelectControl({
   path,
-  parts,
+  node,
 }: ControlProps<'select'>): ReactNode {
   return (
     <Field path={path}>
-      {(field, messages) => (
-        <FieldShell path={path} parts={parts} messages={messages}>
-          <parts.Control
-            render={(c) => (
-              <select
-                {...c.attrs}
-                value={String(field.state.value ?? '')}
-                onChange={(e) =>
-                  field.handleChange(blankToUndefined(e.target.value))
-                }
-                onBlur={field.handleBlur}
-                {...a11yAttrs(path, messages)}
-              >
-                {!c.attrs.multiple && <option value="">-- select --</option>}
-                {c.options.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            )}
-          />
-        </FieldShell>
+      {(field, errors) => (
+        <Default
+          of={node}
+          errors={errors}
+          parts={{
+            control: (c) =>
+              c.kind === 'select' ? (
+                <select
+                  {...c.attrs}
+                  value={String(field.state.value ?? '')}
+                  onChange={(e) =>
+                    field.handleChange(blankToUndefined(e.target.value))
+                  }
+                  onBlur={field.handleBlur}
+                  {...c.a11y}
+                >
+                  {!c.attrs.multiple && <option value="">-- select --</option>}
+                  {c.options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              ) : null,
+          }}
+        />
       )}
     </Field>
   )
@@ -218,53 +221,42 @@ export function SelectControl({
 
 export function ChoiceGroupControl({
   path,
-  parts,
+  node,
 }: ControlProps<'choicegroup'>): ReactNode {
   return (
     <Field path={path}>
-      {(field, messages) => (
-        <FieldShell path={path} parts={parts} messages={messages}>
-          <parts.Control
-            render={(c) => (
-              <div
-                role={c.role}
-                aria-labelledby={c.labelledBy}
-                onBlur={field.handleBlur}
-                {...a11yAttrs(path, messages)}
-              >
-                {c.options.map((o) => (
-                  <label key={o.attrs.id}>
-                    <input
-                      {...o.attrs}
-                      checked={field.state.value === o.attrs.value}
-                      onChange={() =>
-                        field.handleChange(unselectedToUndefined(o.attrs.value))
-                      }
-                    />{' '}
-                    {o.label}
-                  </label>
-                ))}
-              </div>
-            )}
-          />
-        </FieldShell>
+      {(field, errors) => (
+        <Default
+          of={node}
+          errors={errors}
+          parts={{
+            control: (c) =>
+              c.kind === 'choicegroup' ? (
+                <div
+                  role={c.role}
+                  aria-labelledby={c.labelledBy}
+                  onBlur={field.handleBlur}
+                  {...c.a11y}
+                >
+                  {c.options.map((o) => (
+                    <label key={o.attrs.id}>
+                      <input
+                        {...o.attrs}
+                        checked={field.state.value === o.attrs.value}
+                        onChange={() =>
+                          field.handleChange(
+                            unselectedToUndefined(o.attrs.value)
+                          )
+                        }
+                      />{' '}
+                      {o.label}
+                    </label>
+                  ))}
+                </div>
+              ) : null,
+          }}
+        />
       )}
     </Field>
   )
 }
-
-// ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
-// Build-log for the #116 epic; safe to delete when copying this file.
-// • Extracted from App_18 so a second TanStack front-end (App_18B, Zod) could
-//   share it verbatim — the ADR 008 forcing function proving this layer is
-//   genuinely front-end-agnostic, mirroring App_12/App_12B over the RHF file.
-// • Claims verified against @tanstack/form-core SOURCE (not docs):
-//   controlled-only (FieldApi.js), issues-only Standard Schema validators
-//   (standardSchemaValidator.js discards the transformed value on success),
-//   revalidateLogic's RHF-mode emulation (its own doc comment),
-//   isBlurred/isDefaultValue semantics (fieldMetaDerived).
-// • The `Subscribe` reactivity warning in `Field`'s doc is a real bug the
-//   parity smoke caught when a display gate still existed here: a bare
-//   `form.state` read left a pre-submit-blurred field's error unrevealed at
-//   submit. Keep it in mind before re-adding any gate.
-// ──────────────────────────────────────────────────────────────────────────────

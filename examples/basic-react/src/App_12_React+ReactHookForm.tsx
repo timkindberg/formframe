@@ -2,7 +2,7 @@
 //
 // THREE files to copy — this one plus the two layers beneath it:
 //
-//   fieldPresentation.recipe.tsx   shared shell / errors / a11y (every recipe)
+//   fieldPresentation.recipe.tsx   shared blank/match helpers (every recipe)
 //   rhfFieldControls.recipe.tsx    RHF control bindings (App_12 + App_12B)
 //   this file                      the JSON Schema + AJV half
 //
