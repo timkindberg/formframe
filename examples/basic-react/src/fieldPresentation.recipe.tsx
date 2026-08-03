@@ -1,6 +1,7 @@
-// RECIPE (shared, form-library-agnostic): how a field LOOKS and how its
-// errors are announced — with no dependency on React Hook Form, TanStack
-// Form, or any particular schema front-end.
+// RECIPE (shared, form-library-agnostic): helpers every form-lib recipe needs
+// that are NOT error chrome — blank-value normalization and cross-field match
+// rules. Per-field errors + a11y come from FormFrame's inject seam:
+// `<Default of={field} errors={ValidationError[]} />`.
 //
 // This is the bottom layer of a three-layer recipe stack:
 //
@@ -8,93 +9,8 @@
 //   <library>FieldControls.recipe  ← per form library (RHF / TanStack).
 //   App_NN.tsx                     ← per schema front-end (JSON Schema / Zod).
 //
-// Nothing here imports a form library, which is exactly why it can be shared:
-// the only thing a field needs to render its errors is the field's PATH and
-// its CURRENT MESSAGES. Each form library's controls file normalizes its own
-// error shape into `FieldMessages` and hands it over.
-//
 // Copy this file once; it serves every recipe you use.
-import type { ReactNode } from 'react'
 import type { Validator } from '@formframe/core'
-import {
-  fieldErrorId,
-  type PartComponent,
-  type LabelData,
-  type TextData,
-} from '@formframe/renderer-react'
-
-/**
- * A field's currently-displayable error messages. The normalized currency
- * between "whatever your form library holds" and "what gets rendered".
- *
- * Empty means valid (or not-yet-revealed — the timing decision belongs to
- * your form library's validation mode, not to this file). Non-empty means
- * show them AND mark the control invalid, so `aria-invalid` can never
- * disagree with what's on screen.
- */
-export type FieldMessages = readonly string[]
-
-/** `aria-invalid` + `aria-describedby` for a control, derived from exactly
- * the messages being displayed. Spread onto the control element. */
-export function a11yAttrs(
-  path: string,
-  messages: FieldMessages
-): { 'aria-invalid'?: true; 'aria-describedby'?: string } {
-  return messages.length > 0
-    ? { 'aria-invalid': true, 'aria-describedby': fieldErrorId(path) }
-    : {}
-}
-
-export function FieldErrors({
-  path,
-  messages,
-}: {
-  path: string
-  messages: FieldMessages
-}): ReactNode {
-  if (messages.length === 0) return null
-  return (
-    // Deliberately NO role="alert"/live region: with revalidate-on-change
-    // (every library's default after the first submit), an assertive region
-    // re-announces on every keystroke while the user is fixing the field.
-    // The `aria-describedby` association from `a11yAttrs` is what carries the
-    // message to a screen reader, without the interruption.
-    <ul id={fieldErrorId(path)} className="jsf-field-errors">
-      {messages.map((message, i) => (
-        <li key={i}>{message}</li>
-      ))}
-    </ul>
-  )
-}
-
-export interface FieldShellParts {
-  Label: PartComponent<LabelData>
-  Description?: PartComponent<TextData>
-}
-
-/** Label, description, the control itself, then its errors. The same shell
- * for every control archetype and every form library — only what you pass as
- * `children` changes. */
-export function FieldShell({
-  path,
-  parts,
-  messages,
-  children,
-}: {
-  path: string
-  parts: FieldShellParts
-  messages: FieldMessages
-  children: ReactNode
-}): ReactNode {
-  return (
-    <div className="jsf-field">
-      <parts.Label />
-      {parts.Description && <parts.Description />}
-      {children}
-      <FieldErrors path={path} messages={messages} />
-    </div>
-  )
-}
 
 // --- "Empty means absent" ----------------------------------------------------
 // A field the user never filled in should submit as MISSING, not as "". An

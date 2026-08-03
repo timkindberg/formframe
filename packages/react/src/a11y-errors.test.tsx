@@ -79,7 +79,7 @@ function FormWithValidation({
 }
 
 describe('validation a11y wiring', () => {
-  it('with errors: control gets aria-invalid and aria-describedby to role=alert list', async () => {
+  it('with errors: control gets aria-invalid and aria-describedby to error list (no role=alert)', async () => {
     await render(<FormWithValidation errors={errors} />)
 
     const username = document.getElementById(fieldControlId('username'))
@@ -91,7 +91,7 @@ describe('validation a11y wiring', () => {
 
     const usernameErrors = document.getElementById(fieldErrorId('username'))
     expect(usernameErrors).not.toBeNull()
-    expect(usernameErrors?.getAttribute('role')).toBe('alert')
+    expect(usernameErrors?.getAttribute('role')).toBeNull()
     expect(username?.getAttribute('aria-describedby')).toBe(usernameErrors?.id)
 
     const zip = document.getElementById(fieldControlId('zip'))

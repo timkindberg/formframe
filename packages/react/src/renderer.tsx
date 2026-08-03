@@ -122,12 +122,37 @@ function DefaultDescription({ text }: { text: string }): ReactNode {
 }
 
 /** When a field has errors, the root wraps its control in this provider.
- * Exported so the customize layer (ADR 047) can re-establish the same
- * control↔errors linkage when it places a movable `Control` part. */
+ * Used by the default `DefaultControl` (and by customize `parts.Control` when
+ * no render prop). Hand-wired control *overrides* get the same attrs as
+ * `part.a11y` instead — no context read required in the callback. */
 export interface FieldA11yState {
   errorId: string
 }
 export const FieldA11yContext = createContext<FieldA11yState | null>(null)
+
+/** Spreadable aria attrs derived from a field's visible errors. Empty when
+ * nothing is shown — so `aria-invalid` never disagrees with the error list. */
+export type ControlA11yProps = {
+  'aria-invalid'?: true
+  'aria-describedby'?: string
+}
+
+export function controlA11yProps(
+  state: FieldA11yState | null
+): ControlA11yProps {
+  return state
+    ? { 'aria-invalid': true, 'aria-describedby': state.errorId }
+    : {}
+}
+
+/**
+ * Internal bridge for `#117` `<Default of={field} errors={…} />`: the ADR-017
+ * component cannot forward `errors` through Core's `node.Default(opts)` without
+ * a Core change, so it wraps the re-entry in this provider. `null` = not
+ * injected (use the store); an array (including `[]`) = recipe-pre-gated source
+ * of truth. Not a public seam — recipes pass the prop, not this context.
+ */
+const InjectedFieldErrorsContext = createContext<ValidationError[] | null>(null)
 
 /**
  * The unified control renderer (ADR 029 §5, v60): ONE `field.control` slot that
@@ -138,9 +163,7 @@ export const FieldA11yContext = createContext<FieldA11yState | null>(null)
  */
 function DefaultControl(control: FieldControl): ReactNode {
   const a11y = useContext(FieldA11yContext)
-  const a11yProps = a11y
-    ? { 'aria-invalid': true as const, 'aria-describedby': a11y.errorId }
-    : {}
+  const a11yProps = controlA11yProps(a11y)
   switch (control.kind) {
     case 'input':
       return <input {...control.attrs} {...a11yProps} />
@@ -368,8 +391,21 @@ function DefaultFieldErrors({ path }: { path: string }): ReactNode {
   const errors = useFieldErrors(path)
   const show = useFieldErrorDisplay(path)
   if (!show || errors.length === 0) return null
+  return <FieldErrorsList path={path} errors={errors} />
+}
+
+/** Shared error-list markup (store path + inject path). No `role="alert"` —
+ * assertive live regions re-announce on every keystroke under revalidate-on-
+ * change; `aria-describedby` carries the message without the interruption. */
+function FieldErrorsList({
+  path,
+  errors,
+}: {
+  path: string
+  errors: ValidationError[]
+}): ReactNode {
   return (
-    <ul id={fieldErrorId(path)} className="jsf-field-errors" role="alert">
+    <ul id={fieldErrorId(path)} className="jsf-field-errors">
       {errors.map((error, i) => (
         <li key={i}>{error.message}</li>
       ))}
@@ -377,7 +413,11 @@ function DefaultFieldErrors({ path }: { path: string }): ReactNode {
   )
 }
 
-/** Compose a field from its parts: label, description, and the widget control. */
+/** Compose a field from its parts: label, description, control, and errors.
+ * `parts.control` overrides receive the enriched control plus `a11y` (spreadable
+ * aria attrs). `parts.errors` overrides receive the visible `ValidationError[]`
+ * — same fractal hijack as label/control (ADR 047), including on the
+ * `<Default errors={…} />` inject path. */
 function DefaultFieldRoot({
   node,
   overrides,
@@ -394,21 +434,52 @@ function DefaultFieldRoot({
     // Call, never mount: `part.Default()` returns a stable `PartHost` element.
     return override ? override(part) : part.Default()
   }
-  // One unified control slot (ADR 029 §5, v60) — no widget narrowing here; the
-  // archetype lives in `control.kind`, read only by the control renderer.
-  const control = renderSlot(node.parts.control, 'control')
-  const errors = useFieldErrors(node.path)
-  const show = useFieldErrorDisplay(node.path)
-  const a11y =
-    show && errors.length > 0 ? { errorId: fieldErrorId(node.path) } : null
+  // #117 inject: when `<Default errors={…} />` wrapped this re-entry, prefer
+  // that array (present == show). Otherwise the store + display policy.
+  const injected = useContext(InjectedFieldErrorsContext)
+  const storeErrors = useFieldErrors(node.path)
+  const storeShow = useFieldErrorDisplay(node.path)
+  const usingInject = injected !== null
+  const issues = usingInject ? injected : storeErrors
+  const visible = usingInject
+    ? injected.length > 0
+    : storeShow && storeErrors.length > 0
+  const a11yState = visible ? { errorId: fieldErrorId(node.path) } : null
+  const a11y = controlA11yProps(a11yState)
+
+  // Control override gets `a11y` on the part so recipes can
+  // `control: (c) => <input {...c.attrs} {...c.a11y} />` with no context/hook.
+  const controlPart = node.parts.control
+  const controlOverride = overrides?.['control']
+  const control = controlOverride ? (
+    controlOverride({ ...controlPart, a11y })
+  ) : (
+    <FieldA11yContext.Provider value={a11yState}>
+      {controlPart.Default()}
+    </FieldA11yContext.Provider>
+  )
+
+  // Errors override (runtime slot — not a Core IR part) receives the visible
+  // issues. Store path without an override keeps the isolated subscriber so a
+  // sibling field's error update does not rebuild this field's control.
+  const errorsOverride = overrides?.['errors']
+  let errorsNode: ReactNode = null
+  if (errorsOverride) {
+    errorsNode = visible ? errorsOverride(issues) : null
+  } else if (usingInject) {
+    errorsNode = visible ? (
+      <FieldErrorsList path={node.path} errors={injected} />
+    ) : null
+  } else {
+    errorsNode = <DefaultFieldErrors path={node.path} />
+  }
+
   return (
     <div className="jsf-field">
       {renderSlot(node.parts.label, 'label')}
       {renderSlot(node.parts.description, 'description')}
-      <FieldA11yContext.Provider value={a11y}>
-        {control}
-      </FieldA11yContext.Provider>
-      <DefaultFieldErrors path={node.path} />
+      {control}
+      {errorsNode}
     </div>
   )
 }
@@ -792,34 +863,77 @@ interface NodeDefaultOpts {
 type DefaultOptsOf<H> = H extends { Default(opts?: infer O): ReactNode }
   ? O
   : never
+
+/** Widen Core's schema-part overrides with the runtime Errors slot + `a11y` on
+ * control (neither is a Core IR part — both are React presentation). */
+type WidenParts<P> = P extends object
+  ? Omit<P, 'control'> & {
+      // Control override receives the enriched control plus spreadable a11y.
+      control?: P extends { control?: (part: infer C) => ReactNode }
+        ? (part: C & { a11y: ControlA11yProps }) => ReactNode
+        : (part: { a11y: ControlA11yProps }) => ReactNode
+      /** Visible field errors (#117 / ADR 047). Present == show. */
+      errors?: (errors: ValidationError[]) => ReactNode
+    }
+  : P
+
 type DefaultExtra<H> =
   DefaultOptsOf<H> extends {
     parts?: infer P
     renderNode?: unknown
   }
-    ? { parts?: P; renderNode?: RenderNode }
+    ? { parts?: WidenParts<P>; renderNode?: RenderNode }
     : Record<never, never>
 
 /**
  * Render any handle's default — a node, a child node, or a part (anything with a
  * `.Default()`). `of={null/undefined}` renders nothing, so optional parts and
  * absent children are safe. `parts` / `renderNode` apply only to nodes (a part's
- * type offers neither). Stable module-level type → reconciles in place.
+ * type offers neither). `errors` (#117) injects per-field `ValidationError[]` for
+ * field nodes — recipe-pre-gated (present == show); omit to keep the store path.
+ * Stable module-level type → reconciles in place.
  */
 export function Default<
   H extends { Default(opts?: NodeDefaultOpts): ReactNode },
->(props: { of: H | null | undefined } & DefaultExtra<H>): ReactNode {
-  const { of } = props
+>(
+  props: {
+    of: H | null | undefined
+    errors?: ValidationError[]
+  } & DefaultExtra<H>
+): ReactNode {
+  const { of, errors } = props
   if (of == null) return null
   const { parts, renderNode } = props as {
     parts?: PartOverrideMap<ReactNode>
     renderNode?: RenderNode
   }
-  if (!parts && !renderNode) return of.Default()
-  return of.Default({
-    parts,
-    renderNode: renderNode ? adaptResolver(renderNode) : undefined,
-  })
+  const render = (): ReactNode =>
+    !parts && !renderNode
+      ? of.Default()
+      : of.Default({
+          parts,
+          renderNode: renderNode ? adaptResolver(renderNode) : undefined,
+        })
+  // `of.Default()` calls `DefaultFieldRoot` as a function (engine contract), so
+  // its hooks run in whatever component invokes it. Bridge `errors` by mounting
+  // a child under the provider and invoking the thunk THERE — same PartHost
+  // pattern — otherwise `useContext` would look above this Default, miss the
+  // provider we are about to return, and ignore the inject.
+  if (errors === undefined) return render()
+  return (
+    <InjectedFieldErrorsContext.Provider value={errors}>
+      <InjectedErrorsGate render={render} />
+    </InjectedFieldErrorsContext.Provider>
+  )
+}
+
+/** Invoke `of.Default()` under `InjectedFieldErrorsContext` (see Default above). */
+function InjectedErrorsGate({
+  render,
+}: {
+  render: () => ReactNode
+}): ReactNode {
+  return render()
 }
 
 /**
