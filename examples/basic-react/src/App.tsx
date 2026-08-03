@@ -11,15 +11,15 @@ import App08 from './App_08_React+Overrides'
 import App09 from './App_09_React+Validation'
 import App10 from './App_10_React+SchemaRefs'
 import App11 from './App_11_React+LiveValidation'
-import App12 from './App_12_React+ReactHookForm'
-import App12B from './App_12B_React+ReactHookFormZod'
+import Recipe12 from './Recipe_12_React+ReactHookForm'
+import Recipe12B from './Recipe_12B_React+ReactHookFormZod'
 import App13 from './App_13_React+TouchedErrors'
 import App14 from './App_14_React+WidgetCatalog'
 import App15 from './App_15_React+ZodUseFormTree'
 import App16 from './App_16_React+Customize'
 import App17 from './App_17_React+CustomizeZod'
-import App18 from './App_18_React+TanStackForm'
-import App18B from './App_18B_React+TanStackFormZod'
+import Recipe18 from './Recipe_18_React+TanStackForm'
+import Recipe18B from './Recipe_18B_React+TanStackFormZod'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -34,11 +34,11 @@ const examples = [
   { id: '09', name: 'React + Validation (ADR 019)', component: App09 },
   { id: '10', name: 'React + Schema $ref/$defs', component: App10 },
   { id: '11', name: 'React + Live Validation (ADR 021)', component: App11 },
-  { id: '12', name: 'React + React Hook Form (recipe)', component: App12 },
+  { id: '12', name: 'React + React Hook Form (recipe)', component: Recipe12 },
   {
     id: '12B',
     name: 'React + React Hook Form over Zod (recipe)',
-    component: App12B,
+    component: Recipe12B,
   },
   {
     id: '13',
@@ -68,12 +68,12 @@ const examples = [
   {
     id: '18',
     name: 'React + TanStack Form (recipe)',
-    component: App18,
+    component: Recipe18,
   },
   {
     id: '18B',
     name: 'React + TanStack Form over Zod (recipe)',
-    component: App18B,
+    component: Recipe18B,
   },
 ]
 

@@ -4,7 +4,7 @@
 //
 //   fieldPresentation.recipe.tsx   ← shared blank/match helpers (copy it too)
 //   rhfFieldControls.recipe.tsx    ← you are here. RHF-specific.
-//   App_12 (JSON Schema) / App_12B (Zod)   ← per schema front-end
+//   Recipe_12 (JSON Schema) / Recipe_12B (Zod)   ← per schema front-end
 //
 // Everything here is about RHF and nothing else: `register()` bindings and
 // mapping RHF errors → `ValidationError[]` for FormFrame's
