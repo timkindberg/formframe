@@ -7,7 +7,7 @@
 //
 //   fieldPresentation.recipe.tsx   ← you are here. Shared by EVERY recipe.
 //   <library>FieldControls.recipe  ← per form library (RHF / TanStack).
-//   App_NN.tsx                     ← per schema front-end (JSON Schema / Zod).
+//   front-end recipe file          ← per schema front-end (JSON Schema / Zod).
 //
 // Copy this file once; it serves every recipe you use.
 import type { Validator } from '@formframe/core'
