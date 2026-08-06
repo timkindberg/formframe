@@ -33,6 +33,34 @@ export function unselectedToUndefined(value: unknown): unknown {
 // --- Validator composition ---------------------------------------------------
 
 /**
+ * Materialize missing nested group objects as `{}` before validating.
+ *
+ * Native FormData omits empty children and therefore drops the parent key
+ * entirely — so a required `address.street` failure lands on the invisible
+ * `address` group instead of the street field. RHF materializes nested values;
+ * TanStack seeds `defaultValues: { address: {} }`. Native recipes reach for
+ * this wrapper instead.
+ *
+ * Only top-level group keys today (enough for the shared parity schema).
+ */
+export function withMissingGroups<T>(
+  validator: Validator<T>,
+  groups: readonly string[]
+): Validator<T> {
+  return (data) => {
+    const values = { ...(data as Record<string, unknown>) }
+    let changed = false
+    for (const key of groups) {
+      if (values[key] === undefined) {
+        values[key] = {}
+        changed = true
+      }
+    }
+    return validator((changed ? values : data) as T)
+  }
+}
+
+/**
  * Add a "these two fields must match" rule on top of any FormFrame
  * `Validator`. Pure composition over FormFrame's own validation contract, so
  * it works with any validator (AJV, Zod, Valibot) and any form library.
