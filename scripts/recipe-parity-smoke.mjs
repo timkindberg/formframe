@@ -1,22 +1,23 @@
-// Parity smoke for the four form-library × front-end recipes (#116 epic):
-//   12  — React Hook Form over JSON Schema + AJV
-//   12B — React Hook Form over Zod
-//   18  — TanStack Form over JSON Schema + AJV
-//   18B — TanStack Form over Zod
+// Parity smoke for the form-library × front-end recipes (#116 epic):
+//   rhf-jsonschema      — React Hook Form over JSON Schema + AJV
+//   rhf-zod             — React Hook Form over Zod
+//   tanstack-jsonschema — TanStack Form over JSON Schema + AJV
+//   tanstack-zod        — TanStack Form over Zod
+//   native-jsonschema   — Native <form>+FormData over JSON Schema + AJV
+//   native-zod          — Native <form>+FormData over Zod
 //
-// Drives all four through ONE identical interaction script and asserts the
+// Drives all six through ONE identical interaction script and asserts the
 // observable behavior is identical. Each recipe uses its own library's DEFAULT
 // validation timing — RHF's default mode, TanStack's `revalidateLogic()` with
-// no arguments — which agree observably: quiet until the first submit attempt,
-// then errors reveal and clear live. (TanStack's `revalidateLogic` exists
-// specifically to emulate RHF's behavior, so this is by design, not luck.)
-// That agreement is what makes one shared script meaningful; the assertions
-// below describe that shared timing plus identical error sets and identical
-// submitted output (including AJV/Zod numeric coercion).
+// no arguments, native recipe `'submit'` display policy — which agree
+// observably: quiet until the first submit attempt, then errors reveal and
+// clear live. That agreement is what makes one shared script meaningful; the
+// assertions below describe that shared timing plus identical error sets and
+// identical submitted output (including AJV/Zod numeric coercion).
 //
 // This is the interim, script-shaped cousin of #125's real parity harness
-// (#118 specced that as a `describe.each` Vitest-browser suite, blocked on
-// the native recipe #122). When #125 lands, this script is superseded.
+// (#118 specced that as a `describe.each` Vitest-browser suite). When #125
+// lands, this script is superseded.
 //
 // Usage:
 //   npm run smoke:recipes                        # starts/stops the dev server
@@ -32,13 +33,31 @@ const DEFAULT_URL = 'http://localhost:5173'
 const BASE_URL = process.argv[2] ?? DEFAULT_URL
 
 const RECIPES = [
-  { tab: /^12\./, heading: 'React Hook Form as the form-state layer' },
-  { tab: /^12B\./, heading: 'React Hook Form over Zod' },
-  { tab: /^18\./, heading: 'TanStack Form as the form-state layer' },
-  { tab: /^18B\./, heading: 'TanStack Form over Zod' },
+  {
+    tab: 'Recipe · RHF · JSON Schema',
+    heading: 'React Hook Form as the form-state layer',
+  },
+  { tab: 'Recipe · RHF · Zod', heading: 'React Hook Form over Zod' },
+  {
+    tab: 'Recipe · TanStack · JSON Schema',
+    heading: 'TanStack Form as the form-state layer',
+  },
+  { tab: 'Recipe · TanStack · Zod', heading: 'TanStack Form over Zod' },
+  {
+    tab: 'Recipe · Native · JSON Schema',
+    heading: 'Native form as the form-state layer',
+  },
+  { tab: 'Recipe · Native · Zod', heading: 'Native form over Zod' },
 ]
 
-const RECIPE_NAMES = ['12', '12B', '18', '18B']
+const RECIPE_NAMES = [
+  'rhf-jsonschema',
+  'rhf-zod',
+  'tanstack-jsonschema',
+  'tanstack-zod',
+  'native-jsonschema',
+  'native-zod',
+]
 
 const failures = []
 function check(recipe, label, ok, detail = '') {
@@ -101,7 +120,7 @@ async function runRecipe(page, { tab, heading }, name) {
 
   // 2. First submit is what reveals everything. The exact set revealed is
   //    recorded and cross-compared between recipes at the end — thanks to the
-  //    shared "empty means absent" normalization, all four should fail the
+  //    shared "empty means absent" normalization, all six should fail the
   //    same fields the same way.
   await page.getByRole('button', { name: 'Submit' }).click()
   const revealed = await waitFor(

@@ -20,6 +20,8 @@ import App16 from './App_16_React+Customize'
 import App17 from './App_17_React+CustomizeZod'
 import RecipeTanStackFormJSONSchema from './Recipe_TanStackForm_JSONSchema'
 import RecipeTanStackFormZod from './Recipe_TanStackForm_Zod'
+import RecipeNativeFormJSONSchema from './Recipe_NativeForm_JSONSchema'
+import RecipeNativeFormZod from './Recipe_NativeForm_Zod'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -35,13 +37,13 @@ const examples = [
   { id: '10', name: 'React + Schema $ref/$defs', component: App10 },
   { id: '11', name: 'React + Live Validation (ADR 021)', component: App11 },
   {
-    id: '12',
-    name: 'React + React Hook Form (recipe)',
+    id: 'rhf-jsonschema',
+    name: 'Recipe · RHF · JSON Schema',
     component: RecipeReactHookFormJSONSchema,
   },
   {
-    id: '12B',
-    name: 'React + React Hook Form over Zod (recipe)',
+    id: 'rhf-zod',
+    name: 'Recipe · RHF · Zod',
     component: RecipeReactHookFormZod,
   },
   {
@@ -70,16 +72,33 @@ const examples = [
     component: App17,
   },
   {
-    id: '18',
-    name: 'React + TanStack Form (recipe)',
+    id: 'tanstack-jsonschema',
+    name: 'Recipe · TanStack · JSON Schema',
     component: RecipeTanStackFormJSONSchema,
   },
   {
-    id: '18B',
-    name: 'React + TanStack Form over Zod (recipe)',
+    id: 'tanstack-zod',
+    name: 'Recipe · TanStack · Zod',
     component: RecipeTanStackFormZod,
   },
+  {
+    id: 'native-jsonschema',
+    name: 'Recipe · Native · JSON Schema',
+    component: RecipeNativeFormJSONSchema,
+  },
+  {
+    id: 'native-zod',
+    name: 'Recipe · Native · Zod',
+    component: RecipeNativeFormZod,
+  },
 ]
+
+/** Tutorial demos keep a numeric prefix; recipes are named, not numbered. */
+function galleryLabel(example: { id: string; name: string }): string {
+  return /^\d/.test(example.id)
+    ? `${example.id}. ${example.name}`
+    : example.name
+}
 
 /** Landing example — the headline renderNodeRules demo (ADR 047/048). */
 const DEFAULT_EXAMPLE_ID = '16'
@@ -123,7 +142,7 @@ function App() {
               fontSize: '0.9rem',
             }}
           >
-            {example.id}. {example.name}
+            {galleryLabel(example)}
           </button>
         ))}
       </nav>
