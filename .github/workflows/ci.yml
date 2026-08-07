@@ -26,9 +26,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          # Matches committed .npmrc registry; auth via NODE_AUTH_TOKEN below.
+          registry-url: https://artifactory.workday.com/artifactory/api/npm/npm-virtual/
 
       - name: Install dependencies
         run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.ARTIFACTORY_NPM_TOKEN }}
 
       # Cache the downloaded browser binaries; keyed on the lockfile so a
       # Playwright bump re-downloads. System deps (--with-deps) still run below.
@@ -77,9 +81,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          registry-url: https://artifactory.workday.com/artifactory/api/npm/npm-virtual/
 
       - name: Install dependencies
         run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.ARTIFACTORY_NPM_TOKEN }}
 
       - name: Build all packages (tsup ESM + CJS + d.ts)
         run: npm run build
