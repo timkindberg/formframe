@@ -189,7 +189,7 @@ export default function App() {
 // ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
 // Build-log for the #116 epic; safe to delete when copying this file.
 // • Ticket #123; seam locked at #117; glue list from the RHF audit (#120).
-//   Display-policy unification + parity proof: `scripts/recipe-parity-smoke.mjs`.
+//   Display-policy unification + parity proof: `packages/react/src/parity/` (#125).
 // • ADR trail: 019 (Validator seam) / 024 (recipes not packages) / 025
 //   (validator purity — the coerceTypes corruption story) / 026
 //   (toStandardSchema) / 047-048 (renderNodeRules + typed registrar).
