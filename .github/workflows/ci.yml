@@ -26,22 +26,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-
-      # Committed .npmrc only sets the Artifactory registry. Auth stays in a
-      # secret — append the token to the project .npmrc so npm ci sends it on
-      # tarball fetches (setup-node's userconfig alone was still 403'ing).
-      - name: Authenticate to Artifactory
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::error::ARTIFACTORY_NPM_TOKEN secret is empty or unset"
-            exit 1
-          fi
-          {
-            echo "//artifactory.workday.com/artifactory/api/npm/npm-virtual/:_authToken=${NODE_AUTH_TOKEN}"
-            echo "always-auth=true"
-          } >> .npmrc
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.ARTIFACTORY_NPM_TOKEN }}
+          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: npm ci
@@ -93,19 +78,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-
-      - name: Authenticate to Artifactory
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::error::ARTIFACTORY_NPM_TOKEN secret is empty or unset"
-            exit 1
-          fi
-          {
-            echo "//artifactory.workday.com/artifactory/api/npm/npm-virtual/:_authToken=${NODE_AUTH_TOKEN}"
-            echo "always-auth=true"
-          } >> .npmrc
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.ARTIFACTORY_NPM_TOKEN }}
+          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: npm ci
