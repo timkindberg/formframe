@@ -29,7 +29,8 @@
     "!**/*.test.ts",
     "!**/*.test.tsx",
     "!**/*.spec.ts",
-    "!**/*TestUtils.ts"
+    "!**/*TestUtils.ts",
+    "!**/parity/**"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean --sourcemap --tsconfig ../../tsconfig.tsup.json",
@@ -52,9 +53,12 @@
   "devDependencies": {
     "@formframe/input-jsonschema": "*",
     "@formframe/input-zod": "*",
+    "@formframe/renderer-vanilla": "*",
     "@formframe/validation-ajv": "*",
     "@formframe/validation-zod": "*",
-    "@formframe/renderer-vanilla": "*",
+    "@hookform/resolvers": "^5.4.0",
+    "@standard-schema/spec": "^1.1.0",
+    "@tanstack/react-form": "^1.33.5",
     "@types/react": "^18.2.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/browser": "^4.0.14",
@@ -62,6 +66,7 @@
     "playwright": "^1.49.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-hook-form": "^7.85.0",
     "typescript": "^5.3.3",
     "vitest": "^4.0.14",
     "vitest-browser-react": "^2.0.2",

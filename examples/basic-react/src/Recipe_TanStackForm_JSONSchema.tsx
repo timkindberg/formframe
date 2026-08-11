@@ -193,7 +193,7 @@ export default function App() {
 // Build-log for the #116 epic; safe to delete when copying this file.
 // • Ticket #124; seam locked at #117; glue list from the TanStack audit
 //   (#121). Parity with Recipe_ReactHookForm_JSONSchema / Zod + TanStack siblings proven by
-//   `npm run smoke:recipes` (scripts/recipe-parity-smoke.mjs).
+//   `packages/react/src/parity/` (#125).
 // • The nested-defaults seeding was a parity-smoke find: without
 //   `address: {}`, the required failure landed on the group node (invisible)
 //   instead of `address.street`, diverging from RHF's materialized nested
