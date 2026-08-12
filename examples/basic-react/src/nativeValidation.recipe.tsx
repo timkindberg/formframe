@@ -27,6 +27,10 @@
 // reveal + clear live) — matching RHF's default mode and TanStack's
 // `revalidateLogic()`, the locked parity target. Pass `showErrorsWhen` to
 // opt into `'touched'` or `'always'`.
+//
+// Copy the sibling `nativeValidation.recipe.test.tsx` with this file — it
+// pins the store/policy helpers and the submit/live/touched UX so a pasted
+// recipe stays covered (ADR 024). CI runs it via `packages/react`'s Vitest.
 import {
   createContext,
   useCallback,
