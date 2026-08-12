@@ -1,26 +1,34 @@
-// Touched-gated error display (ADR 027) — React-Hook-Form-style "quiet until
-// touched".
+// Touched-gated error display — React-Hook-Form-style "quiet until touched",
+// recipe-owned (formerly ADR 027's library-runtime walk-through).
 //
-// The SAME live validator (ADR 021) runs on every keystroke; `showErrorsWhen`
-// only decides *when each field reveals* the error it already has. Toggle the
-// policy below to feel the difference:
+// The SAME live validator runs on every keystroke via `useNativeValidator`
+// (nativeValidation.recipe.tsx); `showErrorsWhen` on
+// `NativeValidationProvider` only decides *when each field reveals* the
+// error it already has. Toggle the policy below to feel the difference:
 //   • always  — report the moment the validator produces an error (opt-out)
-//   • touched — stay quiet until the field blurs; submit reveals all (RHF-like;
-//               the library default, ADR 027)
-//   • submit  — nothing until a submit attempt
+//   • touched — stay quiet until the field blurs; submit reveals all
+//               (RHF-like; the recipe's touched behavior)
+//   • submit  — nothing until a submit attempt (the recipe default)
 //
-// `useFormTree` owns the touched/submitted state. You wire one `onBlur` at the
-// form (focusout bubbles, so a single handler covers every field) and spread its
-// complete validation capability into `ValidationProvider`.
-import { useMemo, useState } from 'react'
+// `useNativeValidator` owns the touched/submitted state. You wire one
+// `onBlur` at the form (focusout bubbles, so a single handler covers every
+// field) and spread its complete validation capability into
+// `NativeValidationProvider`.
+import { useState } from 'react'
+import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
+import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
   useFormTree,
-  ValidationProvider,
-  type ShowErrorsWhen,
+  useRenderNodeRules,
+  type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from '@formframe/validation-ajv'
-import { jsonSchemaToTree } from '@formframe/input-jsonschema'
-import type { JSONSchema } from '@formframe/input-jsonschema'
+import {
+  NativeValidationProvider,
+  useNativeValidator,
+  type ShowErrorsWhen,
+} from './nativeValidation.recipe'
+import { InputControl } from './nativeFieldControls.recipe'
 
 const schema = {
   type: 'object',
@@ -41,13 +49,22 @@ const schema = {
   },
 } as const satisfies JSONSchema
 const tree = jsonSchemaToTree(schema)
+const validator = createAjvValidator(schema)
+
+type Shape = FormShapeOf<typeof schema>
+const nativeRules = (r: TypedRuleRegistrar<Shape>): void => {
+  r.control('input', InputControl)
+}
 
 const policies: ShowErrorsWhen[] = ['always', 'touched', 'submit']
 
 function App() {
-  const validator = useMemo(() => createAjvValidator(schema), [])
-  const { SchemaFields, submit, revalidate, handleBlur, validation } =
-    useFormTree(tree, { validator })
+  const { form, SchemaFields } = useFormTree(tree)
+  const { validation, submit, revalidate, handleBlur } = useNativeValidator(
+    form,
+    validator
+  )
+  const renderNode = useRenderNodeRules(form, nativeRules)
   const [mode, setMode] = useState<ShowErrorsWhen>('touched')
   const [submittedData, setSubmittedData] = useState<Record<
     string,
@@ -56,10 +73,10 @@ function App() {
 
   return (
     <div>
-      <h1>JSON Schema Form — Touched-Gated Errors (ADR 027)</h1>
+      <h1>JSON Schema Form — Touched-Gated Errors (recipe-owned)</h1>
       <p>
-        Live validation (ADR 021) runs on every keystroke regardless — this only
-        changes <em>when a field shows</em> the error it already has.{' '}
+        Live validation runs on every keystroke regardless — this only changes{' '}
+        <em>when a field shows</em> the error it already has.{' '}
         <code>showErrorsWhen</code> is orthogonal to <em>when you validate</em>:
         you can validate live and still keep errors quiet until blur.
       </p>
@@ -93,9 +110,9 @@ function App() {
           revalidate(e)
         }}
       >
-        <ValidationProvider {...validation} showErrorsWhen={mode}>
-          <SchemaFields />
-        </ValidationProvider>
+        <NativeValidationProvider {...validation} showErrorsWhen={mode}>
+          <SchemaFields renderNode={renderNode} />
+        </NativeValidationProvider>
         <button type="submit">Submit</button>
       </form>
 

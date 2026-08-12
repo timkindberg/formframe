@@ -1,8 +1,17 @@
 # ADR 028: Whole-Document Validation Stays; Field-Scoping Deferred (Measured)
 
 **Date:** 2026-07-01
-**Status:** Accepted
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
+
+> **Superseded (2026-08-12).** This ADR measured the cost of a library-owned
+> reactive validation runtime re-running the whole document per keystroke.
+> ADR 050 makes that runtime a non-goal — recipes (RHF, TanStack, or a
+> hand-rolled native hook) own when and how often a validator runs, so the
+> whole-document-vs-field-scoped cost tradeoff is no longer the library's to
+> make. The benchmark and its finding (whole-document validation is cheap;
+> the purity clone dominates cost) remain valid evidence for any recipe or
+> adapter that wants it, just not as a library-level decision.
 
 ## Context
 

@@ -16,7 +16,7 @@
 // The shape of it:
 //
 //   schema ─→ jsonSchemaToTree(schema) ──→ <SchemaFields> renders the fields
-//   schema ─→ createAjvValidator(schema) → useFormTree({ validator })
+//   schema ─→ createAjvValidator(schema) → useNativeValidator(form, validator)
 //             owns submit / revalidate / errors / submitted
 //   errors ─→ NativeValidationProvider ─→ controls inject via
 //             `<Default of={field} errors={…} />` (#117 / #129)
@@ -24,9 +24,9 @@
 // Worth knowing before you adapt it:
 //
 //   • No form library. Native FormData on submit; inputs stay uncontrolled.
-//     `useFormTree` still owns the validator slot until #126 slims it — the
-//     recipe is what *produces* errors and *injects* them; the library only
-//     renders.
+//     `useFormTree` no longer owns a validator slot (#126) — this recipe's
+//     `useNativeValidator` is what *produces* errors and *injects* them; the
+//     library only renders.
 //   • Display timing defaults to `'submit'` in NativeValidationProvider
 //     (quiet until first submit, then reveal + clear live via `onInput={revalidate}`).
 //     Same observable behavior as RHF's default mode and TanStack's
@@ -45,7 +45,10 @@ import {
 } from '@formframe/renderer-react'
 import { createAjvValidator } from '@formframe/validation-ajv'
 import { withMatchRule, withMissingGroups } from './fieldPresentation.recipe'
-import { NativeValidationProvider } from './nativeValidation.recipe'
+import {
+  NativeValidationProvider,
+  useNativeValidator,
+} from './nativeValidation.recipe'
 import {
   InputControl,
   SelectControl,
@@ -120,10 +123,8 @@ const validator = withMatchRule(
 )
 
 export default function App() {
-  const { form, SchemaFields, submit, revalidate, validation } = useFormTree(
-    tree,
-    { validator }
-  )
+  const { form, SchemaFields } = useFormTree(tree)
+  const { validation, submit, revalidate } = useNativeValidator(form, validator)
   const renderNode = useRenderNodeRules(form, nativeRules)
   const [submitted, setSubmitted] = useState<Data | null>(null)
 
@@ -170,8 +171,9 @@ export default function App() {
 // ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
 // Build-log for the #116 epic; safe to delete when copying this file.
 // • Ticket #122; seam locked at #117 / landed as inject in #129. Peer of
-//   #123/#124 recipes. Library still exports ValidationProvider until #126;
-//   this recipe is the demoted runtime that #125's native leg consumes.
+//   #123/#124 recipes. `useFormTree`'s validator slot was cut in #126; this
+//   recipe's `useNativeValidator` is the demoted runtime every native-form
+//   demo in this example app consumes.
 // • Native FormData drops empty nested groups; `withMissingGroups(['address'])`
 //   is the peer of TanStack's `defaultValues: { address: {} }` so required
 //   failures land on `address.street`.
@@ -179,6 +181,4 @@ export default function App() {
 //   #71 async branch). Async + pending/stale rows: owned by #125.
 // • ValidationSummary demoted with the runtime — not wired here (parity
 //   smoke asserts per-field DOM + onSubmit, not a summary).
-// • useFormTree({ validator }) stays until #126 slims the hook; the recipe
-//   already owns error display via inject.
 // ──────────────────────────────────────────────────────────────────────────────

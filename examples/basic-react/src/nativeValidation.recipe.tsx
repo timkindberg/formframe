@@ -1,5 +1,6 @@
 // RECIPE (native form-state): the demoted validation runtime — error store,
-// touched store, display policy, and the provider/hooks that wire them.
+// touched store, display policy, a sync-validator hook, and the provider/
+// hooks that wire them.
 //
 // Layer 1.5 of the native recipe stack (between shared presentation helpers
 // and the per-control inject bindings):
@@ -11,10 +12,16 @@
 //
 // This is the verbatim demotion of what used to live in
 // `@formframe/renderer-react` (`errorStore`, `touchedStore`, `displayPolicy`,
-// `ValidationProvider` + field error hooks) — moved here because validation
-// production is a non-goal for the library (ADR 050 / #116). The library
-// still ships those symbols until #126 cuts them; this recipe is the
-// self-contained copy #125's native leg will keep using.
+// `ValidationProvider` + field error hooks, and `useFormTree`'s validator
+// slot) — moved here because validation production is a non-goal for the
+// library (ADR 050 / #116, cut from the library in #126). This recipe is the
+// self-contained copy every native-form-state demo in this example app uses.
+//
+// `useNativeValidator(form, validator)` is the recipe-owned replacement for
+// the library's old `useFormTree(tree, { validator })` slot: it takes the
+// `form` returned by `useFormTree(tree)` (no validator option anymore) plus a
+// sync `Validator`, and owns submit-time gating, live revalidation, and
+// touched/submitted state — the exact same behavior, just recipe-side.
 //
 // Display timing default here is `'submit'` (quiet until first submit, then
 // reveal + clear live) — matching RHF's default mode and TanStack's
@@ -22,14 +29,23 @@
 // opt into `'touched'` or `'always'`.
 import {
   createContext,
+  useCallback,
   useContext,
   useLayoutEffect,
   useMemo,
   useState,
   useSyncExternalStore,
+  type FocusEvent,
+  type FormEvent,
   type ReactNode,
+  type SyntheticEvent,
 } from 'react'
-import { groupErrorsByPath, type ValidationError } from '@formframe/core'
+import {
+  groupErrorsByPath,
+  type ValidationError,
+  type ValidationResult,
+  type Validator,
+} from '@formframe/core'
 
 // ─── errorStore (verbatim from packages/react) ───────────────────────────────
 
@@ -168,9 +184,9 @@ const getEmptyErrors = () => EMPTY_ERRORS
 
 /**
  * Hold the form's current validation result and display policy for the
- * native field controls below. Spread `useFormTree(…).validation` into this
- * (errors / touched / submitted). Controls read per-path via
- * {@link useFieldValidationErrors} and inject into
+ * native field controls below. Spread the `validation` object returned by
+ * {@link useNativeValidator} into this (errors / touched / submitted).
+ * Controls read per-path via {@link useFieldValidationErrors} and inject into
  * `<Default of={field} errors={…} />` — recipe-pre-gated, no library store.
  */
 export function NativeValidationProvider({
@@ -238,4 +254,110 @@ export function useFieldValidationErrors(path: string): ValidationError[] {
       : () => true
   )
   return show ? errors : EMPTY_ERRORS
+}
+
+// ─── useNativeValidator (recipe-owned replacement for the old validator slot) ─
+
+/** Minimal shape `useNativeValidator` needs from the `form` `useFormTree(tree)`
+ * returns — the same `submit` a native-form recipe already builds its own
+ * submit handler from. */
+export interface SubmittableForm {
+  submit(
+    onSubmit: (data: Record<string, unknown>) => void
+  ): (event: {
+    preventDefault(): void
+    currentTarget: EventTarget | null
+  }) => void
+}
+
+/** Validation state a native-form recipe spreads into
+ * {@link NativeValidationProvider}. */
+export interface NativeValidationState {
+  errors: ValidationError[]
+  touched: ReadonlySet<string>
+  submitted: boolean
+}
+
+export interface UseNativeValidatorResult<Output> {
+  validation: NativeValidationState
+  /** Build a DOM submit handler: assembles FormData, runs the validator, and
+   * only calls `onValid` when `result.valid` — preferring `result.data` (the
+   * validator's coerced value) over the raw FormData object when present. */
+  submit: (
+    onValid?: (data: Output) => void
+  ) => (event: FormEvent<HTMLFormElement>) => void
+  /** Re-run the validator from the current FormData without submitting. Wire
+   * to `onInput`/`onChange`/`onBlur` for live feedback. */
+  revalidate: (event: SyntheticEvent<HTMLFormElement>) => void
+  /** Mark a field touched on blur. `focusout` bubbles, so one form-level
+   * handler covers every named control. */
+  handleBlur: (event: FocusEvent<HTMLFormElement>) => void
+}
+
+/**
+ * Recipe-owned replacement for the library's old `useFormTree(tree, {
+ * validator })` slot (cut in #126). Takes the `form` from a validator-less
+ * `useFormTree(tree)` plus a sync `Validator` (AJV, `fromStandardSchema`, or
+ * hand-rolled) and owns submit-time gating, live revalidation, and
+ * touched/submitted state — spread `validation` into
+ * {@link NativeValidationProvider}, wire `submit`/`revalidate`/`handleBlur`
+ * to the `<form>`.
+ */
+export function useNativeValidator<Output = Record<string, unknown>>(
+  form: SubmittableForm,
+  validator: Validator<Output>
+): UseNativeValidatorResult<Output> {
+  const [errors, setErrors] = useState<ValidationError[]>([])
+  const [touched, setTouched] = useState<ReadonlySet<string>>(() => new Set())
+  const [submitted, setSubmitted] = useState(false)
+
+  const handleBlur = useCallback((event: FocusEvent<HTMLFormElement>) => {
+    const name = (event.target as { name?: string }).name
+    if (!name) return
+    setTouched((prev) => (prev.has(name) ? prev : new Set(prev).add(name)))
+  }, [])
+
+  const runValidator = useCallback(
+    (data: Record<string, unknown>): ValidationResult<Output> => {
+      const result = validator(data)
+      setErrors(result.errors)
+      return result
+    },
+    [validator]
+  )
+
+  const submit = useCallback(
+    (onValid?: (data: Output) => void) => {
+      const run = form.submit((data) => {
+        const result = runValidator(data)
+        if (result.valid) {
+          onValid?.(result.data === undefined ? (data as Output) : result.data)
+        }
+      })
+      return (event: FormEvent<HTMLFormElement>) => {
+        setSubmitted(true)
+        run(event)
+      }
+    },
+    [form, runValidator]
+  )
+
+  const revalidate = useCallback(
+    (event: SyntheticEvent<HTMLFormElement>) => {
+      form.submit((data) => {
+        runValidator(data)
+      })({
+        preventDefault: () => {},
+        currentTarget: event.currentTarget,
+      })
+    },
+    [form, runValidator]
+  )
+
+  const validation = useMemo<NativeValidationState>(
+    () => ({ errors, touched, submitted }),
+    [errors, touched, submitted]
+  )
+
+  return { validation, submit, revalidate, handleBlur }
 }

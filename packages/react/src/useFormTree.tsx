@@ -1,22 +1,10 @@
-import {
-  useMemo,
-  useState,
-  useCallback,
-  type FC,
-  type FocusEvent,
-  type FormEvent,
-  type ReactNode,
-  type SyntheticEvent,
-} from 'react'
+import { useMemo, type FC, type FormEvent, type ReactNode } from 'react'
 import { present, defaultPresentation, layered } from '@formframe/core'
 import type {
   ApplyWidgetOverrides,
   FormShape,
   GroupNode,
   TypedTree,
-  Validator,
-  ValidationError,
-  ValidationResult,
   PresentationResolver,
   WidgetOverridesOf,
 } from '@formframe/core'
@@ -38,28 +26,11 @@ export interface BoundSchemaFieldsProps {
   children?: (root: EGroup) => ReactNode
 }
 
-/**
- * Validation state returned by {@link useFormTree}, ready to spread into
- * `ValidationProvider` without omitting touched or submitted state (ADR 036).
- */
-export interface FormTreeValidation {
-  errors: ValidationError[]
-  touched: ReadonlySet<string>
-  submitted: boolean
-}
-
 /** Options for {@link useFormTree}. */
 export interface UseFormTreeOptions<
   S = unknown,
-  Output = Record<string, unknown>,
   R extends PresentationResolver<S> = PresentationResolver<S>,
 > {
-  /**
-   * A side-loaded validator (ADR 019), normally from the same source adapter as
-   * the tree. When set, `submit` runs it, exposes `errors`, and only calls the
-   * consumer handler when the data is valid.
-   */
-  validator?: Validator<Output>
   /**
    * Consumer presentation resolver (ADR 029). It runs above the shipped default
    * presentation and receives the tree's source-specific `origin.schema` type.
@@ -78,8 +49,10 @@ export interface UseFormTreeOptions<
  *
  * A front-end such as `jsonSchemaToTree` or `zodToTree` owns schema compilation.
  * This hook owns the React-facing behavior shared by every front-end: layered
- * presentation, a bound `SchemaFields`, native submission, validation errors,
- * live revalidation, and touched/submit state.
+ * presentation, a bound `SchemaFields`, and native FormData submission. It does
+ * NOT produce, schedule, or store validation errors (ADR 050 / #116) — the
+ * library renders errors via the inject seam (`<Default of={field} errors={…}
+ * />`); a validation adapter or recipe owns producing them.
  */
 export interface UseFormTreeResult<F, Output> {
   /** The presented tree that actually renders. For a branded input tree it carries
@@ -88,15 +61,13 @@ export interface UseFormTreeResult<F, Output> {
    * input, and the typed control cannot desync from what renders. */
   form: F
   SchemaFields: FC<BoundSchemaFieldsProps>
+  /** Build a DOM submit handler: assembles FormData into `Output` and always
+   * calls `onSubmit` with it — no validation gating. Side-load validation
+   * (a `Validator`/Standard Schema adapter) yourself and gate the call, or feed
+   * its errors to the inject seam. */
   submit: (
-    onValid?: (data: Output) => void
+    onSubmit?: (data: Output) => void
   ) => (event: FormEvent<HTMLFormElement>) => void
-  revalidate: (event: SyntheticEvent<HTMLFormElement>) => void
-  validation: FormTreeValidation
-  errors: ValidationError[]
-  handleBlur: (event: FocusEvent<HTMLFormElement>) => void
-  touched: ReadonlySet<string>
-  submitted: boolean
 }
 
 /**
@@ -113,7 +84,7 @@ export function useFormTree<
   R extends PresentationResolver<S> = PresentationResolver<S>,
 >(
   tree: TypedTree<TS, S>,
-  options?: UseFormTreeOptions<S, Output, R>
+  options?: UseFormTreeOptions<S, R>
 ): UseFormTreeResult<
   TypedTree<ApplyWidgetOverrides<TS, WidgetOverridesOf<R>>, S>,
   Output
@@ -121,13 +92,13 @@ export function useFormTree<
 /** Bind React behavior to a plain (unbranded) tree — no `FormShape` to thread. */
 export function useFormTree<S = unknown, Output = Record<string, unknown>>(
   tree: GroupNode<S>,
-  options?: UseFormTreeOptions<S, Output>
+  options?: UseFormTreeOptions<S>
 ): UseFormTreeResult<GroupNode<S>, Output>
 export function useFormTree<S = unknown, Output = Record<string, unknown>>(
   tree: GroupNode<S>,
-  options: UseFormTreeOptions<S, Output> = {}
+  options: UseFormTreeOptions<S> = {}
 ): UseFormTreeResult<GroupNode<S>, Output> {
-  const { validator, resolvePresentation } = options
+  const { resolvePresentation } = options
   const form = useMemo(
     () =>
       present<S>(
@@ -139,63 +110,15 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
     [tree, resolvePresentation]
   )
 
-  const [errors, setErrors] = useState<ValidationError[]>([])
-  const [touched, setTouched] = useState<ReadonlySet<string>>(() => new Set())
-  const [submitted, setSubmitted] = useState(false)
-
-  /**
-   * Mark a field touched on blur. `focusout` bubbles, so one form-level handler
-   * covers every named control.
-   */
-  const handleBlur = useCallback((event: FocusEvent<HTMLFormElement>) => {
-    const name = (event.target as { name?: string }).name
-    if (!name) return
-    setTouched((prev) => (prev.has(name) ? prev : new Set(prev).add(name)))
-  }, [])
-
-  const runValidator = useCallback(
-    (data: Record<string, unknown>): ValidationResult<Output> => {
-      const result: ValidationResult<Output> = validator
-        ? validator(data)
-        : { valid: true, errors: [] as ValidationError[] }
-      setErrors(result.errors)
-      return result
-    },
-    [validator]
-  )
-
-  /** Build a DOM submit handler that assembles data and gates on validation. */
-  const submit = useCallback(
-    (onValid?: (data: Output) => void) => {
-      const run = form.submit((data) => {
-        const result = runValidator(data)
-        if (result.valid) {
-          onValid?.(result.data === undefined ? (data as Output) : result.data)
-        }
-      })
-      return (event: FormEvent<HTMLFormElement>) => {
-        setSubmitted(true)
-        run(event)
-      }
-    },
-    [form, runValidator]
-  )
-
-  /**
-   * Run the same validator from a form event. Wire to `onInput`, `onChange`, or
-   * `onBlur` according to the desired validation timing.
-   */
-  const revalidate = useCallback(
-    (event: SyntheticEvent<HTMLFormElement>) => {
-      if (!validator) return
+  const submit = useMemo(
+    () => (onSubmit?: (data: Output) => void) =>
       form.submit((data) => {
-        runValidator(data)
-      })({ preventDefault: () => {}, currentTarget: event.currentTarget })
-    },
-    [form, validator, runValidator]
+        onSubmit?.(data as Output)
+      }),
+    [form]
   )
 
-  // Stable component type: validation updates do not remount uncontrolled fields.
+  // Stable component type: re-renders do not remount uncontrolled fields.
   const SchemaFields = useMemo<FC<BoundSchemaFieldsProps>>(() => {
     return function SchemaFields({
       renderNode,
@@ -209,20 +132,5 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
     }
   }, [form])
 
-  const validation = useMemo<FormTreeValidation>(
-    () => ({ errors, touched, submitted }),
-    [errors, touched, submitted]
-  )
-
-  return {
-    form,
-    SchemaFields,
-    submit,
-    revalidate,
-    validation,
-    errors,
-    handleBlur,
-    touched,
-    submitted,
-  }
+  return { form, SchemaFields, submit }
 }

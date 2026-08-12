@@ -1,7 +1,8 @@
 {
   "name": "@formframe/validation-ajv",
   "version": "0.0.0",
-  "description": "AJV validation adapter for FormFrame's JSON Schema input",
+  "private": true,
+  "description": "Recipe/support helper (ADR 050) — not a FormFrame product package. Recipes and parity tests may depend on this; the library does not ship a validation runtime.",
   "type": "module",
   "sideEffects": false,
   "engines": {

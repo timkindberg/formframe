@@ -1,27 +1,20 @@
+// Slim `useFormTree` (ADR 050 / #116 / #126): presentation + bound
+// `SchemaFields` + native FormData `submit` only. `submit` always calls the
+// handler with FormData-assembled data — no validation gating. Validation
+// production/scheduling is a recipe/adapter concern, side-loaded on top; the
+// library only RENDERS errors via the inject seam (see injected-errors.test.tsx).
+
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { z } from 'zod'
 import { zodToTree } from '@formframe/input-zod'
 import { jsonSchemaToTree, type JSONSchema } from '@formframe/input-jsonschema'
-import type { ValidationError } from '@formframe/core'
-import { createAjvValidator } from '@formframe/validation-ajv'
-import { createZodValidator } from '@formframe/validation-zod'
-import {
-  useFormTree,
-  ValidationProvider,
-  type FormTreeValidation,
-} from './index'
+import { useFormTree } from './index'
 
 const schema = z.object({
   name: z.string().min(2).meta({ title: 'Name' }),
 })
 const tree = zodToTree(schema)
-const validator = createZodValidator(schema)
-const transformedValidator = createZodValidator(
-  z.object({
-    name: z.string().transform((value) => value.toUpperCase()),
-  })
-)
 
 const numberSchema = {
   type: 'object',
@@ -31,122 +24,105 @@ const numberSchema = {
   required: ['age'],
 } as const satisfies JSONSchema
 const numberTree = jsonSchemaToTree(numberSchema)
-const numberValidator = createAjvValidator(numberSchema)
 
 describe('useFormTree', () => {
-  it('spreads complete validation state without remounting bound fields', async () => {
-    const onValid = vi.fn()
+  it('submit always calls the handler with FormData-assembled data — no gating', async () => {
+    const onSubmit = vi.fn()
     const schemaFieldsIdentities = new Set<unknown>()
 
     function Harness() {
-      const { SchemaFields, submit, validation } = useFormTree(tree, {
-        validator,
-      })
+      const { SchemaFields, submit } = useFormTree(tree)
       schemaFieldsIdentities.add(SchemaFields)
 
       return (
-        <form noValidate onSubmit={submit(onValid)}>
-          <ValidationProvider {...validation}>
-            <SchemaFields />
-          </ValidationProvider>
-          <output data-testid="error-count">{validation.errors.length}</output>
+        <form noValidate onSubmit={submit(onSubmit)}>
+          <SchemaFields />
           <button type="submit">Submit</button>
         </form>
       )
     }
 
     const screen = await render(<Harness />)
-    expect(screen.getByTestId('error-count').element().textContent).toBe('0')
-    const submit = screen.getByRole('button', { name: 'Submit' })
+    const submitButton = screen.getByRole('button', { name: 'Submit' })
     const name = screen.getByRole('textbox', { name: 'Name' })
-    const inputBeforeValidation = name.element()
+    const inputBeforeSubmit = name.element()
 
-    await submit.click()
-    await expect
-      .poll(() => document.querySelectorAll('.jsf-field-errors').length)
-      .toBe(1)
-    expect(onValid).not.toHaveBeenCalled()
+    // Even a value that would fail a schema's own validation (min length 2)
+    // still reaches the handler — the hook does not validate. An empty native
+    // input submits as absent (Core's FormData assembly), so the payload is `{}`.
+    await submitButton.click()
+    await expect.poll(() => onSubmit.mock.calls.length).toBe(1)
+    expect(onSubmit).toHaveBeenCalledWith({})
     expect(schemaFieldsIdentities.size).toBe(1)
-    expect(name.element()).toBe(inputBeforeValidation)
+    expect(name.element()).toBe(inputBeforeSubmit)
 
     await name.fill('Ada')
-    await submit.click()
-
-    await expect.poll(() => onValid.mock.calls.length).toBe(1)
-    expect(onValid).toHaveBeenCalledWith({ name: 'Ada' })
+    await submitButton.click()
+    await expect.poll(() => onSubmit.mock.calls.length).toBe(2)
+    expect(onSubmit).toHaveBeenLastCalledWith({ name: 'Ada' })
   })
 
-  it('passes Zod-transformed output to the success handler', async () => {
-    const onValid = vi.fn()
+  it('assembles native FormData without any AJV/Zod coercion', async () => {
+    const onSubmit = vi.fn()
 
     function Harness() {
-      const { SchemaFields, submit } = useFormTree(tree, {
-        validator: transformedValidator,
-      })
-
+      const { SchemaFields, submit } = useFormTree(numberTree)
       return (
-        <form noValidate onSubmit={submit(onValid)}>
+        <form noValidate onSubmit={submit(onSubmit)}>
           <SchemaFields />
-          <button type="submit">Submit transformed</button>
-        </form>
-      )
-    }
-
-    const screen = await render(<Harness />)
-    await screen.getByRole('textbox', { name: 'Name' }).fill('Ada')
-    await screen.getByRole('button', { name: 'Submit transformed' }).click()
-
-    await expect.poll(() => onValid.mock.calls.length).toBe(1)
-    expect(onValid).toHaveBeenCalledWith({ name: 'ADA' })
-  })
-
-  it('passes AJV-coerced output to the success handler', async () => {
-    const onValid = vi.fn()
-
-    function Harness() {
-      const { SchemaFields, submit } = useFormTree(numberTree, {
-        validator: numberValidator,
-      })
-
-      return (
-        <form noValidate onSubmit={submit(onValid)}>
-          <SchemaFields />
-          <button type="submit">Submit coerced</button>
+          <button type="submit">Submit</button>
         </form>
       )
     }
 
     const screen = await render(<Harness />)
     await screen.getByRole('spinbutton', { name: 'Age' }).fill('25')
-    await screen.getByRole('button', { name: 'Submit coerced' }).click()
+    await screen.getByRole('button', { name: 'Submit' }).click()
 
-    await expect.poll(() => onValid.mock.calls.length).toBe(1)
-    expect(onValid).toHaveBeenCalledWith({ age: 25 })
+    await expect.poll(() => onSubmit.mock.calls.length).toBe(1)
+    // Native FormData is untyped strings — no adapter-side coercion in the hook.
+    expect(onSubmit).toHaveBeenCalledWith({ age: '25' })
   })
 
-  it('infers output at type-check time while keeping no-validator submission honest', () => {
+  it('submit() with no handler still assembles data without throwing', async () => {
+    function Harness() {
+      const { SchemaFields, submit } = useFormTree(tree)
+      return (
+        <form noValidate onSubmit={submit()}>
+          <SchemaFields />
+          <button type="submit">Submit</button>
+        </form>
+      )
+    }
+
+    const screen = await render(<Harness />)
+    await expect(
+      screen.getByRole('button', { name: 'Submit' }).click()
+    ).resolves.not.toThrow()
+  })
+
+  it('exposes only the slim capability surface — no validation API', () => {
     // Type-only fixture: the gate's `tsc --noEmit` checks the callback bodies.
     // It is intentionally never rendered because calling it would invoke hooks.
     function TypeHarness() {
-      const bound = useFormTree(tree, { validator: transformedValidator })
+      const bound = useFormTree(tree)
+      expectTypeOf(bound.submit).toBeFunction()
       bound.submit((data) => {
-        expectTypeOf(data).toEqualTypeOf<{ name: string }>()
-      })
-      expectTypeOf(bound.validation).toEqualTypeOf<FormTreeValidation>()
-      expectTypeOf(bound.validation).toEqualTypeOf<{
-        errors: ValidationError[]
-        touched: ReadonlySet<string>
-        submitted: boolean
-      }>()
-      expectTypeOf(bound.errors).toEqualTypeOf<ValidationError[]>()
-
-      useFormTree(numberTree, { validator: numberValidator }).submit((data) => {
-        expectTypeOf(data).toMatchObjectType<{ age: number }>()
-      })
-
-      useFormTree(tree).submit((data) => {
         expectTypeOf(data).toEqualTypeOf<Record<string, unknown>>()
       })
+
+      // The validation capability was demoted (ADR 050 / #126) — none of these
+      // keys exist on the slim result.
+      expectTypeOf(bound).not.toHaveProperty('validator')
+      expectTypeOf(bound).not.toHaveProperty('validation')
+      expectTypeOf(bound).not.toHaveProperty('errors')
+      expectTypeOf(bound).not.toHaveProperty('touched')
+      expectTypeOf(bound).not.toHaveProperty('submitted')
+      expectTypeOf(bound).not.toHaveProperty('revalidate')
+      expectTypeOf(bound).not.toHaveProperty('handleBlur')
+
+      // @ts-expect-error -- `validator` was demoted (ADR 050 / #126)
+      useFormTree(tree, { validator: undefined })
 
       return null
     }

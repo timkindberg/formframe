@@ -17,8 +17,8 @@
 //    hijackable: `<parts.X />` (default) or `<parts.X render={data => …} />`.
 //    `Errors` is promoted out of the field Root to a movable part (ADR 047 §2);
 //    the control↔errors a11y linkage is carried by shared ids + `FieldA11yContext`
-//    (derived from the path + validation store), NOT a fixed layout, so it holds
-//    wherever the parts land.
+//    (derived from the path + the injected `errors`, ADR 050), NOT a fixed
+//    layout, so it holds wherever the parts land.
 //  • §3 Selectors + precedence. `r.field(path)`, `r.group(path)`, `r.array(path)`,
 //    `r.control(kind)`, `r.allFields/allGroups/allArrays`, `r.where(pred)`,
 //    `r.default()`. One winning rule per node by specificity (exact path >
@@ -38,8 +38,6 @@ import type {
 import {
   FieldA11yContext,
   fieldErrorId,
-  useFieldErrorDisplay,
-  useFieldErrors,
   type EArray,
   type EField,
   type EGroup,
@@ -81,9 +79,10 @@ export interface TextData {
  * `data` (the type shown inside `PartComponent<…>` on hover). It is an ordinary
  * React component, so it composes and re-renders like any other.
  *
- * `errors` (#117) is the lexical inject for `Control` / `Errors` — handlers that
- * own a field's errors pass them here instead of relying on the store. Ignored
- * on caption parts.
+ * `errors` (#117/#126) is the lexical inject for `Control` / `Errors` — the
+ * library does not produce or store validation errors itself (ADR 050), so a
+ * handler that wants error markup/a11y passes them here explicitly. Omit for no
+ * errors. Ignored on caption parts.
  */
 export type PartComponent<D> = (props: {
   render?: (data: D) => ReactNode
@@ -96,20 +95,14 @@ export type PartComponent<D> = (props: {
 
 /** Shared a11y derivation: a field with currently-displayed issues links its
  * control to the error list by id, so `Control` and `Errors` stay wired together
- * no matter where a handler places them (ADR 047 §2). Injected `errors` win
- * over the store (present == show). */
+ * no matter where a handler places them (ADR 047 §2). Inject-only (ADR 050): no
+ * `errors` prop means no issues and no a11y error state. */
 function useFieldA11y(
   path: string,
   injected?: ValidationError[]
 ): { errorId: string } | null {
-  const storeIssues = useFieldErrors(path)
-  const storeShow = useFieldErrorDisplay(path)
-  const issues = injected !== undefined ? injected : storeIssues
-  const show =
-    injected !== undefined
-      ? injected.length > 0
-      : storeShow && storeIssues.length > 0
-  return show && issues.length > 0 ? { errorId: fieldErrorId(path) } : null
+  const issues = injected ?? []
+  return issues.length > 0 ? { errorId: fieldErrorId(path) } : null
 }
 
 function Label({
@@ -172,10 +165,11 @@ function Control({
 }
 
 // Errors are RUNTIME validation state (not a schema part) — from an injected
-// `errors` prop (#117) or the store. Possible only because parts are real
-// components (ADR 047 §2). The id/class match the default field Root's error
-// list (no `role="alert"`), so promoting Errors to a movable part keeps
-// `aria-describedby` (set by `Control`) pointing at a real element.
+// `errors` prop (#117/#126) only; the library does not produce or store them
+// (ADR 050). Possible only because parts are real components (ADR 047 §2). The
+// id/class match the default field Root's error list (no `role="alert"`), so
+// promoting Errors to a movable part keeps `aria-describedby` (set by
+// `Control`) pointing at a real element.
 function Errors({
   render,
   errors: injectedErrors,
@@ -185,14 +179,8 @@ function Errors({
 }): ReactNode {
   const h = useContext(HandleCtx)
   const path = h && h.node.isField ? h.node.path : ''
-  const storeIssues = useFieldErrors(path)
-  const storeShow = useFieldErrorDisplay(path)
-  const issues = injectedErrors !== undefined ? injectedErrors : storeIssues
-  const show =
-    injectedErrors !== undefined
-      ? injectedErrors.length > 0
-      : storeShow && storeIssues.length > 0
-  if (!path || !show || issues.length === 0) return null
+  const issues = injectedErrors ?? []
+  if (!path || issues.length === 0) return null
   if (render) return render(issues)
   return (
     <ul id={fieldErrorId(path)} className="jsf-field-errors">

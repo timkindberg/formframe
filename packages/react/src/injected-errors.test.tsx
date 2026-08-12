@@ -1,6 +1,7 @@
-// #117 / #129 — field error-presentation seam: inject via
+// #117 / #126 / #129 — field error-presentation seam: inject via
 // `<Default of={field} errors={ValidationError[]} />` (recipe-pre-gated, no show
-// flag). Dual path: omit-prop keeps the store/provider until #126 demotes it.
+// flag). Inject-only (ADR 050): the library does not produce/store validation
+// errors itself, so omitting `errors` means no errors and no a11y error state.
 
 import { useMemo } from 'react'
 import { describe, it, expect } from 'vitest'
@@ -11,7 +12,6 @@ import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
   SchemaFields,
   Default,
-  ValidationProvider,
   fieldControlId,
   fieldErrorId,
   type ErrorA11yProps,
@@ -62,51 +62,18 @@ describe('<Default errors={ValidationError[]}> inject path (#117/#129)', () => {
     expect(document.getElementById(fieldErrorId('zip'))).toBeNull()
   })
 
-  it('omit-prop still uses ValidationProvider / store', async () => {
-    const storeErrors: ValidationError[] = [
-      { path: 'username', message: 'From store' },
-    ]
+  it('omitting the errors prop renders no error markup, no a11y', async () => {
     function Form() {
       const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
-      return (
-        <ValidationProvider errors={storeErrors} showErrorsWhen="always">
-          <SchemaFields form={f} />
-        </ValidationProvider>
-      )
+      return <SchemaFields form={f} />
     }
     await render(<Form />)
 
-    const list = document.getElementById(fieldErrorId('username'))
-    expect(list?.textContent).toContain('From store')
-    expect(list?.getAttribute('role')).toBeNull()
     const username = document.getElementById(fieldControlId('username'))
-    expect(username?.getAttribute('aria-invalid')).toBe('true')
-  })
-
-  it('injected errors win over a present store', async () => {
-    const storeErrors: ValidationError[] = [
-      { path: 'username', message: 'From store' },
-    ]
-    const injected: ValidationError[] = [
-      { path: 'username', message: 'From inject' },
-    ]
-    function Form() {
-      const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
-      return (
-        <ValidationProvider errors={storeErrors} showErrorsWhen="always">
-          <SchemaFields form={f}>
-            {(root, { Default: D }) => (
-              <D of={root.children.username} errors={injected} />
-            )}
-          </SchemaFields>
-        </ValidationProvider>
-      )
-    }
-    await render(<Form />)
-
-    const list = document.getElementById(fieldErrorId('username'))
-    expect(list?.textContent).toContain('From inject')
-    expect(list?.textContent).not.toContain('From store')
+    expect(username?.hasAttribute('aria-invalid')).toBe(false)
+    expect(username?.hasAttribute('aria-describedby')).toBe(false)
+    expect(document.getElementById(fieldErrorId('username'))).toBeNull()
+    expect(document.querySelector('.jsf-field-errors')).toBeNull()
   })
 
   it('imported Default of={field} errors={…} works from renderNode', async () => {
