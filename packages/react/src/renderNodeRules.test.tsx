@@ -11,12 +11,7 @@ import { render } from 'vitest-browser-react'
 import type { ValidationError } from '@formframe/core'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import {
-  SchemaFields,
-  ValidationProvider,
-  fieldControlId,
-  fieldErrorId,
-} from './renderer'
+import { SchemaFields, fieldControlId, fieldErrorId } from './renderer'
 import { renderNodeRules } from './renderNodeRules'
 import type { FieldHandlerProps, GroupHandlerProps } from './renderNodeRules'
 
@@ -202,7 +197,9 @@ describe('renderNodeRules — Errors promoted to a movable part keeps a11y (ADR 
   function CustomArrangement() {
     const form = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
     // Errors deliberately placed in a SEPARATE wrapper from the control, to prove
-    // the aria linkage rides on shared ids/context, not a fixed layout.
+    // the aria linkage rides on shared ids/context, not a fixed layout. The
+    // library does not produce/store errors (ADR 050) — the handler passes them
+    // in explicitly (as a validation adapter/recipe would).
     const rn = useMemo(
       () =>
         renderNodeRules((r) => {
@@ -210,21 +207,17 @@ describe('renderNodeRules — Errors promoted to a movable part keeps a11y (ADR 
             <div>
               <div className="control-slot">
                 <parts.Label />
-                <parts.Control />
+                <parts.Control errors={issues} />
               </div>
               <aside className="errors-slot">
-                <parts.Errors />
+                <parts.Errors errors={issues} />
               </aside>
             </div>
           ))
         }),
       []
     )
-    return (
-      <ValidationProvider errors={issues} showErrorsWhen="always">
-        <SchemaFields form={form} renderNode={rn} />
-      </ValidationProvider>
-    )
+    return <SchemaFields form={form} renderNode={rn} />
   }
 
   it('control keeps aria-describedby pointing at the (separately placed) error list', async () => {

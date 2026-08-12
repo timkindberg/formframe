@@ -27,7 +27,10 @@ import {
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { withMissingGroups } from './fieldPresentation.recipe'
-import { NativeValidationProvider } from './nativeValidation.recipe'
+import {
+  NativeValidationProvider,
+  useNativeValidator,
+} from './nativeValidation.recipe'
 import {
   InputControl,
   SelectControl,
@@ -84,12 +87,8 @@ const tree = zodToTree(schema)
 const validator = withMissingGroups(fromStandardSchema(schema), ['address'])
 
 export default function App() {
-  const { form, SchemaFields, submit, revalidate, validation } = useFormTree(
-    tree,
-    {
-      validator,
-    }
-  )
+  const { form, SchemaFields } = useFormTree(tree)
+  const { validation, submit, revalidate } = useNativeValidator(form, validator)
   const renderNode = useRenderNodeRules(form, nativeRules)
   const [submitted, setSubmitted] = useState<Data | null>(null)
 

@@ -35,20 +35,11 @@ import {
   useRef,
   useCallback,
   useContext,
-  useLayoutEffect,
-  useSyncExternalStore,
   createContext,
   memo,
   Fragment,
   type ReactNode,
 } from 'react'
-import { createErrorStore, EMPTY_ERRORS, type ErrorStore } from './errorStore'
-import { createTouchedStore, type TouchedStore } from './touchedStore'
-import {
-  shouldDisplayFieldErrors,
-  DEFAULT_SHOW_ERRORS_WHEN,
-  type ShowErrorsWhen,
-} from './displayPolicy'
 import {
   createContinuation,
   mergeAdapter,
@@ -246,162 +237,14 @@ function DefaultGroupLabel({ text }: { text: string }): ReactNode {
 }
 
 // ---------------------------------------------------------------------------
-// Validation display (ADR 019 + ADR 023) — runtime state, NOT an IR part.
+// Validation display (ADR 019 + ADR 050) — runtime state, NOT an IR part.
 //
-// Validation errors are produced by a side-loaded `Validator` (at submit or live)
-// and are pure runtime state, so they never live in the schema-derived `parts`.
-// They are held in an external per-path store (ADR 023) read through
-// `useSyncExternalStore`, NOT a single Context value: a Context update re-renders
-// every consumer (the whole form on one keystroke — the RJSF perf trap), whereas
-// the store hands each field a stable per-path snapshot, so a validation pass
-// re-renders only the fields whose errors actually changed. With no
-// `ValidationProvider` (the store is `null` — e.g. the conformance oracle) every
-// field reads `EMPTY_ERRORS` and emits NO error markup, so React still matches
-// the vanilla oracle.
+// The library does NOT produce, schedule, or store validation errors (ADR 050 /
+// #116/#126) — it only RENDERS them, through the inject seam:
+// `<Default of={field} errors={ValidationError[]} />` (recipe-pre-gated, present
+// == show). With no injected `errors` a field emits NO error markup, so React
+// still matches the vanilla oracle (see conformance.test.tsx).
 // ---------------------------------------------------------------------------
-
-const ValidationStoreContext = createContext<ErrorStore | null>(null)
-
-/** The touched store + chosen display policy (ADR 027) for the fields below.
- * Null (no provider) means no gating — a field always shows whatever errors it
- * has, exactly as before ADR 027. */
-interface DisplayPolicy {
-  store: TouchedStore
-  mode: ShowErrorsWhen
-}
-const DisplayPolicyContext = createContext<DisplayPolicy | null>(null)
-
-/** Stable empty touched set so an unset `touched` prop never triggers a notify. */
-const EMPTY_TOUCHED: ReadonlySet<string> = new Set()
-
-/**
- * Provide validation errors to the fields below (ADR 019/023) and, optionally, a
- * touched/submit-aware error *display* policy (ADR 027).
- *
- * `errors` is mirrored into the per-path error store as before. `touched` (the
- * set of blurred field paths), `submitted`, and `showErrorsWhen` drive *when*
- * each field reveals its errors: the default `'touched'` gates on this field's
- * touched slice + the submit flag (RHF-style — so you must feed `touched`/
- * `submitted`, as `useFormTree` does, or nothing appears), `'submit'` waits for
- * a submit attempt, and `'always'` shows errors the moment they exist. Both
- * stores diff per path and notify, so a keystroke or a blur re-renders only the
- * field it concerns.
- */
-export function ValidationProvider({
-  errors,
-  touched = EMPTY_TOUCHED,
-  submitted = false,
-  showErrorsWhen = DEFAULT_SHOW_ERRORS_WHEN,
-  children,
-}: {
-  errors: ValidationError[]
-  touched?: ReadonlySet<string>
-  submitted?: boolean
-  showErrorsWhen?: ShowErrorsWhen
-  children: ReactNode
-}): ReactNode {
-  // One store per provider instance — lazy-init via useState so each is created
-  // once and stays referentially stable across renders (no ref-in-render).
-  const [store] = useState(() => createErrorStore(errors))
-  const [touchedStore] = useState(() => createTouchedStore(touched, submitted))
-  // Push new state into the stores after commit (never during render). Each
-  // store preserves per-path identity for unchanged paths, so this notifies only
-  // the fields that actually changed.
-  useLayoutEffect(() => {
-    store.setResult(errors)
-  }, [store, errors])
-  useLayoutEffect(() => {
-    touchedStore.sync(touched, submitted)
-  }, [touchedStore, touched, submitted])
-  const policy = useMemo<DisplayPolicy>(
-    () => ({ store: touchedStore, mode: showErrorsWhen }),
-    [touchedStore, showErrorsWhen]
-  )
-  return (
-    <ValidationStoreContext.Provider value={store}>
-      <DisplayPolicyContext.Provider value={policy}>
-        {children}
-      </DisplayPolicyContext.Provider>
-    </ValidationStoreContext.Provider>
-  )
-}
-
-const NEVER_SUBSCRIBE = () => () => {}
-const getEmptyErrors = () => EMPTY_ERRORS
-
-/**
- * The errors for one field path (empty array when none) — for custom renderers.
- * Subscribes to ONLY this path's slice via `useSyncExternalStore`, so this field
- * re-renders only when its own errors change (ADR 023). No provider → always
- * `EMPTY_ERRORS`, no subscription.
- */
-export function useFieldErrors(path: string): ValidationError[] {
-  const store = useContext(ValidationStoreContext)
-  return useSyncExternalStore(
-    store ? store.subscribe : NEVER_SUBSCRIBE,
-    store ? () => store.getErrors(path) : getEmptyErrors,
-    store ? () => store.getErrors(path) : getEmptyErrors
-  )
-}
-
-/** All current errors (flat) — for summaries and custom UX. */
-export function useValidationErrors(): ValidationError[] {
-  const store = useContext(ValidationStoreContext)
-  return useSyncExternalStore(
-    store ? store.subscribe : NEVER_SUBSCRIBE,
-    store ? store.getAll : getEmptyErrors,
-    store ? store.getAll : getEmptyErrors
-  )
-}
-
-const alwaysShow = () => true
-
-/**
- * Whether a field's errors should be *displayed* right now (ADR 027): the chosen
- * policy applied to this field's touched slice + the submit flag. No provider or
- * the default `'always'` policy → always `true` (errors show as soon as they
- * exist). Under `'touched'`/`'submit'` it subscribes to only this path's touched
- * state, so the field re-renders only when its own display decision flips (e.g.
- * on its own blur, or once on submit) — never when a sibling is touched.
- */
-export function useFieldErrorDisplay(path: string): boolean {
-  const policy = useContext(DisplayPolicyContext)
-  const getSnapshot = policy
-    ? () =>
-        shouldDisplayFieldErrors(policy.mode, {
-          touched: policy.store.getTouched(path),
-          submitted: policy.store.isSubmitted(),
-        })
-    : alwaysShow
-  return useSyncExternalStore(
-    policy ? policy.store.subscribe : NEVER_SUBSCRIBE,
-    getSnapshot,
-    getSnapshot
-  )
-}
-
-/**
- * The form-level display policy (ADR 027) for aggregates like `ValidationSummary`
- * that decide visibility once for the whole form rather than per field: the chosen
- * `mode` plus whether a submit has been attempted. Subscribes to ONLY the single
- * `submitted` flag — never the per-path touched slices — so it stays fan-out-free
- * and hook-safe (no per-path hook loops), re-rendering just once when submit flips.
- * No provider → `{ mode: 'always', submitted: false }`, i.e. no gating, mirroring
- * `useFieldErrorDisplay`.
- */
-export function useDisplayPolicy(): {
-  mode: ShowErrorsWhen
-  submitted: boolean
-} {
-  const policy = useContext(DisplayPolicyContext)
-  const getSubmitted = policy ? () => policy.store.isSubmitted() : () => false
-  const submitted = useSyncExternalStore(
-    policy ? policy.store.subscribe : NEVER_SUBSCRIBE,
-    getSubmitted,
-    getSubmitted
-  )
-  return { mode: policy ? policy.mode : 'always', submitted }
-}
 
 /** Stable control `id` for a field path (matches Core's `attrs.id`). */
 // Single source of truth for deriving a control's DOM id from its field path,
@@ -417,16 +260,7 @@ export function fieldErrorId(path: string): string {
   return `${path}-errors`
 }
 
-/** A field's own errors, or nothing. Isolated consumer: re-renders on validation
- * without disturbing its sibling input (so typed values survive a failed submit). */
-function DefaultFieldErrors({ path }: { path: string }): ReactNode {
-  const errors = useFieldErrors(path)
-  const show = useFieldErrorDisplay(path)
-  if (!show || errors.length === 0) return null
-  return <FieldErrorsList path={path} errors={errors} />
-}
-
-/** Shared error-list markup (store path + inject path). No `role="alert"` —
+/** Shared error-list markup for the inject path. No `role="alert"` —
  * assertive live regions re-announce on every keystroke under revalidate-on-
  * change; `aria-describedby` carries the message without the interruption. */
 function FieldErrorsList({
@@ -466,16 +300,12 @@ function DefaultFieldRoot({
     // Call, never mount: `part.Default()` returns a stable `PartHost` element.
     return override ? override(part) : part.Default()
   }
-  // #117 inject: when `<Default errors={…} />` wrapped this re-entry, prefer
-  // that array (present == show). Otherwise the store + display policy.
+  // #117/#126 inject-only: no `errors` prop injected via `<Default errors={…}
+  // />` means no errors and no a11y error state (ADR 050 — the library renders,
+  // it does not produce/store validation errors).
   const injected = useContext(InjectedFieldErrorsContext)
-  const storeErrors = useFieldErrors(node.path)
-  const storeShow = useFieldErrorDisplay(node.path)
-  const usingInject = injected !== null
-  const issues = usingInject ? injected : storeErrors
-  const visible = usingInject
-    ? injected.length > 0
-    : storeShow && storeErrors.length > 0
+  const issues = injected ?? []
+  const visible = issues.length > 0
   const a11yState = visible ? { errorId: fieldErrorId(node.path) } : null
   const errorA11y = errorA11yProps(a11yState)
 
@@ -494,19 +324,13 @@ function DefaultFieldRoot({
   )
 
   // Errors override (runtime slot — not a Core IR part) receives the visible
-  // issues. Store path without an override keeps the isolated subscriber so a
-  // sibling field's error update does not rebuild this field's control.
+  // issues; otherwise the default list renders the injected errors, if any.
   const errorsOverride = overrides?.['errors']
-  let errorsNode: ReactNode = null
-  if (errorsOverride) {
-    errorsNode = visible ? errorsOverride(issues) : null
-  } else if (usingInject) {
-    errorsNode = visible ? (
-      <FieldErrorsList path={node.path} errors={injected} />
-    ) : null
-  } else {
-    errorsNode = <DefaultFieldErrors path={node.path} />
-  }
+  const errorsNode: ReactNode = !visible ? null : errorsOverride ? (
+    errorsOverride(issues)
+  ) : (
+    <FieldErrorsList path={node.path} errors={issues} />
+  )
 
   return (
     <div className="jsf-field">
@@ -933,9 +757,10 @@ type DefaultExtra<H> =
  * Render any handle's default — a node, a child node, or a part (anything with a
  * `.Default()`). `of={null/undefined}` renders nothing, so optional parts and
  * absent children are safe. `parts` / `renderNode` apply only to nodes (a part's
- * type offers neither). `errors` (#117) injects per-field `ValidationError[]` for
- * field nodes — recipe-pre-gated (present == show); omit to keep the store path.
- * Stable module-level type → reconciles in place.
+ * type offers neither). `errors` (#117/#126) injects per-field `ValidationError[]`
+ * for field nodes — recipe-pre-gated (present == show); omit for no errors (the
+ * library does not produce/store them itself — ADR 050). Stable module-level
+ * type → reconciles in place.
  */
 export function Default<
   H extends { Default(opts?: NodeDefaultOpts): ReactNode },

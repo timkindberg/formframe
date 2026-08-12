@@ -48,9 +48,7 @@ no first-party store, annotated).
 | [016](./016_render_by_calling_not_mounting.md) | Render by Calling, Not Mounting | |
 | [017](./017_component_re_entry_layer.md) | Component Re-entry Layer | |
 | [018](./018_dense_array_paths_via_ui_repathing.md) | Dense Array Paths via UI Re-pathing | |
-| [020](./020_shared_validation_contract_package.md) | Shared Validation-Contract Package | Premise weakened by ADR 050; cleanup with demotion |
 | [024](./024_adapters_are_patterns_not_packages.md) | Adapters Are Patterns, Not Packages | Annotated by ADR 050 |
-| [028](./028_whole_document_validation_stays_field_scoping_deferred.md) | Whole-Document Validation Stays; Field-Scoping Deferred | Premise weakened by ADR 050 |
 | [029](./029_presentation_stage_over_neutral_facts.md) | Presentation as a Dedicated Stage over Neutral Facts | |
 | [030](./030_container_facts_and_subtree_collapse.md) | Container Facts | |
 | [033](./033_core_is_schema_agnostic_input_packages.md) | Core Is Schema-Agnostic — Input Packages | |
@@ -79,12 +77,14 @@ no first-party store, annotated).
 | --- | --- | --- |
 | [004](./004_root_handler_and_react_default_components.md) | Root Handler in Walk API and React Default Components | ADR 005 |
 | [019](./019_validation_as_a_side_loaded_slot.md) | Validation as a Side-Loaded Capability Slot | [ADR 050](./050_validation_is_a_non_goal.md) |
+| [020](./020_shared_validation_contract_package.md) | Shared Validation-Contract Package | [ADR 050](./050_validation_is_a_non_goal.md) |
 | [021](./021_reactive_validation.md) | Reactive (Validate-on-Change) Validation | [ADR 050](./050_validation_is_a_non_goal.md) |
 | [022](./022_widget_selection_layered_slot.md) | Widget Selection as a Layered IR Slot | ADR 029 |
 | [023](./023_reactive_state_subscription_store.md) | Reactive State as a Fine-Grained Subscription Store | [ADR 050](./050_validation_is_a_non_goal.md) |
 | [025](./025_validator_purity_and_transformed_data.md) | The Validator is Pure and Returns Transformed Data | [ADR 050](./050_validation_is_a_non_goal.md) |
 | [026](./026_standard_schema_at_the_boundary.md) | Speak Standard Schema at the Boundary | [ADR 050](./050_validation_is_a_non_goal.md) |
 | [027](./027_touched_tracking_and_error_display_policy.md) | Touched Tracking + `showErrorsWhen` | [ADR 050](./050_validation_is_a_non_goal.md) |
+| [028](./028_whole_document_validation_stays_field_scoping_deferred.md) | Whole-Document Validation Stays; Field-Scoping Deferred | [ADR 050](./050_validation_is_a_non_goal.md) |
 | [036](./036_spreadable_validation_capability.md) | `useFormTree` Returns a Spreadable Validation Capability | [ADR 050](./050_validation_is_a_non_goal.md) |
 | [041](./041_async_validator_is_a_sibling_seam.md) | Async Validator Is a Sibling Seam | [ADR 050](./050_validation_is_a_non_goal.md) |
 | [042](./042_validation_run_authority_and_failure.md) | Validation-Run Authority, Staleness, and Failure | [ADR 050](./050_validation_is_a_non_goal.md) |

@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   useFormTree,
-  ValidationProvider,
   useRenderNodeRules,
   type FieldProps,
   type GroupProps,
@@ -12,6 +11,11 @@ import {
   type RuleRegistrar,
 } from '@formframe/renderer-react'
 import { createZodValidator } from '@formframe/validation-zod'
+import {
+  NativeValidationProvider,
+  useFieldValidationErrors,
+  useNativeValidator,
+} from './nativeValidation.recipe'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // The render-node rules layer (ADR 047/048) over a ZOD schema — the SECOND
@@ -52,8 +56,11 @@ type Shape = FormShapeOf<typeof schema>
 
 // ── Handlers (hoisted → stable identity → safe hooks + memo bail, §1) ─────────
 
-function RowName({ parts }: FieldProps<Shape, 'name'>) {
+// `parts.Control`/`parts.Errors` take the recipe's injected errors (ADR 050)
+// — the library itself never produces them (#126).
+function RowName({ path, parts }: FieldProps<Shape, 'name'>) {
   const [hint, setHint] = useState(false)
+  const errors = useFieldValidationErrors(path)
   // Zod DIVERGENCE: `name` has a `.meta({ description })` at runtime, but Zod
   // stores it in `z.globalRegistry` — invisible to the static type. So unlike
   // App_16 (present slot from the literal), `parts.Description` is OPTIONAL:
@@ -61,7 +68,7 @@ function RowName({ parts }: FieldProps<Shape, 'name'>) {
   // still holds the data, so this actually renders "As it appears on your ID."
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-      <parts.Control />
+      <parts.Control errors={errors} />
       <div>
         <parts.Label />{' '}
         <button
@@ -78,7 +85,7 @@ function RowName({ parts }: FieldProps<Shape, 'name'>) {
             handler is a mounted component (ADR 047 §1).
           </small>
         )}
-        <parts.Errors />
+        <parts.Errors errors={errors} />
       </div>
     </div>
   )
@@ -99,11 +106,13 @@ function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
 // FULL control hijack via the TYPED render prop: `c` is narrowed to the input
 // member (`ControlAt<'address.street'>`), so `c.attrs` is the input attrs with no
 // guard. Spread keeps FormData wiring (ADR 047 §5); we add attrs and drop `type`.
-function StreetInput({ parts }: FieldProps<Shape, 'address.street'>) {
+function StreetInput({ path, parts }: FieldProps<Shape, 'address.street'>) {
+  const errors = useFieldValidationErrors(path)
   return (
     <div>
       <parts.Label />
       <parts.Control
+        errors={errors}
         render={(c) => {
           const { type: _t, ...attrs } = c.attrs
           return (
@@ -121,7 +130,7 @@ function StreetInput({ parts }: FieldProps<Shape, 'address.street'>) {
           )
         }}
       />
-      <parts.Errors />
+      <parts.Errors errors={errors} />
     </div>
   )
 }
@@ -164,24 +173,22 @@ const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
 function LiveCustomizedForm() {
   const tree = useMemo(() => zodToTree(schema), [])
   const validator = useMemo(() => createZodValidator(schema), [])
-  const {
-    form,
-    SchemaFields: Fields,
-    submit,
-    revalidate,
-    errors,
-  } = useFormTree(tree, { validator })
+  const { form, SchemaFields: Fields } = useFormTree(tree)
   // Type off `form` — the rendered tree — not the pre-present input (bd bh7.8), the
   // desync-proof habit that lets a later `overrideWidgets` re-narrow the control for
   // free. `useRenderNodeRules` reads that brand — the SAME React hook App_16 uses,
   // no per-front-end binding (ADR 048).
   const renderNode = useRenderNodeRules(form, customizeRules)
+  // `useFormTree` carries no validator slot (#126) — `useNativeValidator`
+  // (nativeValidation.recipe.tsx) is the recipe-owned replacement, same as
+  // App_16's JSON Schema twin.
+  const { validation, submit, revalidate } = useNativeValidator(form, validator)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (
     <form noValidate onSubmit={submit((d) => setData(d))} onInput={revalidate}>
-      <ValidationProvider errors={errors} showErrorsWhen="always">
+      <NativeValidationProvider {...validation} showErrorsWhen="always">
         <Fields renderNode={renderNode} />
-      </ValidationProvider>
+      </NativeValidationProvider>
       <button type="submit" style={{ marginTop: 12 }}>
         Submit
       </button>

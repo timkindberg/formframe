@@ -11,17 +11,12 @@ import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import { useState, useMemo } from 'react'
-import { createAjvValidator } from '@formframe/validation-ajv'
+import { useState } from 'react'
 import {
   createRenderer,
   defaultAdapter,
-  ValidationProvider,
-  fieldControlId,
-  fieldErrorId,
   type ReactPartialAdapter,
 } from './renderer'
-import { useFormTree } from './useFormTree'
 import type { FieldControl } from '@formframe/core'
 
 type Counts = Record<string, number>
@@ -227,138 +222,5 @@ describe('render-count contract', () => {
     await new Promise((r) => setTimeout(r, 20))
 
     expect(total(counts)).toBe(0)
-  })
-})
-
-// The validation fan-out contract (ADR 023): producing a new error set must
-// re-render ONLY the fields whose errors changed — never their siblings. This is
-// the perf claim the maintainer flagged ("we can never re-render nodes if it was
-// preventable"). We drive a real live-validation pass and read the same counting
-// adapter: a sibling with no error (and no error change) must stay at zero.
-const validationSchema: JSONSchema = {
-  type: 'object',
-  required: ['username'],
-  properties: {
-    // gains an error the moment you type fewer than 3 chars
-    username: { type: 'string', title: 'Username', minLength: 3 },
-    // unconstrained → never has an error, so its snapshot never changes
-    note: { type: 'string', title: 'Note' },
-  },
-}
-const validationTree = jsonSchemaToRuntimeTree(validationSchema)
-
-function ValidationCountingHarness({
-  Counting,
-}: {
-  Counting: ReturnType<typeof createRenderer>
-}) {
-  const validator = useMemo(() => createAjvValidator(validationSchema), [])
-  const { form, revalidate, validation } = useFormTree(validationTree, {
-    validator,
-  })
-  // This suite is about error-store fan-out (ADR 023/037), not the touched display
-  // policy (ADR 027) — report immediately so a new error renders on change.
-  return (
-    <form noValidate onChange={revalidate}>
-      <ValidationProvider {...validation} showErrorsWhen="always">
-        <Counting form={form} />
-      </ValidationProvider>
-    </form>
-  )
-}
-
-describe('validation render-count contract (ADR 023)', () => {
-  it('a field gaining an error re-renders only that field, not its siblings', async () => {
-    const counts: Counts = {}
-    const Counting = createRenderer(countingAdapter(counts))
-    const screen = await render(
-      <ValidationCountingHarness Counting={Counting} />
-    )
-
-    reset(counts)
-    // type an invalid value into username (minLength 3); `note` stays valid
-    await screen.getByRole('textbox', { name: 'Username' }).fill('a')
-    await expect
-      .poll(() => document.querySelectorAll('.jsf-field-errors').length)
-      .toBe(1)
-
-    // the sibling never had/has an error → its snapshot is referentially stable,
-    // so it must not have re-rendered at all (no Context fan-out)
-    expect(counts['field.root:note'] ?? 0).toBe(0)
-    expect(counts['field.control:note'] ?? 0).toBe(0)
-    // the changed field did re-render (to surface its error + aria wiring)
-    expect(counts['field.root:username'] ?? 0).toBeGreaterThan(0)
-  })
-})
-
-// The touched-gating fan-out contract (ADR 027): the same "no preventable
-// re-render" rule applied to the *display* dimension. Both fields carry an error
-// (both hidden under 'touched'); blurring ONE must reveal only that field's error
-// and re-render only that field — the untouched sibling, whose display decision
-// did not flip, must stay at zero. This proves the touched store (a boolean
-// per-path snapshot) does not fan out any more than the error store did.
-const touchedGateSchema: JSONSchema = {
-  type: 'object',
-  required: ['username', 'zip'],
-  properties: {
-    username: { type: 'string', title: 'Username', minLength: 3 },
-    zip: { type: 'string', title: 'Zip', pattern: '^[0-9]{5}$' },
-  },
-}
-const touchedGateTree = jsonSchemaToRuntimeTree(touchedGateSchema)
-
-function dispatchInput(input: HTMLInputElement, value: string) {
-  input.value = value
-  input.dispatchEvent(new InputEvent('input', { bubbles: true }))
-}
-
-function TouchedCountingHarness({
-  Counting,
-}: {
-  Counting: ReturnType<typeof createRenderer>
-}) {
-  const validator = useMemo(() => createAjvValidator(touchedGateSchema), [])
-  const { form, revalidate, handleBlur, validation } = useFormTree(
-    touchedGateTree,
-    { validator }
-  )
-  return (
-    <form noValidate onInput={revalidate} onBlur={handleBlur}>
-      <ValidationProvider {...validation} showErrorsWhen="touched">
-        <Counting form={form} />
-      </ValidationProvider>
-    </form>
-  )
-}
-
-describe('touched-gating render-count contract (ADR 027)', () => {
-  it('blurring a field reveals only its own error, not an untouched sibling with an error', async () => {
-    const counts: Counts = {}
-    const Counting = createRenderer(countingAdapter(counts))
-    await render(<TouchedCountingHarness Counting={Counting} />)
-
-    // One keystroke in username runs the whole-form validator, so BOTH username
-    // (minLength) and the empty required zip gain errors — both hidden (untouched).
-    const username = document.getElementById(
-      fieldControlId('username')
-    ) as HTMLInputElement
-    username.focus()
-    dispatchInput(username, 'a')
-    await new Promise((r) => setTimeout(r, 30))
-    expect(document.querySelectorAll('.jsf-field-errors').length).toBe(0)
-
-    reset(counts)
-    // Blur username → it becomes touched and reveals its error.
-    username.blur()
-    await expect
-      .poll(() => document.getElementById(fieldErrorId('username')))
-      .not.toBeNull()
-
-    // zip also has an error but was never touched → its display decision is
-    // unchanged (still hidden), so it must not have re-rendered at all.
-    expect(counts['field.root:zip'] ?? 0).toBe(0)
-    expect(counts['field.control:zip'] ?? 0).toBe(0)
-    // the blurred field re-rendered to surface its error + aria wiring.
-    expect(counts['field.root:username'] ?? 0).toBeGreaterThan(0)
   })
 })

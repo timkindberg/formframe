@@ -33,9 +33,13 @@ const examples = [
   { id: '06B', name: 'React + SchemaFields (ADR 010)', component: App06B },
   { id: '07', name: 'React + Array Support', component: App07 },
   { id: '08', name: 'React + Overrides (ADR 010)', component: App08 },
-  { id: '09', name: 'React + Validation (ADR 019)', component: App09 },
+  { id: '09', name: 'React + Validation (recipe-owned)', component: App09 },
   { id: '10', name: 'React + Schema $ref/$defs', component: App10 },
-  { id: '11', name: 'React + Live Validation (ADR 021)', component: App11 },
+  {
+    id: '11',
+    name: 'React + Live Validation (recipe-owned)',
+    component: App11,
+  },
   {
     id: 'rhf-jsonschema',
     name: 'Recipe · RHF · JSON Schema',
@@ -48,7 +52,7 @@ const examples = [
   },
   {
     id: '13',
-    name: 'React + Touched-Gated Errors (ADR 027)',
+    name: 'React + Touched-Gated Errors (recipe-owned)',
     component: App13,
   },
   {
@@ -58,7 +62,7 @@ const examples = [
   },
   {
     id: '15',
-    name: 'React + Zod useFormTree (ADR 034/035)',
+    name: 'React + Zod useFormTree (recipe-owned validation)',
     component: App15,
   },
   {

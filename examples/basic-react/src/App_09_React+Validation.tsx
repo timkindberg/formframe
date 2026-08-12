@@ -1,19 +1,26 @@
-// Side-loaded, submit-time validation (ADR 019).
+// Submit-time validation — recipe-owned (formerly ADR 019's library-runtime
+// walk-through).
 //
-// Validation is a capability slot: Core names the `Validator` shape, an adapter
-// (here @formframe/validation-ajv) implements it, and `useFormTree`
-// runs it. Pass `{ validator }`, submit through `submit(onValid)`, and the
-// returned `SchemaFields` surfaces each error under its own field — no schema
-// annotations, no IR change, and the validator stays swappable (AJV → Zod).
-import { useMemo, useState } from 'react'
+// Validation is a capability slot: Core names the `Validator` shape, an
+// adapter (here @formframe/validation-ajv) implements it, and a small
+// recipe hook — `useNativeValidator` (nativeValidation.recipe.tsx) — runs it
+// on submit. `useFormTree` itself carries no validator slot (#126); this is
+// a thin demo of the same native-form recipe `Recipe_NativeForm_JSONSchema`
+// uses, trimmed to one schema and no cross-field rule.
+import { useState } from 'react'
+import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
+import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
   useFormTree,
-  ValidationProvider,
-  ValidationSummary,
+  useRenderNodeRules,
+  type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from '@formframe/validation-ajv'
-import { jsonSchemaToTree } from '@formframe/input-jsonschema'
-import type { JSONSchema } from '@formframe/input-jsonschema'
+import {
+  NativeValidationProvider,
+  useNativeValidator,
+} from './nativeValidation.recipe'
+import { InputControl } from './nativeFieldControls.recipe'
 
 const schema = {
   type: 'object',
@@ -40,13 +47,17 @@ const schema = {
   },
 } as const satisfies JSONSchema
 const tree = jsonSchemaToTree(schema)
+const validator = createAjvValidator(schema)
+
+type Shape = FormShapeOf<typeof schema>
+const nativeRules = (r: TypedRuleRegistrar<Shape>): void => {
+  r.control('input', InputControl)
+}
 
 function App() {
-  // Compile the schema once; the validator is the side-loaded slot.
-  const validator = useMemo(() => createAjvValidator(schema), [])
-  // The complete validation capability carries errors, touched paths, and the
-  // submit flag required by the default touched-gated display policy.
-  const { SchemaFields, submit, validation } = useFormTree(tree, { validator })
+  const { form, SchemaFields } = useFormTree(tree)
+  const { validation, submit } = useNativeValidator(form, validator)
+  const renderNode = useRenderNodeRules(form, nativeRules)
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
     null
   )
@@ -55,13 +66,16 @@ function App() {
 
   return (
     <div>
-      <h1>JSON Schema Form — Side-loaded Validation (ADR 019)</h1>
+      <h1>JSON Schema Form — Submit-Time Validation (recipe-owned)</h1>
       <p>
-        <code>useFormTree(tree, {'{ validator }'})</code> runs the validator at
-        submit. Invalid data shows an error under each field and blocks the
-        handler; valid data clears the errors and submits. The validator is a
-        plain <code>Validator</code> from <code>validation-ajv</code> — swap it
-        for Zod/Valibot without touching the form.
+        <code>useNativeValidator(form, validator)</code> — a small recipe hook
+        over the native <code>&lt;form&gt;</code> + FormData layer — runs the
+        validator at submit. Invalid data shows an error under each field and
+        blocks the handler; valid data clears the errors and submits. The
+        validator is a plain <code>Validator</code> from{' '}
+        <code>validation-ajv</code> — swap it for Zod/Valibot without touching
+        the form. <code>useFormTree</code> itself carries no validator slot
+        (#126) — validation production is entirely recipe-owned.
       </p>
       <p>
         The <code>&lt;form&gt;</code> uses <code>noValidate</code> so the JS
@@ -69,17 +83,17 @@ function App() {
         <code>required</code>/<code>pattern</code> attrs, ADR 012).
       </p>
       <p>
-        <code>&lt;ValidationSummary /&gt;</code> lists all errors with anchor
-        links to each field; fields automatically receive{' '}
+        Errors inject through{' '}
+        <code>&lt;Default of={'{field}'} errors=&#123;…&#125; /&gt;</code> — the
+        same seam every recipe in this app uses; fields automatically receive{' '}
         <code>aria-invalid</code> and <code>aria-describedby</code> when they
         have errors.
       </p>
 
       <form noValidate onSubmit={submit(handleValid)}>
-        <ValidationProvider {...validation}>
-          <ValidationSummary />
-          <SchemaFields />
-        </ValidationProvider>
+        <NativeValidationProvider {...validation}>
+          <SchemaFields renderNode={renderNode} />
+        </NativeValidationProvider>
         <button type="submit">Submit</button>
       </form>
 

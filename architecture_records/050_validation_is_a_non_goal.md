@@ -102,6 +102,13 @@ decision ([#119](https://github.com/timkindberg/formframe/issues/119)):
   but their premises (maintained validation-contract package; whole-document
   library-owned reactive validate cost) no longer describe the product goal —
   clean up with the demotion implementation.
+- **[#126](https://github.com/timkindberg/formframe/issues/126) completed the
+  demotion implementation**: `validation-ajv`/`validation-zod`/
+  `validation-contract` are now private recipe/test-support packages (kept in
+  place, not deleted); `useFormTree` lost its `validator` option and
+  submit-gating; the error/touched/display-policy store moved out of
+  `packages/react` into example recipes. ADR 020 and ADR 028 are now formally
+  marked `Superseded by ADR 050`.
 - Docs and Phase B framing that put "validation first" as a library slot should
   point here; recipes + the render seam replace that roadmap item.
 

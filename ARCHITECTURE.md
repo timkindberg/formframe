@@ -92,8 +92,8 @@ A typed-factory skin (`<fields.address.street/>`, `.Default`-free, keyed and ren
 Designing every swap seam up front requires taste and tends to produce speculative, wrong abstractions from a single example. Instead, **swappability is earned by a second implementation** ([ADR 008](./architecture_records/008_swappability_earned_by_second_implementation.md)):
 
 - **Phase A** — Core plus the **zero-dependency reference stack**: React, native `<form>` + FormData (uncontrolled, submit-time, zero value-driven re-renders) for form-state, no validation, bare default UI templates. The stubborn Core boundary is the only hard architectural gate.
-- **Phase B** — fill/swap one slot at a time, letting each *first real adapter* carve its seam (contract tests + a throwaway fake adapter written at that moment). Priority: **validation and UI first** (visible, high-investment swaps), **form-state last and optional** ([ADR 011](./architecture_records/011_form_state_is_a_shallow_slot.md)):
-  - Validation → AJV, then Zod (via Standard Schema)
+- **Phase B** — fill/swap one slot at a time, letting each *first real adapter* carve its seam (contract tests + a throwaway fake adapter written at that moment). Original priority was **validation and UI first** (visible, high-investment swaps), **form-state last and optional** ([ADR 011](./architecture_records/011_form_state_is_a_shallow_slot.md)); validation's place in that list is superseded — see below:
+  - ~~Validation → AJV, then Zod (via Standard Schema)~~ — validation production turned out to compete with the form frameworks consumers already use (RHF, TanStack) rather than earning its own library slot; it is now a non-goal, and **UI remains the primary swap axis** ([ADR 050](./architecture_records/050_validation_is_a_non_goal.md))
   - Presentation → Chakra, then raw React + Tailwind
   - Form-state → RHF / TanStack Form, justified only by reactivity needs or interop with existing infrastructure — never swapped for its own sake
   - Framework stays React for now (no second framework yet — YAGNI)
@@ -104,7 +104,7 @@ Designing every swap seam up front requires taste and tends to produce speculati
 
 ## Form-state is a shallow slot
 
-In a schema-driven form, the end user never sees the form-state library — it's plumbing slotted into an adapter, unlike validation and UI, which are visible and where teams have real existing investment ([ADR 011](./architecture_records/011_form_state_is_a_shallow_slot.md)).
+In a schema-driven form, the end user never sees the form-state library — it's plumbing slotted into an adapter, unlike UI, which is visible and where teams have real existing investment ([ADR 011](./architecture_records/011_form_state_is_a_shallow_slot.md)). Validation is visible too, but per [ADR 050](./architecture_records/050_validation_is_a_non_goal.md) it is produced by whichever form framework (or recipe) the app already chose, not swapped as a library slot.
 
 - The default form-state adapter is **headless**: it wraps no external library. The minimal headless adapter is native `<form>` + FormData — uncontrolled, submit-time, zero dependencies, covering the static majority of forms.
 - External form-lib adapters (RHF, TanStack Form) are **optional**, justified only by:
@@ -150,7 +150,7 @@ We explored a pure HTML string renderer (`renderToHTML(form, values) // => '<for
 We considered having Core manage form values directly (`core.setValue(...)`, `core.getValue(...)`). Different form-state adapters want to manage state differently; keeping Core stateless gives maximum flexibility and avoids competing with form libraries on their own turf.
 
 ### ❌ Baked-in Validation
-Validation libraries are framework-agnostic and should be side-loaded, not forced into Core or any single layer's architecture.
+Validation libraries are framework-agnostic and should never be forced into Core or any single layer's architecture. This anti-goal now goes further than "side-loaded": [ADR 050](./architecture_records/050_validation_is_a_non_goal.md) makes validation *production* a non-goal for the library entirely — the library renders errors via the `<Default of={field} errors={…} />` seam, and recipes (native/RHF/TanStack) produce them. `validation-ajv`/`validation-zod`/`validation-contract` are demoted, private recipe/test-support packages, not a maintained validation runtime.
 
 ### ❌ Designing all swap seams up front
 Speculative, taste-heavy, premature abstraction — and not verifiable by the gate suite. See "Swappability," above.

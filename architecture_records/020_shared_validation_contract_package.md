@@ -1,8 +1,15 @@
 # ADR 020: Shared Validation-Contract Package
 
 **Date:** 2026-06-25
-**Status:** Accepted
+**Status:** Superseded by [ADR 050](./050_validation_is_a_non_goal.md)
 **Deciders:** Tim Kindberg
+
+> **Superseded (2026-08-12).** ADR 050 demotes validation production out of
+> the product surface: `@formframe/validation-contract` is no longer a
+> maintained package backing a library capability slot. It remains **in
+> place as a private recipe/test-support package** (`"private": true`) — AJV
+> and Zod recipe helpers and the parity-test harness still depend on it as a
+> devDependency, but it ships nothing to library consumers.
 
 ## Context
 

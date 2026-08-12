@@ -6,11 +6,7 @@
 
 // Source-agnostic React hook
 export { useFormTree } from './useFormTree'
-export type {
-  BoundSchemaFieldsProps,
-  FormTreeValidation,
-  UseFormTreeOptions,
-} from './useFormTree'
+export type { BoundSchemaFieldsProps, UseFormTreeOptions } from './useFormTree'
 
 // Continuation renderer (ADR 010/013) — typed, front-end-agnostic (operates on
 // the Core tree). Schema compilation lives in separate input packages.
@@ -18,6 +14,10 @@ export type {
 // `SchemaFields` is batteries-included; `createRenderer` is the public floor
 // (bind a partial renderer set; gaps fall back to `diagnosticAdapter` markers);
 // spread `defaultAdapter` to override entries by reference.
+//
+// The library RENDERS validation errors via the inject seam
+// (`<Default of={field} errors={ValidationError[]} />`) — it does not
+// produce/schedule/store them (ADR 050 / #116/#126).
 export {
   SchemaFields,
   createRenderer,
@@ -25,22 +25,10 @@ export {
   diagnosticAdapter,
   Default,
   Children,
-  ValidationProvider,
-  useFieldErrors,
-  useFieldErrorDisplay,
-  useDisplayPolicy,
-  useValidationErrors,
   fieldControlId,
   fieldErrorId,
   errorA11yProps,
 } from './renderer'
-// Error-display policy (ADR 027): touched-gated / submit-gated error visibility.
-export {
-  shouldDisplayFieldErrors,
-  DEFAULT_SHOW_ERRORS_WHEN,
-  type ShowErrorsWhen,
-} from './displayPolicy'
-export { ValidationSummary } from './ValidationSummary'
 export type {
   SchemaFieldsProps,
   RenderNode,
