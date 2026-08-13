@@ -146,8 +146,8 @@ export default function App() {
   )
 }
 
-// ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
-// Build-log for the #116 epic; safe to delete when copying this file.
+// ─── MAINTAINER NOTES (not part of the recipe) ───────────────────
+// Safe to delete when copying this file.
 // • Twin-of-Recipe_ReactHookForm_JSONSchema pairing mirrors the App_16/App_17 convention (ADR 008's
 //   second-implementation forcing function). Parity proven by
 //   `packages/react/src/parity/` (#125).

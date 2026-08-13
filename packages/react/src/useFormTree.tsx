@@ -50,7 +50,7 @@ export interface UseFormTreeOptions<
  * A front-end such as `jsonSchemaToTree` or `zodToTree` owns schema compilation.
  * This hook owns the React-facing behavior shared by every front-end: layered
  * presentation, a bound `SchemaFields`, and native FormData submission. It does
- * NOT produce, schedule, or store validation errors (ADR 050 / #116) — the
+ * NOT produce, schedule, or store validation errors (ADR 050) — the
  * library renders errors via the inject seam (`<Default of={field} errors={…}
  * />`); a validation adapter or recipe owns producing them.
  */

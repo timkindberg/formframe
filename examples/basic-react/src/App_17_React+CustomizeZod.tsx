@@ -56,8 +56,8 @@ type Shape = FormShapeOf<typeof schema>
 
 // ── Handlers (hoisted → stable identity → safe hooks + memo bail, §1) ─────────
 
-// `parts.Control`/`parts.Errors` take the recipe's injected errors (ADR 050)
-// — the library itself never produces them (#126).
+// `parts.Control`/`parts.Errors` take recipe-injected errors (ADR 050) —
+// FormFrame renders them; the recipe produces them.
 function RowName({ path, parts }: FieldProps<Shape, 'name'>) {
   const [hint, setHint] = useState(false)
   const errors = useFieldValidationErrors(path)
@@ -179,9 +179,7 @@ function LiveCustomizedForm() {
   // free. `useRenderNodeRules` reads that brand — the SAME React hook App_16 uses,
   // no per-front-end binding (ADR 048).
   const renderNode = useRenderNodeRules(form, customizeRules)
-  // `useFormTree` carries no validator slot (#126) — `useNativeValidator`
-  // (nativeValidation.recipe.tsx) is the recipe-owned replacement, same as
-  // App_16's JSON Schema twin.
+  // Recipe-owned validation: produce errors here, inject via the provider.
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (

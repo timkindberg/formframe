@@ -1,12 +1,9 @@
-// Live (validate-on-change) validation — recipe-owned (formerly ADR 021's
-// library-runtime walk-through).
+// Live (validate-on-change) validation with the native form-state recipe.
 //
-// Wire the recipe's `revalidate` (from `useNativeValidator`,
-// nativeValidation.recipe.tsx) to the consumer-owned `<form onInput>` (per
-// keystroke) or `onChange` (blur for text fields); it reads native FormData,
-// runs the side-loaded validator, and updates the same `errors` state —
-// inputs stay uncontrolled. `useFormTree` itself carries no validator slot
-// (#126); the recipe hook is what runs it.
+// Wire `revalidate` from `useNativeValidator` (nativeValidation.recipe.tsx) to
+// the consumer-owned `<form onInput>` (per keystroke) or `onChange` (blur for
+// text fields); it reads native FormData, runs the side-loaded validator, and
+// updates the same `errors` state — inputs stay uncontrolled.
 import { useState } from 'react'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'

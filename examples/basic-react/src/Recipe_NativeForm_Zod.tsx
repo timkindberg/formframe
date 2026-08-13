@@ -4,7 +4,7 @@
 // FOUR files to copy, THREE of them shared verbatim with the JSON Schema half:
 //
 //   fieldPresentation.recipe.tsx     shared blank/match helpers
-//   nativeValidation.recipe.tsx      demoted stores + NativeValidationProvider
+//   nativeValidation.recipe.tsx      stores + NativeValidationProvider + hook
 //   nativeFieldControls.recipe.tsx   inject bindings
 //   this file                        the Zod half
 //
@@ -128,9 +128,7 @@ export default function App() {
   )
 }
 
-// ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
-// Build-log for the #116 epic; safe to delete when copying this file.
-// • Twin-of-Recipe_NativeForm_JSONSchema pairing mirrors the RHF and TanStack
-//   Zod twins (ADR 008). Ticket #122.
+// ─── MAINTAINER NOTES (not part of the recipe) ───────────────────────────────
+// • Twin of Recipe_NativeForm_JSONSchema (ADR 008 second front-end).
 // • Same Zod refine / coerce gotchas as the RHF and TanStack Zod twins.
 // ──────────────────────────────────────────────────────────────────────────────

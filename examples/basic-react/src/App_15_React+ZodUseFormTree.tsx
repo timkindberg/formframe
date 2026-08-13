@@ -1,10 +1,10 @@
-// Zod end-to-end: compile → validate → bind → submit — recipe-owned
-// validation (formerly ADR 034/035's `useFormTree({ validator })` walk-through).
+// Zod end-to-end: compile → validate → bind → submit with recipe-owned
+// validation.
 //
 // 1. Define a Zod schema (structure + validation in one place).
 // 2. Compile explicitly with zodToTree(schema).
 // 3. Adapt validation explicitly with fromStandardSchema(schema).
-// 4. Bind with useFormTree(tree) — no validator slot on the hook (#126).
+// 4. Bind with useFormTree(tree) — presentation + FormData submit.
 // 5. Run the validator with `useNativeValidator` (nativeValidation.recipe.tsx)
 //    and submit through ITS submit callback.
 // 6. Inject each field's errors via `<Default of={field} errors={…} />`
@@ -78,10 +78,10 @@ function App() {
       <p>
         <code>zodToTree(schema)</code> compiles structure;{' '}
         <code>fromStandardSchema(schema)</code> adapts validation;{' '}
-        <code>useFormTree(tree)</code> binds React behavior — it no longer takes
-        a validator (#126). <code>useNativeValidator(form, validator)</code>, a
-        small recipe hook, owns submit-time gating and touched/submitted state;
-        spread its <code>{'{...validation}'}</code> into{' '}
+        <code>useFormTree(tree)</code> binds React behavior;{' '}
+        <code>useNativeValidator(form, validator)</code> owns submit-time gating
+        and touched/submitted state — spread its{' '}
+        <code>{'{...validation}'}</code> into{' '}
         <code>NativeValidationProvider</code>.
       </p>
       <p>

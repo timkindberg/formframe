@@ -17,7 +17,7 @@ export type { BoundSchemaFieldsProps, UseFormTreeOptions } from './useFormTree'
 //
 // The library RENDERS validation errors via the inject seam
 // (`<Default of={field} errors={ValidationError[]} />`) — it does not
-// produce/schedule/store them (ADR 050 / #116/#126).
+// produce/schedule/store them (ADR 050).
 export {
   SchemaFields,
   createRenderer,

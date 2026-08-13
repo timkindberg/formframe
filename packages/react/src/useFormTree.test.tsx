@@ -1,8 +1,8 @@
-// Slim `useFormTree` (ADR 050 / #116 / #126): presentation + bound
-// `SchemaFields` + native FormData `submit` only. `submit` always calls the
-// handler with FormData-assembled data — no validation gating. Validation
-// production/scheduling is a recipe/adapter concern, side-loaded on top; the
-// library only RENDERS errors via the inject seam (see injected-errors.test.tsx).
+// Slim `useFormTree` (ADR 050): presentation + bound `SchemaFields` + native
+// FormData `submit` only. `submit` always calls the handler with
+// FormData-assembled data — no validation gating. Validation production /
+// scheduling is a recipe/adapter concern; the library only RENDERS errors via
+// the inject seam (see injected-errors.test.tsx).
 
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
@@ -111,8 +111,8 @@ describe('useFormTree', () => {
         expectTypeOf(data).toEqualTypeOf<Record<string, unknown>>()
       })
 
-      // The validation capability was demoted (ADR 050 / #126) — none of these
-      // keys exist on the slim result.
+      // Validation is recipe-owned (ADR 050) — none of these keys exist on the
+      // slim result.
       expectTypeOf(bound).not.toHaveProperty('validator')
       expectTypeOf(bound).not.toHaveProperty('validation')
       expectTypeOf(bound).not.toHaveProperty('errors')
@@ -121,7 +121,7 @@ describe('useFormTree', () => {
       expectTypeOf(bound).not.toHaveProperty('revalidate')
       expectTypeOf(bound).not.toHaveProperty('handleBlur')
 
-      // @ts-expect-error -- `validator` was demoted (ADR 050 / #126)
+      // @ts-expect-error -- `validator` is not a useFormTree option (ADR 050)
       useFormTree(tree, { validator: undefined })
 
       return null

@@ -1,6 +1,6 @@
-// RECIPE (native form-state): the demoted validation runtime — error store,
-// touched store, display policy, a sync-validator hook, and the provider/
-// hooks that wire them.
+// RECIPE (native form-state): error store, touched store, display policy, a
+// sync-validator hook, and the provider/hooks that wire them into FormFrame's
+// `<Default of={field} errors={…} />` inject seam.
 //
 // Layer 1.5 of the native recipe stack (between shared presentation helpers
 // and the per-control inject bindings):
@@ -10,27 +10,19 @@
 //   nativeFieldControls.recipe.tsx   injects gated errors into `<Default>`
 //   Recipe_NativeForm_*              per schema front-end
 //
-// This is the verbatim demotion of what used to live in
-// `@formframe/renderer-react` (`errorStore`, `touchedStore`, `displayPolicy`,
-// `ValidationProvider` + field error hooks, and `useFormTree`'s validator
-// slot) — moved here because validation production is a non-goal for the
-// library (ADR 050 / #116, cut from the library in #126). This recipe is the
-// self-contained copy every native-form-state demo in this example app uses.
+// FormFrame renders errors; this recipe produces them (ADR 050). Pair
+// `useFormTree(tree)` (presentation + FormData submit) with
+// `useNativeValidator(form, validator)` for submit gating, live
+// revalidation, and touched/submitted state — then spread `validation` into
+// `NativeValidationProvider` and wire `submit` / `revalidate` / `handleBlur`
+// on the `<form>`.
 //
-// `useNativeValidator(form, validator)` is the recipe-owned replacement for
-// the library's old `useFormTree(tree, { validator })` slot: it takes the
-// `form` returned by `useFormTree(tree)` (no validator option anymore) plus a
-// sync `Validator`, and owns submit-time gating, live revalidation, and
-// touched/submitted state — the exact same behavior, just recipe-side.
+// Display timing defaults to `'submit'` (quiet until first submit, then
+// reveal + clear live), matching RHF's default mode and TanStack's
+// `revalidateLogic()`. Pass `showErrorsWhen` for `'touched'` or `'always'`.
 //
-// Display timing default here is `'submit'` (quiet until first submit, then
-// reveal + clear live) — matching RHF's default mode and TanStack's
-// `revalidateLogic()`, the locked parity target. Pass `showErrorsWhen` to
-// opt into `'touched'` or `'always'`.
-//
-// Copy the sibling `nativeValidation.recipe.test.tsx` with this file — it
-// pins the store/policy helpers and the submit/live/touched UX so a pasted
-// recipe stays covered (ADR 024). CI runs it via `packages/react`'s Vitest.
+// Copy the sibling `nativeValidation.recipe.test.tsx` with this file so a
+// pasted stack stays covered.
 import {
   createContext,
   useCallback,
@@ -51,7 +43,7 @@ import {
   type Validator,
 } from '@formframe/core'
 
-// ─── errorStore (verbatim from packages/react) ───────────────────────────────
+// ─── errorStore ──────────────────────────────────────────────────────────────
 
 /** Shared empty snapshot — one stable reference so "no errors" never re-renders. */
 export const EMPTY_ERRORS: ValidationError[] = Object.freeze(
@@ -108,7 +100,7 @@ export function createErrorStore(initial: ValidationError[] = []): ErrorStore {
   }
 }
 
-// ─── touchedStore (verbatim from packages/react) ─────────────────────────────
+// ─── touchedStore ────────────────────────────────────────────────────────────
 
 export interface TouchedStore {
   getTouched(path: string): boolean
@@ -147,14 +139,13 @@ export function createTouchedStore(
   }
 }
 
-// ─── displayPolicy (verbatim; recipe default flipped to 'submit') ────────────
+// ─── displayPolicy ───────────────────────────────────────────────────────────
 
 export type ShowErrorsWhen = 'always' | 'touched' | 'submit'
 
 /**
- * Recipe default for parity with RHF / TanStack defaults: quiet until the
- * first submit attempt, then reveal everything and clear live. (The library
- * copy still defaults to `'touched'` until #126 removes it.)
+ * Quiet until the first submit attempt, then reveal everything and clear
+ * live — same observable default as RHF and TanStack Form.
  */
 export const DEFAULT_SHOW_ERRORS_WHEN: ShowErrorsWhen = 'submit'
 
@@ -191,7 +182,7 @@ const getEmptyErrors = () => EMPTY_ERRORS
  * native field controls below. Spread the `validation` object returned by
  * {@link useNativeValidator} into this (errors / touched / submitted).
  * Controls read per-path via {@link useFieldValidationErrors} and inject into
- * `<Default of={field} errors={…} />` — recipe-pre-gated, no library store.
+ * `<Default of={field} errors={…} />` (present == show).
  */
 export function NativeValidationProvider({
   errors,
@@ -260,7 +251,7 @@ export function useFieldValidationErrors(path: string): ValidationError[] {
   return show ? errors : EMPTY_ERRORS
 }
 
-// ─── useNativeValidator (recipe-owned replacement for the old validator slot) ─
+// ─── useNativeValidator ──────────────────────────────────────────────────────
 
 /** Minimal shape `useNativeValidator` needs from the `form` `useFormTree(tree)`
  * returns — the same `submit` a native-form recipe already builds its own
@@ -299,10 +290,9 @@ export interface UseNativeValidatorResult<Output> {
 }
 
 /**
- * Recipe-owned replacement for the library's old `useFormTree(tree, {
- * validator })` slot (cut in #126). Takes the `form` from a validator-less
- * `useFormTree(tree)` plus a sync `Validator` (AJV, `fromStandardSchema`, or
- * hand-rolled) and owns submit-time gating, live revalidation, and
+ * Run a sync {@link Validator} against native FormData submit. Takes the
+ * `form` from `useFormTree(tree)` plus a validator (AJV, `fromStandardSchema`,
+ * or hand-rolled) and owns submit-time gating, live revalidation, and
  * touched/submitted state — spread `validation` into
  * {@link NativeValidationProvider}, wire `submit`/`revalidate`/`handleBlur`
  * to the `<form>`.
@@ -365,3 +355,9 @@ export function useNativeValidator<Output = Record<string, unknown>>(
 
   return { validation, submit, revalidate, handleBlur }
 }
+
+// ─── MAINTAINER NOTES (not part of the recipe) ───────────────────────────────
+// Origin: demoted from `@formframe/renderer-react` under ADR 050 / #116 / #126
+// (library renders errors; recipes produce them). Sibling test file runs via
+// `packages/react` Vitest browser include of `*.recipe.test.tsx`.
+// ──────────────────────────────────────────────────────────────────────────────

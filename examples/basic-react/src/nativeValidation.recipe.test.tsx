@@ -1,11 +1,10 @@
 // RECIPE TESTS — copy this file with `nativeValidation.recipe.tsx` (+ the
-// field-controls / presentation layers you wire). These are the demoted
-// library validation tests, rewritten against the recipe-owned runtime so a
-// pasted native form-state stack stays covered (ADR 024 / #126).
+// field-controls / presentation layers you wire). Covers the store/policy
+// helpers and the submit / live / touched / a11y UX of the native form-state
+// stack so a pasted recipe stays covered.
 //
-// CI runs this suite from `@formframe/renderer-react`'s Vitest browser project
-// (see that package's vitest.config `include`). Locally:
-//   npx vitest run -w packages/react ../../examples/basic-react/src/nativeValidation.recipe.test.tsx
+// Run with the FormFrame React Vitest browser project, e.g.:
+//   npx vitest run -w packages/react nativeValidation.recipe.test.tsx
 import { useMemo, type ReactNode } from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
@@ -30,7 +29,7 @@ import {
   type ShowErrorsWhen,
 } from './nativeValidation.recipe'
 
-// ─── Pure helpers (former packages/react unit tests) ─────────────────────────
+// ─── Pure helpers ────────────────────────────────────────────────────────────
 
 const error = (path: string, message = 'bad'): ValidationError => ({
   path,
@@ -161,7 +160,7 @@ describe('nativeValidation.recipe · createTouchedStore', () => {
   })
 })
 
-// ─── Browser integration (former useFormTree + ValidationProvider tests) ─────
+// ─── Browser integration (useNativeValidator + inject) ───────────────────────
 
 const schema = {
   type: 'object',
