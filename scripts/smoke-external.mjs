@@ -7,10 +7,13 @@
 //   2. runs `publint` (exports/files sanity) and `@arethetypeswrong/cli`
 //      (are-the-types-wrong: resolves under node10/node16/bundler) on each,
 //   3. installs the tarballs into a throwaway consumer with only real peers,
-//   4. typechecks a consumer importing all nine (dist types must resolve, and
+//   4. typechecks a consumer importing all six (dist types must resolve, and
 //      the `development` condition must NOT leak — no `src` is shipped),
-//   5. runs the consumer under both ESM and CJS (compile + vanilla render +
-//      AJV validate) to prove the dual-format runtime works.
+//   5. runs the consumer under both ESM and CJS (compile + vanilla render) to
+//      prove the dual-format runtime works.
+//
+// Validation is recipe-owned (#126), not a published package — so this smoke
+// does not cover AJV/Zod validators.
 //
 // Assumes `npm run build` has already produced dist/ for every package.
 
@@ -28,9 +31,6 @@ const PACKAGES = [
   { name: 'input-jsonschema', directory: 'input-jsonschema' },
   { name: 'input-zod', directory: 'input-zod' },
   { name: 'input-conformance', directory: 'input-conformance' },
-  { name: 'validation-contract', directory: 'validation-contract' },
-  { name: 'validation-ajv', directory: 'validation-ajv' },
-  { name: 'validation-zod', directory: 'validation-zod' },
   { name: 'renderer-vanilla', directory: 'vanilla' },
   { name: 'renderer-react', directory: 'react' },
 ]
@@ -118,7 +118,6 @@ const consumerPkg = {
     react: '^18.2.0',
     'react-dom': '^18.2.0',
     zod: '^4.0.0',
-    ajv: '^8.17.1',
   },
   devDependencies: {
     '@types/react': '^18.2.0',
@@ -131,7 +130,7 @@ writeFileSync(
   JSON.stringify(consumerPkg, null, 2)
 )
 
-// Consumer typecheck: namespace-import all nine so their dist types must
+// Consumer typecheck: namespace-import all six so their dist types must
 // resolve for an outsider (bundler resolution, no `development` condition).
 writeFileSync(
   join(consumerDir, 'tsconfig.json'),
@@ -159,23 +158,19 @@ writeFileSync(
 import * as ijs from '${SCOPE}/input-jsonschema'
 import * as izod from '${SCOPE}/input-zod'
 import * as iconf from '${SCOPE}/input-conformance'
-import * as vcontract from '${SCOPE}/validation-contract'
-import * as vajv from '${SCOPE}/validation-ajv'
-import * as vzod from '${SCOPE}/validation-zod'
 import * as vanilla from '${SCOPE}/renderer-vanilla'
 import * as react from '${SCOPE}/renderer-react'
-export const surfaces = [core, ijs, izod, iconf, vcontract, vajv, vzod, vanilla, react].length
+export const surfaces = [core, ijs, izod, iconf, vanilla, react].length
 `
 )
 
-// ESM runtime: compile (JSON Schema + Zod) + vanilla render + AJV validate.
+// ESM runtime: compile (JSON Schema + Zod) + vanilla render.
 writeFileSync(
   join(consumerDir, 'run.mjs'),
   `import assert from 'node:assert/strict'
 import { jsonSchemaToTree } from '${SCOPE}/input-jsonschema'
 import { zodToTree } from '${SCOPE}/input-zod'
 import { renderToString } from '${SCOPE}/renderer-vanilla'
-import { createAjvValidator } from '${SCOPE}/validation-ajv'
 import { z } from 'zod'
 
 const schema = { type: 'object', properties: { name: { type: 'string', title: 'Name' } }, required: ['name'] }
@@ -185,9 +180,6 @@ assert.ok(html.includes('name'), 'rendered HTML should reference the "name" fiel
 
 const ztree = zodToTree(z.object({ name: z.string() }))
 assert.equal(ztree.children.length, 1, 'zod tree should have one child')
-
-const result = createAjvValidator(schema)({})
-assert.equal(result.valid, false, 'empty object should fail the required "name"')
 
 console.log('ESM runtime OK')
 `
@@ -199,12 +191,10 @@ writeFileSync(
   `const assert = require('node:assert/strict')
 const { jsonSchemaToTree } = require('${SCOPE}/input-jsonschema')
 const { renderToString } = require('${SCOPE}/renderer-vanilla')
-const { createAjvValidator } = require('${SCOPE}/validation-ajv')
 
 const schema = { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] }
 const tree = jsonSchemaToTree(schema)
 assert.ok(renderToString(tree).includes('name'), 'CJS render should reference "name"')
-assert.equal(createAjvValidator(schema)({}).valid, false, 'CJS validate should fail empty')
 
 console.log('CJS runtime OK')
 `
