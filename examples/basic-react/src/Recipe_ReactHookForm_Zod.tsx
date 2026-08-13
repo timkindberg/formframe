@@ -157,8 +157,8 @@ export default function App() {
 //   internals; no special-casing in the front-end.
 // • The `.coerce` vs AJV-adapter-default asymmetry is a real DX gap candidate
 //   for its own issue — Core can't paper over it (ADR 019/033: Core doesn't
-//   touch validation) and `@formframe/validation-zod` has no parse-time
-//   coercion lever the way AJV does.
+//   touch validation) and Zod has no global parse-time coercion lever the way
+//   AJV's recipe helper does.
 // • Async/remote option sets: not modelled by Core yet (ADR 029 §5, bd cm7);
 //   Zod has no async enum either — a fetched option list means building the
 //   array first, then constructing `z.enum(...)` from it.

@@ -8,7 +8,7 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { toStandardSchema, type Validator } from '@formframe/core'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import { createAjvValidator } from '@formframe/validation-ajv'
+import { createAjvValidator } from '../../../../../examples/basic-react/src/ajvValidator.recipe'
 import type { UsernameChecker } from './checkUsername'
 
 /** Locked medium fixture shape from #118 (line1 + zip, not the demo `street`). */

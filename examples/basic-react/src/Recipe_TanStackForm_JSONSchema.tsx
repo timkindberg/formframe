@@ -1,14 +1,15 @@
 // RECIPE: TanStack Form as the form-state layer, over JSON Schema + AJV.
 //
-// THREE files to copy — this one plus the two layers beneath it:
+// Files to copy — this one plus the layers beneath it:
 //
 //   fieldPresentation.recipe.tsx       shared blank/match helpers
 //   tanstackFieldControls.recipe.tsx   TanStack control bindings
+//   ajvValidator.recipe.ts             AJV → FormFrame Validator helper
 //   this file                          the JSON Schema + AJV half
 //
-// Only this file knows about JSON Schema or AJV. Swap it for Recipe_TanStackForm_Zod and you
-// get the same form over Zod with the other two files untouched — the same
-// way Recipe_ReactHookForm_JSONSchema/Recipe_ReactHookForm_Zod share the RHF controls.
+// Only this file (+ ajvValidator) knows about JSON Schema or AJV. Swap it for
+// Recipe_TanStackForm_Zod and you get the same form over Zod with the shared
+// layers untouched — the same way the RHF twins share their controls.
 //
 // The shape of it:
 //
@@ -44,7 +45,7 @@ import {
   useRenderNodeRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
-import { createAjvValidator } from '@formframe/validation-ajv'
+import { createAjvValidator } from './ajvValidator.recipe'
 import { withMatchRule } from './fieldPresentation.recipe'
 import {
   TanStackFormProvider,

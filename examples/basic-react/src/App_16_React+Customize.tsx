@@ -9,7 +9,7 @@ import {
   type RulesBuild,
   type RuleRegistrar,
 } from '@formframe/renderer-react'
-import { createAjvValidator } from '@formframe/validation-ajv'
+import { createAjvValidator } from './ajvValidator.recipe'
 import {
   NativeValidationProvider,
   useFieldValidationErrors,

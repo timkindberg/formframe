@@ -35,7 +35,7 @@ npm run dev -w examples/basic-react   # Start example app on localhost
 ### Monorepo Structure
 - `packages/core` - Headless form-tree IR, zero dependencies, no framework coupling
 - `packages/react` - React adapter with hooks, default templates, and the continuation renderer
-- `packages/validation-ajv` / `packages/validation-zod` / `packages/validation-contract` - Demoted, private recipe/test-support packages (ADR 050) — not product packages; examples and parity tests depend on them, the library ships no validation runtime
+- `packages/validation-*` — removed; AJV lives in `examples/.../ajvValidator.recipe.ts` (copy with JSON Schema recipes); Zod uses Core `fromStandardSchema`
 - `examples/basic-react` - Example app demonstrating various usage patterns
 - UI/form-lib adapters (Tailwind, RHF, etc.) are reference recipes in `examples/`, not packages (ADR 024)
 
@@ -69,7 +69,7 @@ Historical `jsonschema-form-*` ids cited in ADRs map to GitHub numbers in [`scri
 ## Key Design Decisions
 
 - **Core is stateless** - front-ends compile schemas in, consumers (form-state adapters, etc.) fold over the tree to manage values
-- **Validation production is a non-goal** (ADR 050) - the library **renders** errors via the `<Default of={field} errors={…} />` seam; recipes (native/RHF/TanStack) **produce** them. Core keeps `ValidationError`, `groupErrorsByPath`, `Validator`, `ValidationResult`, and the Standard Schema helpers as shared display/interop vocabulary, not a library validation runtime. `validation-ajv`/`validation-zod`/`validation-contract` are demoted recipe helpers, not maintained product packages.
+- **Validation production is a non-goal** (ADR 050) - the library **renders** errors via the `<Default of={field} errors={…} />` seam; recipes (native/RHF/TanStack) **produce** them. Core keeps `ValidationError`, `groupErrorsByPath`, `Validator`, `ValidationResult`, and the Standard Schema helpers as shared display/interop vocabulary, not a library validation runtime. JSON Schema + AJV helpers live in example recipes (`ajvValidator.recipe.ts`); Zod recipes use `fromStandardSchema`.
 - **Form-state is a shallow slot** (ADR 011) - native `<form>`+FormData is the default; RHF/TanStack are optional, justified only by reactivity or interop needs. UI is the primary swap axis; validation is BYO via the form-framework recipe.
 - **No "kitchen sink" components** - We provide building blocks, not `<JsonSchemaForm />`
 - **"label" not "title"** - Field nodes use `label` for clarity despite JSON Schema using `title`

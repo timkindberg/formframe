@@ -150,7 +150,7 @@ We explored a pure HTML string renderer (`renderToHTML(form, values) // => '<for
 We considered having Core manage form values directly (`core.setValue(...)`, `core.getValue(...)`). Different form-state adapters want to manage state differently; keeping Core stateless gives maximum flexibility and avoids competing with form libraries on their own turf.
 
 ### ❌ Baked-in Validation
-Validation libraries are framework-agnostic and should never be forced into Core or any single layer's architecture. This anti-goal now goes further than "side-loaded": [ADR 050](./architecture_records/050_validation_is_a_non_goal.md) makes validation *production* a non-goal for the library entirely — the library renders errors via the `<Default of={field} errors={…} />` seam, and recipes (native/RHF/TanStack) produce them. `validation-ajv`/`validation-zod`/`validation-contract` are demoted, private recipe/test-support packages, not a maintained validation runtime.
+Validation libraries are framework-agnostic and should never be forced into Core or any single layer's architecture. This anti-goal now goes further than "side-loaded": [ADR 050](./architecture_records/050_validation_is_a_non_goal.md) makes validation *production* a non-goal for the library entirely — the library renders errors via the `<Default of={field} errors={…} />` seam, and recipes (native/RHF/TanStack) produce them. There is no maintained `validation-*` package; JSON Schema + AJV lives in example recipes (`ajvValidator.recipe.ts`).
 
 ### ❌ Designing all swap seams up front
 Speculative, taste-heavy, premature abstraction — and not verifiable by the gate suite. See "Swappability," above.

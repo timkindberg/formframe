@@ -358,6 +358,7 @@ export function useNativeValidator<Output = Record<string, unknown>>(
 
 // ─── MAINTAINER NOTES (not part of the recipe) ───────────────────────────────
 // Origin: demoted from `@formframe/renderer-react` under ADR 050 / #116 / #126
-// (library renders errors; recipes produce them). Sibling test file runs via
-// `packages/react` Vitest browser include of `*.recipe.test.tsx`.
+// (library renders errors; recipes produce them). AJV helper is the sibling
+// `ajvValidator.recipe.ts`. Sibling tests run via `packages/react` Vitest
+// browser include of `*.recipe.test.{ts,tsx}`.
 // ──────────────────────────────────────────────────────────────────────────────

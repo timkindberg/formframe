@@ -1,13 +1,14 @@
 // RECIPE: React Hook Form as the form-state layer, over JSON Schema + AJV.
 //
-// THREE files to copy — this one plus the two layers beneath it:
+// Files to copy — this one plus the layers beneath it:
 //
 //   fieldPresentation.recipe.tsx   shared blank/match helpers (every recipe)
-//   rhfFieldControls.recipe.tsx    RHF control bindings (Recipe_ReactHookForm_JSONSchema + Recipe_ReactHookForm_Zod)
+//   rhfFieldControls.recipe.tsx    RHF control bindings
+//   ajvValidator.recipe.ts         AJV → FormFrame Validator helper
 //   this file                      the JSON Schema + AJV half
 //
-// Only this file knows about JSON Schema or AJV. It's a copy-paste recipe,
-// not a package — once copied, it's yours.
+// Only this file (+ ajvValidator) knows about JSON Schema or AJV. It's a
+// copy-paste recipe, not a package — once copied, it's yours.
 //
 // The shape of it:
 //
@@ -55,7 +56,7 @@ import {
   useRenderNodeRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
-import { createAjvValidator } from '@formframe/validation-ajv'
+import { createAjvValidator } from './ajvValidator.recipe'
 import { withMatchRule } from './fieldPresentation.recipe'
 import {
   InputControl,
