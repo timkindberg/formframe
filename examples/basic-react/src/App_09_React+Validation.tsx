@@ -1,7 +1,7 @@
 // Submit-time validation with the native form-state recipe.
 //
-// Core names the `Validator` shape; an adapter (here @formframe/validation-ajv)
-// implements it; `useNativeValidator` (nativeValidation.recipe.tsx) runs it on
+// Core names the `Validator` shape; `ajvValidator.recipe.ts` implements it;
+// `useNativeValidator` (nativeValidation.recipe.tsx) runs it on
 // submit. Thin demo of the same stack `Recipe_NativeForm_JSONSchema` uses,
 // trimmed to one schema and no cross-field rule.
 import { useState } from 'react'
@@ -12,7 +12,7 @@ import {
   useRenderNodeRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
-import { createAjvValidator } from '@formframe/validation-ajv'
+import { createAjvValidator } from './ajvValidator.recipe'
 import {
   NativeValidationProvider,
   useNativeValidator,
@@ -70,8 +70,9 @@ function App() {
         validator at submit. Invalid data shows an error under each field and
         blocks the handler; valid data clears the errors and submits. The
         validator is a plain <code>Validator</code> from{' '}
-        <code>validation-ajv</code> — swap it for Zod/Valibot without touching
-        the form. FormFrame renders the errors; the recipe produces them.
+        <code>ajvValidator.recipe</code> — swap it for Zod/Valibot without
+        touching the form. FormFrame renders the errors; the recipe produces
+        them.
       </p>
       <p>
         The <code>&lt;form&gt;</code> uses <code>noValidate</code> so the JS

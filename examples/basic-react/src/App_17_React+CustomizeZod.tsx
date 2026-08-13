@@ -10,7 +10,7 @@ import {
   type RulesBuild,
   type RuleRegistrar,
 } from '@formframe/renderer-react'
-import { createZodValidator } from '@formframe/validation-zod'
+import { fromStandardSchema } from '@formframe/core'
 import {
   NativeValidationProvider,
   useFieldValidationErrors,
@@ -172,7 +172,7 @@ const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
 
 function LiveCustomizedForm() {
   const tree = useMemo(() => zodToTree(schema), [])
-  const validator = useMemo(() => createZodValidator(schema), [])
+  const validator = useMemo(() => fromStandardSchema(schema), [])
   const { form, SchemaFields: Fields } = useFormTree(tree)
   // Type off `form` — the rendered tree — not the pre-present input (bd bh7.8), the
   // desync-proof habit that lets a later `overrideWidgets` re-narrow the control for

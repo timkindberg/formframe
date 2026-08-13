@@ -9,8 +9,9 @@
 > decision stands and is reinforced — validation *production* joins that recipe
 > axis (wired through RHF / TanStack / native). The clause that **validation
 > adapters remain maintained packages** (`validation-ajv`, `validation-zod`,
-> `validation-contract`) is **superseded**: those packages are demoted with the
-> library-owned `Validator` runtime. What the library keeps is display types + the
+> `validation-contract`) is **superseded**: those packages were removed (#126).
+> JSON Schema + AJV lives in example recipes; Zod uses Core
+> `fromStandardSchema`. What the library keeps is display types + the
 > field error-presentation seam, not a catalog of validators.
 
 ## Context

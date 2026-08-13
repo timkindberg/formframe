@@ -5,11 +5,10 @@
 **Deciders:** Tim Kindberg
 
 > **Superseded (2026-08-12).** ADR 050 demotes validation production out of
-> the product surface: `@formframe/validation-contract` is no longer a
-> maintained package backing a library capability slot. It remains **in
-> place as a private recipe/test-support package** (`"private": true`) — AJV
-> and Zod recipe helpers and the parity-test harness still depend on it as a
-> devDependency, but it ships nothing to library consumers.
+> the product surface. The `@formframe/validation-contract` (and sister
+> `validation-ajv` / `validation-zod`) packages were removed in #126 — AJV
+> lives in example recipes (`ajvValidator.recipe.ts`); Zod recipes use Core
+> `fromStandardSchema`. This ADR remains as history of the earlier packaging.
 
 ## Context
 

@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "rootDir": ".",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "types": ["vitest/globals", "@vitest/browser"]
   },
@@ -10,6 +9,7 @@
     "src/**/*.ts",
     "src/**/*.test.tsx",
     "src/**/*.tsx",
-    "vitest.setup.ts"
+    "vitest.setup.ts",
+    "../../examples/basic-react/src/ajvValidator.recipe.ts"
   ]
 }

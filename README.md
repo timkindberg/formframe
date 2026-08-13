@@ -150,8 +150,8 @@ structural form input.
 
 | Source | Form generation | Validation |
 |---|---|---|
-| Zod v4 | `zodToTree` from the maintained `@formframe/input-zod` package | `fromStandardSchema` (Core), or the demoted `validation-zod` recipe helper for richer Zod issue metadata |
-| JSON Schema draft-07 | `jsonSchemaToTree` from the maintained `@formframe/input-jsonschema` package | The demoted `validation-ajv` recipe helper (`createAjvValidator`), or any AJV wiring you own |
+| Zod v4 | `zodToTree` from the maintained `@formframe/input-zod` package | `fromStandardSchema` (Core), or any Zod / resolver wiring you own |
+| JSON Schema draft-07 | `jsonSchemaToTree` from the maintained `@formframe/input-jsonschema` package | Copy `ajvValidator.recipe.ts` from the examples (AJV → `Validator`), or any AJV wiring you own |
 | ArkType | No maintained input package yet; an ArkType compiler can target Core's public tree builders | `fromStandardSchema` |
 | Your own source | Write a small compiler against Core's public builders | Supply any FormFrame `Validator`, produced by a recipe you own |
 
@@ -254,10 +254,10 @@ controlled-value state manager, a regular form library will usually be simpler.
 | `@formframe/renderer-react` | React hook, default renderer, continuation customization, and error display |
 | `@formframe/renderer-vanilla` | DOM and string renderer |
 
-`validation-ajv`, `validation-zod`, and `validation-contract` are demoted,
-private recipe/test-support packages ([ADR 050](./architecture_records/050_validation_is_a_non_goal.md)) —
-not product packages. Examples and parity tests may depend on them; the
-library itself does not ship a validation runtime.
+Validation production lives in recipes ([ADR 050](./architecture_records/050_validation_is_a_non_goal.md)):
+copy the example stacks under `examples/basic-react` (including
+`ajvValidator.recipe.ts` for JSON Schema + AJV). The library does not ship a
+validation runtime package.
 
 FormFrame is under active pre-v1 development; public APIs may still change.
 

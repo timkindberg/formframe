@@ -10,7 +10,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import type { ValidationError } from '@formframe/core'
 import { jsonSchemaToTree, type JSONSchema } from '@formframe/input-jsonschema'
-import { createAjvValidator } from '@formframe/validation-ajv'
+import { createAjvValidator } from './ajvValidator.recipe'
 import {
   fieldControlId,
   fieldErrorId,

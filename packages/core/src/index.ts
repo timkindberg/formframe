@@ -102,8 +102,9 @@ export {
   decodeJsonPointerSegment,
 } from './jsonPointer'
 
-// Validation capability slot (ADR 019) — the neutral, side-loaded contract.
-// Adapters (e.g. @formframe/validation-ajv) implement `Validator`.
+// Validation vocabulary (ADR 037 / ADR 050) — display types + helpers.
+// Recipes implement `Validator` (e.g. examples' `ajvValidator.recipe.ts`, or
+// Core's `fromStandardSchema`).
 export { groupErrorsByPath } from './validation'
 
 // Standard Schema interop (ADR 026) — let the Validator seam emit/consume the

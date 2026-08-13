@@ -104,8 +104,9 @@ decision ([#119](https://github.com/timkindberg/formframe/issues/119)):
   clean up with the demotion implementation.
 - **[#126](https://github.com/timkindberg/formframe/issues/126) completed the
   demotion implementation**: `validation-ajv`/`validation-zod`/
-  `validation-contract` are now private recipe/test-support packages (kept in
-  place, not deleted); `useFormTree` lost its `validator` option and
+  `validation-contract` were removed from the product surface (AJV lives in
+  example recipes as `ajvValidator.recipe.ts`; Zod uses Core
+  `fromStandardSchema`); `useFormTree` lost its `validator` option and
   submit-gating; the error/touched/display-policy store moved out of
   `packages/react` into example recipes. ADR 020 and ADR 028 are now formally
   marked `Superseded by ADR 050`.

@@ -2,12 +2,14 @@
 // + AJV — the third peer of Recipe_ReactHookForm_JSONSchema /
 // Recipe_TanStackForm_JSONSchema.
 //
-// FOUR files to copy — this one plus the three layers beneath it:
+// FOUR files to copy for the Zod half (shared stack) — JSON Schema recipes
+// also copy `ajvValidator.recipe.ts`:
 //
 //   fieldPresentation.recipe.tsx     shared blank/match helpers
 //   nativeValidation.recipe.tsx      stores + NativeValidationProvider + hook
 //   nativeFieldControls.recipe.tsx   inject bindings (this stack's "controls")
 //   this file                        the JSON Schema + AJV half
+//   (+ ajvValidator.recipe.ts)       AJV → FormFrame Validator helper
 //
 // Only this file knows about JSON Schema or AJV. Swap it for
 // Recipe_NativeForm_Zod and you get the same form over Zod with the other
@@ -42,7 +44,7 @@ import {
   useRenderNodeRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
-import { createAjvValidator } from '@formframe/validation-ajv'
+import { createAjvValidator } from './ajvValidator.recipe'
 import { withMatchRule, withMissingGroups } from './fieldPresentation.recipe'
 import {
   NativeValidationProvider,
