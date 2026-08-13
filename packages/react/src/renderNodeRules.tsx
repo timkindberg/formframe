@@ -79,10 +79,10 @@ export interface TextData {
  * `data` (the type shown inside `PartComponent<…>` on hover). It is an ordinary
  * React component, so it composes and re-renders like any other.
  *
- * `errors` (#117/#126) is the lexical inject for `Control` / `Errors` — the
- * library does not produce or store validation errors itself (ADR 050), so a
- * handler that wants error markup/a11y passes them here explicitly. Omit for no
- * errors. Ignored on caption parts.
+ * `errors` is the lexical inject for `Control` / `Errors` — the library does
+ * not produce or store validation errors itself (ADR 050), so a handler that
+ * wants error markup/a11y passes them here explicitly. Omit for no errors.
+ * Ignored on caption parts.
  */
 export type PartComponent<D> = (props: {
   render?: (data: D) => ReactNode
@@ -165,11 +165,11 @@ function Control({
 }
 
 // Errors are RUNTIME validation state (not a schema part) — from an injected
-// `errors` prop (#117/#126) only; the library does not produce or store them
-// (ADR 050). Possible only because parts are real components (ADR 047 §2). The
-// id/class match the default field Root's error list (no `role="alert"`), so
-// promoting Errors to a movable part keeps `aria-describedby` (set by
-// `Control`) pointing at a real element.
+// `errors` prop only; the library does not produce or store them (ADR 050).
+// Possible only because parts are real components (ADR 047 §2). The id/class
+// match the default field Root's error list (no `role="alert"`), so promoting
+// Errors to a movable part keeps `aria-describedby` (set by `Control`) pointing
+// at a real element.
 function Errors({
   render,
   errors: injectedErrors,

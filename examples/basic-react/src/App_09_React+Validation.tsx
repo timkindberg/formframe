@@ -1,12 +1,9 @@
-// Submit-time validation — recipe-owned (formerly ADR 019's library-runtime
-// walk-through).
+// Submit-time validation with the native form-state recipe.
 //
-// Validation is a capability slot: Core names the `Validator` shape, an
-// adapter (here @formframe/validation-ajv) implements it, and a small
-// recipe hook — `useNativeValidator` (nativeValidation.recipe.tsx) — runs it
-// on submit. `useFormTree` itself carries no validator slot (#126); this is
-// a thin demo of the same native-form recipe `Recipe_NativeForm_JSONSchema`
-// uses, trimmed to one schema and no cross-field rule.
+// Core names the `Validator` shape; an adapter (here @formframe/validation-ajv)
+// implements it; `useNativeValidator` (nativeValidation.recipe.tsx) runs it on
+// submit. Thin demo of the same stack `Recipe_NativeForm_JSONSchema` uses,
+// trimmed to one schema and no cross-field rule.
 import { useState } from 'react'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
@@ -74,8 +71,7 @@ function App() {
         blocks the handler; valid data clears the errors and submits. The
         validator is a plain <code>Validator</code> from{' '}
         <code>validation-ajv</code> — swap it for Zod/Valibot without touching
-        the form. <code>useFormTree</code> itself carries no validator slot
-        (#126) — validation production is entirely recipe-owned.
+        the form. FormFrame renders the errors; the recipe produces them.
       </p>
       <p>
         The <code>&lt;form&gt;</code> uses <code>noValidate</code> so the JS

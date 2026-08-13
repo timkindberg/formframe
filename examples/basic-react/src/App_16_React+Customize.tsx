@@ -64,8 +64,8 @@ type Shape = FormShapeOf<typeof schema>
 // ── Handlers (hoisted → stable identity → safe hooks + memo bail, §1) ─────────
 
 // `name` HAS a description in the schema, so `parts.Description` exists here.
-// `parts.Control`/`parts.Errors` take the recipe's injected errors (ADR 050)
-// — the library itself never produces them (#126).
+// `parts.Control`/`parts.Errors` take recipe-injected errors (ADR 050) —
+// FormFrame renders them; the recipe produces them.
 function RowName({ path, parts }: FieldProps<Shape, 'name'>) {
   const [hint, setHint] = useState(false)
   const errors = useFieldValidationErrors(path)
@@ -186,8 +186,7 @@ function LiveCustomizedForm() {
   // match the override with no other change. `useRenderNodeRules` reads that brand
   // to type the rules and bakes in the stable-resolver memo (ADR 048).
   const renderNode = useRenderNodeRules(form, customizeRules)
-  // `useFormTree` carries no validator slot (#126) — `useNativeValidator`
-  // (nativeValidation.recipe.tsx) is the recipe-owned replacement.
+  // Recipe-owned validation: produce errors here, inject via the provider.
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (

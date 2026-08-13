@@ -1,7 +1,7 @@
-// #117 / #126 / #129 — field error-presentation seam: inject via
+// Field error-presentation seam (ADR 050): inject via
 // `<Default of={field} errors={ValidationError[]} />` (recipe-pre-gated, no show
-// flag). Inject-only (ADR 050): the library does not produce/store validation
-// errors itself, so omitting `errors` means no errors and no a11y error state.
+// flag). Inject-only: the library does not produce/store validation errors
+// itself, so omitting `errors` means no errors and no a11y error state.
 
 import { useMemo } from 'react'
 import { describe, it, expect } from 'vitest'
@@ -27,7 +27,7 @@ const schema: JSONSchema = {
   },
 }
 
-describe('<Default errors={ValidationError[]}> inject path (#117/#129)', () => {
+describe('<Default errors={ValidationError[]}> inject path', () => {
   it('injected errors render and drive a11y; no role=alert', async () => {
     const injected: ValidationError[] = [
       { path: 'username', message: 'Too short' },

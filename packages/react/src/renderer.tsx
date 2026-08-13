@@ -168,11 +168,11 @@ function enrichControlErrorA11y(
 }
 
 /**
- * Internal bridge for `#117` `<Default of={field} errors={…} />`: the ADR-017
+ * Internal bridge for `<Default of={field} errors={…} />`: the ADR-017
  * component cannot forward `errors` through Core's `node.Default(opts)` without
  * a Core change, so it wraps the re-entry in this provider. `null` = not
- * injected (use the store); an array (including `[]`) = recipe-pre-gated source
- * of truth. Not a public seam — recipes pass the prop, not this context.
+ * injected (no errors); an array (including `[]`) = recipe-pre-gated source of
+ * truth. Not a public seam — recipes pass the prop, not this context.
  */
 const InjectedFieldErrorsContext = createContext<ValidationError[] | null>(null)
 
@@ -237,10 +237,10 @@ function DefaultGroupLabel({ text }: { text: string }): ReactNode {
 }
 
 // ---------------------------------------------------------------------------
-// Validation display (ADR 019 + ADR 050) — runtime state, NOT an IR part.
+// Validation display (ADR 050) — runtime state, NOT an IR part.
 //
-// The library does NOT produce, schedule, or store validation errors (ADR 050 /
-// #116/#126) — it only RENDERS them, through the inject seam:
+// The library does NOT produce, schedule, or store validation errors — it only
+// RENDERS them through the inject seam:
 // `<Default of={field} errors={ValidationError[]} />` (recipe-pre-gated, present
 // == show). With no injected `errors` a field emits NO error markup, so React
 // still matches the vanilla oracle (see conformance.test.tsx).
@@ -300,9 +300,9 @@ function DefaultFieldRoot({
     // Call, never mount: `part.Default()` returns a stable `PartHost` element.
     return override ? override(part) : part.Default()
   }
-  // #117/#126 inject-only: no `errors` prop injected via `<Default errors={…}
-  // />` means no errors and no a11y error state (ADR 050 — the library renders,
-  // it does not produce/store validation errors).
+  // Inject-only (ADR 050): no `errors` prop via `<Default errors={…} />`
+  // means no errors and no a11y error state — the library renders, it does
+  // not produce/store validation errors.
   const injected = useContext(InjectedFieldErrorsContext)
   const issues = injected ?? []
   const visible = issues.length > 0
@@ -740,7 +740,7 @@ type ControlOverrideOf<H, P> = H extends { parts: { control: infer C } }
 type WidenParts<H, P> = P extends object
   ? Omit<P, 'control'> & {
       control?: ControlOverrideOf<H, P>
-      /** Visible field errors (#117 / ADR 047). Present == show. */
+      /** Visible field errors (ADR 047 / ADR 050). Present == show. */
       errors?: (errors: ValidationError[]) => ReactNode
     }
   : P
@@ -757,8 +757,8 @@ type DefaultExtra<H> =
  * Render any handle's default — a node, a child node, or a part (anything with a
  * `.Default()`). `of={null/undefined}` renders nothing, so optional parts and
  * absent children are safe. `parts` / `renderNode` apply only to nodes (a part's
- * type offers neither). `errors` (#117/#126) injects per-field `ValidationError[]`
- * for field nodes — recipe-pre-gated (present == show); omit for no errors (the
+ * type offers neither). `errors` injects per-field `ValidationError[]` for
+ * field nodes — recipe-pre-gated (present == show); omit for no errors (the
  * library does not produce/store them itself — ADR 050). Stable module-level
  * type → reconciles in place.
  */

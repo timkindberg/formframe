@@ -8,8 +8,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     // Recipe tests live next to the copy-paste recipes in examples/ so
-    // consumers get coverage with the stack (ADR 024 / #126). Run them here
-    // against the existing browser harness rather than a second Vitest setup.
+    // consumers get coverage with the stack (ADR 024). Run them here against
+    // the existing browser harness rather than a second Vitest setup.
     include: [
       'src/**/*.{test,spec}.{ts,tsx}',
       '../../examples/basic-react/src/**/*.recipe.test.{ts,tsx}',

@@ -189,8 +189,8 @@ export default function App() {
   )
 }
 
-// ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
-// Build-log for the #116 epic; safe to delete when copying this file.
+// ─── MAINTAINER NOTES (not part of the recipe) ───────────────────
+// Safe to delete when copying this file.
 // • Ticket #124; seam locked at #117; glue list from the TanStack audit
 //   (#121). Parity with Recipe_ReactHookForm_JSONSchema / Zod + TanStack siblings proven by
 //   `packages/react/src/parity/` (#125).

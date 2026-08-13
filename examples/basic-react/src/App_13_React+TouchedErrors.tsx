@@ -1,5 +1,5 @@
 // Touched-gated error display — React-Hook-Form-style "quiet until touched",
-// recipe-owned (formerly ADR 027's library-runtime walk-through).
+// with the native form-state recipe.
 //
 // The SAME live validator runs on every keystroke via `useNativeValidator`
 // (nativeValidation.recipe.tsx); `showErrorsWhen` on
@@ -7,13 +7,12 @@
 // error it already has. Toggle the policy below to feel the difference:
 //   • always  — report the moment the validator produces an error (opt-out)
 //   • touched — stay quiet until the field blurs; submit reveals all
-//               (RHF-like; the recipe's touched behavior)
+//               (RHF-like)
 //   • submit  — nothing until a submit attempt (the recipe default)
 //
-// `useNativeValidator` owns the touched/submitted state. You wire one
-// `onBlur` at the form (focusout bubbles, so a single handler covers every
-// field) and spread its complete validation capability into
-// `NativeValidationProvider`.
+// `useNativeValidator` owns the touched/submitted state. Wire one `onBlur` at
+// the form (focusout bubbles, so a single handler covers every field) and
+// spread its validation capability into `NativeValidationProvider`.
 import { useState } from 'react'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'

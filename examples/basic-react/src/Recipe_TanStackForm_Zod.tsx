@@ -164,8 +164,8 @@ export default function App() {
   )
 }
 
-// ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
-// Build-log for the #116 epic; safe to delete when copying this file.
+// ─── MAINTAINER NOTES (not part of the recipe) ───────────────────
+// Safe to delete when copying this file.
 // • Exists as the ADR 008 forcing function for `tanstackFieldControls.recipe`:
 //   a second front-end proves that layer is genuinely front-end-agnostic
 //   rather than accidentally shaped around JSON Schema. Mirrors the

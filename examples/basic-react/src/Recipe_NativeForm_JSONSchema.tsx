@@ -5,7 +5,7 @@
 // FOUR files to copy — this one plus the three layers beneath it:
 //
 //   fieldPresentation.recipe.tsx     shared blank/match helpers
-//   nativeValidation.recipe.tsx      demoted stores + NativeValidationProvider
+//   nativeValidation.recipe.tsx      stores + NativeValidationProvider + hook
 //   nativeFieldControls.recipe.tsx   inject bindings (this stack's "controls")
 //   this file                        the JSON Schema + AJV half
 //
@@ -19,14 +19,13 @@
 //   schema ─→ createAjvValidator(schema) → useNativeValidator(form, validator)
 //             owns submit / revalidate / errors / submitted
 //   errors ─→ NativeValidationProvider ─→ controls inject via
-//             `<Default of={field} errors={…} />` (#117 / #129)
+//             `<Default of={field} errors={…} />`
 //
 // Worth knowing before you adapt it:
 //
 //   • No form library. Native FormData on submit; inputs stay uncontrolled.
-//     `useFormTree` no longer owns a validator slot (#126) — this recipe's
-//     `useNativeValidator` is what *produces* errors and *injects* them; the
-//     library only renders.
+//     `useFormTree` binds presentation + FormData submit; `useNativeValidator`
+//     produces errors and the controls inject them — FormFrame only renders.
 //   • Display timing defaults to `'submit'` in NativeValidationProvider
 //     (quiet until first submit, then reveal + clear live via `onInput={revalidate}`).
 //     Same observable behavior as RHF's default mode and TanStack's
@@ -168,17 +167,12 @@ export default function App() {
   )
 }
 
-// ─── MAINTAINER NOTES (temporary — not part of the recipe) ───────────────────
-// Build-log for the #116 epic; safe to delete when copying this file.
-// • Ticket #122; seam locked at #117 / landed as inject in #129. Peer of
-//   #123/#124 recipes. `useFormTree`'s validator slot was cut in #126; this
-//   recipe's `useNativeValidator` is the demoted runtime every native-form
-//   demo in this example app consumes.
+// ─── MAINTAINER NOTES (not part of the recipe) ───────────────────────────────
+// • Peer of the RHF / TanStack recipes (ADR 024). Inject seam: ADR 050.
 // • Native FormData drops empty nested groups; `withMissingGroups(['address'])`
 //   is the peer of TanStack's `defaultValues: { address: {} }` so required
 //   failures land on `address.street`.
-// • formStore / statusStore / async hooks never landed on main (lived on the
-//   #71 async branch). Async + pending/stale rows: owned by #125.
-// • ValidationSummary demoted with the runtime — not wired here (parity
-//   smoke asserts per-field DOM + onSubmit, not a summary).
+// • Async / pending / stale coverage lives in `packages/react/src/parity/`,
+//   not this demo. No ValidationSummary here — parity asserts per-field DOM
+//   + onSubmit.
 // ──────────────────────────────────────────────────────────────────────────────
