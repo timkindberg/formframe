@@ -7,9 +7,6 @@
     { "path": "./packages/input-conformance" },
     { "path": "./packages/react" },
     { "path": "./packages/vanilla" },
-    { "path": "./packages/validation-ajv" },
-    { "path": "./packages/validation-contract" },
-    { "path": "./packages/validation-zod" },
     { "path": "./examples/basic-react" }
   ],
   "compilerOptions": {
