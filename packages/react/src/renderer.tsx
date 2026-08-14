@@ -947,6 +947,8 @@ export function createRenderer(defaults: ReactPartialDefaults) {
 
     const resolvedIntercept = useMemo(
       () => (intercept ? resolveIntercept(intercept) : undefined),
+      // Map/bag sugar: stabilize on handler/pred identity, not the map object.
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- interceptStabilityDeps
       interceptStabilityDeps(intercept)
     )
 
@@ -955,9 +957,7 @@ export function createRenderer(defaults: ReactPartialDefaults) {
     // stable when handler references are stable even if the map object is new.
     const resolver = useMemo<AnySchemaResolver<ReactNode>>(
       () =>
-        resolvedIntercept
-          ? adaptResolver(resolvedIntercept)
-          : defaultResolver,
+        resolvedIntercept ? adaptResolver(resolvedIntercept) : defaultResolver,
       [resolvedIntercept]
     )
     const root = useMemo(

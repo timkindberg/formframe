@@ -256,8 +256,6 @@ export type NodeHandler = (props: NodeHandlerProps) => ReactNode
 /** The selector registry (§3). Register rules by axis; a single node picks one
  * winning rule by specificity. Handlers must be stable references (§1). */
 export interface RuleRegistrar {
-  /** Exact path, any node kind (field, group, or array). */
-  path(path: string, Handler: NodeHandler): void
   /** Exact field path (highest specificity). */
   field(path: string, Handler: FieldHandler): void
   /** Exact (non-root) group path. */
@@ -331,7 +329,6 @@ export function renderNodeRules(...builds: RulesBuild[]): InterceptFn {
     rules.push({ specificity, match, Handler: Handler as Rule['Handler'] })
   }
   const r: RuleRegistrar = {
-    path: (path, H) => add(SPECIFICITY.path, (n) => n.path === path, H),
     field: (path, H) =>
       add(SPECIFICITY.path, (n) => n.isField && n.path === path, H),
     group: (path, H) =>

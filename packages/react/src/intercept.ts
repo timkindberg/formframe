@@ -5,13 +5,26 @@
 
 import type { ReactNode } from 'react'
 import type { ENode, RenderHelpers } from './renderer'
-import { renderNodeRules, type NodeHandler } from './renderNodeRules'
+import {
+  renderNodeRules,
+  type NodeHandler,
+  type RuleRegistrar,
+} from './renderNodeRules'
+import type {
+  ArrayHandler,
+  FieldHandler,
+  GroupHandler,
+} from './renderNodeRules'
 
 /** The function floor — hand-written `(node, { Default, Children }) => …`. */
 export type InterceptFn = (node: ENode, helpers: RenderHelpers) => ReactNode
 
 /** Mounted handler component for a dotted `FieldPath` key. */
-export type InterceptHandler = NodeHandler
+export type InterceptHandler =
+  | NodeHandler
+  | FieldHandler
+  | GroupHandler
+  | ArrayHandler
 
 /** Shorthand path map: `{ email: EmailHint, 'address.street': StreetHint }`. */
 export type InterceptMap = Record<string, InterceptHandler>
@@ -35,32 +48,87 @@ export function isInterceptFn(value: Intercept): value is InterceptFn {
   return typeof value === 'function'
 }
 
-/** Bag has `paths` and/or `where` as own keys; a path-map is path → handler. */
-export function isInterceptBag(value: Intercept): value is InterceptBag {
+function isHandlerMap(value: unknown): value is InterceptMap {
   return (
     typeof value === 'object' &&
     value !== null &&
     !Array.isArray(value) &&
-    (Object.prototype.hasOwnProperty.call(value, 'paths') ||
-      Object.prototype.hasOwnProperty.call(value, 'where'))
+    Object.values(value).every((v) => typeof v === 'function')
   )
+}
+
+function isWhereRules(value: unknown): value is InterceptWhereRule[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (entry) =>
+        Array.isArray(entry) &&
+        entry.length === 2 &&
+        typeof entry[0] === 'function' &&
+        typeof entry[1] === 'function'
+    )
+  )
+}
+
+/** Bag: `paths` is a handler map and/or `where` is `[pred, Handler][]` — not field names. */
+export function isInterceptBag(value: Intercept): value is InterceptBag {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+  const obj = value as Record<string, unknown>
+  const hasPathsBag =
+    Object.prototype.hasOwnProperty.call(obj, 'paths') &&
+    isHandlerMap(obj.paths)
+  const hasWhereBag =
+    Object.prototype.hasOwnProperty.call(obj, 'where') &&
+    isWhereRules(obj.where)
+  return hasPathsBag || hasWhereBag
+}
+
+declare const process: { env: { NODE_ENV?: string } } | undefined
+
+function warnInvalidPathMapValue(path: string, value: unknown): void {
+  if (
+    typeof process !== 'undefined' &&
+    process.env.NODE_ENV !== 'production' &&
+    typeof value === 'object' &&
+    value !== null
+  ) {
+    console.warn(
+      `[formframe] intercept path-map: "${path}" value is a nested object, not a handler component. Use dotted paths (e.g. 'address.street').`
+    )
+  }
+}
+
+function registerPath(
+  r: RuleRegistrar,
+  path: string,
+  Handler: InterceptHandler
+): void {
+  if (typeof Handler !== 'function') {
+    warnInvalidPathMapValue(path, Handler)
+    return
+  }
+  // Kind-agnostic exact path — registered via `where` after bag `where` rules so
+  // path keys beat predicates at equal specificity (later wins).
+  r.where((n) => n.path === path, Handler as NodeHandler)
 }
 
 function lowerInterceptMap(map: InterceptMap): InterceptFn {
   return renderNodeRules((r) => {
     for (const [path, Handler] of Object.entries(map)) {
-      r.path(path, Handler)
+      registerPath(r, path, Handler)
     }
   })
 }
 
 function lowerInterceptBag(bag: InterceptBag): InterceptFn {
   return renderNodeRules((r) => {
-    for (const [path, Handler] of Object.entries(bag.paths ?? {})) {
-      r.path(path, Handler)
-    }
     for (const [predicate, Handler] of bag.where ?? []) {
-      r.where(predicate, Handler)
+      r.where(predicate, Handler as NodeHandler)
+    }
+    for (const [path, Handler] of Object.entries(bag.paths ?? {})) {
+      registerPath(r, path, Handler)
     }
   })
 }
