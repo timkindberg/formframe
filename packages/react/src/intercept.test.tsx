@@ -9,6 +9,7 @@ import type { JSONSchema } from '@formframe/input-jsonschema'
 import { SchemaFields } from './renderer'
 import type { FieldHandlerProps, GroupHandlerProps } from './renderNodeRules'
 import type { ENode } from './renderer'
+import type { InterceptMap } from './intercept'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -48,10 +49,12 @@ describe('intercept path-map sugar', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        intercept={{
-          email: EmailHint,
-          'address.street': StreetHint,
-        }}
+        intercept={
+          {
+            email: EmailHint,
+            'address.street': StreetHint,
+          } satisfies InterceptMap
+        }
       />
     )
     await expect.element(screen.getByTestId('email-hint')).toBeInTheDocument()
@@ -108,7 +111,9 @@ describe('intercept bag sugar', () => {
       />
     )
     await expect.element(screen.getByTestId('email-hint')).toBeInTheDocument()
-    expect(document.querySelectorAll('[data-testid="where-hit"]').length).toBe(0)
+    expect(document.querySelectorAll('[data-testid="where-hit"]').length).toBe(
+      0
+    )
     await expect
       .element(screen.getByRole('textbox', { name: 'Street' }))
       .toBeInTheDocument()
@@ -137,6 +142,40 @@ describe('intercept function floor', () => {
   })
 })
 
+describe('intercept path-map vs bag discrimination', () => {
+  const reservedKeysSchema: JSONSchema = {
+    type: 'object',
+    properties: {
+      paths: { type: 'string', title: 'Paths' },
+      where: { type: 'string', title: 'Where' },
+    },
+  }
+
+  it('treats a field named `where` as a path-map entry, not a bag axis', async () => {
+    const WhereField = () => <div data-testid="where-field">where field</div>
+    const form = jsonSchemaToRuntimeTree(reservedKeysSchema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{ where: WhereField } satisfies InterceptMap}
+      />
+    )
+    await expect.element(screen.getByTestId('where-field')).toBeInTheDocument()
+  })
+
+  it('treats a field named `paths` as a path-map entry, not a bag axis', async () => {
+    const PathsField = () => <div data-testid="paths-field">paths field</div>
+    const form = jsonSchemaToRuntimeTree(reservedKeysSchema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{ paths: PathsField } satisfies InterceptMap}
+      />
+    )
+    await expect.element(screen.getByTestId('paths-field')).toBeInTheDocument()
+  })
+})
+
 describe('intercept map stability', () => {
   it('does not remount inputs when the map object is new each render', async () => {
     const form = jsonSchemaToRuntimeTree(schema)
@@ -150,10 +189,12 @@ describe('intercept map stability', () => {
           </button>
           <SchemaFields
             form={form}
-            intercept={{
-              email: EmailHint,
-              'address.street': StreetHint,
-            }}
+            intercept={
+              {
+                email: EmailHint,
+                'address.street': StreetHint,
+              } satisfies InterceptMap
+            }
           />
         </div>
       )
