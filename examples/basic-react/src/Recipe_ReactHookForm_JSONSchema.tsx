@@ -52,16 +52,12 @@ import { toStandardSchema } from '@formframe/core'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
 import {
-  SchemaFields,
-  useInterceptRules,
-  type TypedRuleRegistrar,
+  useFormTree,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
 import { ValidationSummary, withMatchRule } from './fieldPresentation.recipe'
 import {
-  InputControl,
-  SelectControl,
-  ChoiceGroupControl,
+  rhfFieldDefaults,
   rhfErrorsToList,
 } from './rhfFieldControls.recipe'
 
@@ -116,14 +112,7 @@ const schema = {
   },
 } as const satisfies JSONSchema
 
-type Shape = FormShapeOf<typeof schema>
 type Data = InferData<typeof schema>
-
-const rhfRules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.control('input', InputControl)
-  r.control('select', SelectControl)
-  r.control('choicegroup', ChoiceGroupControl)
-}
 
 // The schema is a static module-level literal, so the tree and resolver are
 // built once at module scope — no `useMemo` needed. (If your schema arrives
@@ -147,7 +136,7 @@ export default function App() {
   // RHF's default mode: validate at first submit, revalidate on change after.
   const methods = useForm({ resolver })
   const { errors } = methods.formState
-  const intercept = useInterceptRules(tree, rhfRules)
+  const { SchemaFields } = useFormTree(tree, { defaults: rhfFieldDefaults })
   // Typed by the schema: `data.age` is `number`, `data.contactMethod` is
   // 'email' | 'phone' — inference flows from the schema literal through
   // `InferData` and the resolver's output type into `handleSubmit`.
@@ -173,7 +162,7 @@ export default function App() {
           onSubmit={methods.handleSubmit((data) => setSubmitted(data))}
         >
           <ValidationSummary errors={rhfErrorsToList(errors)} form={tree} />
-          <SchemaFields form={tree} intercept={intercept} />
+          <SchemaFields />
           <button type="submit" style={{ marginTop: 12 }}>
             Submit
           </button>
@@ -196,7 +185,7 @@ export default function App() {
 //   Display-policy unification + parity proof: `packages/react/src/parity/` (#125).
 // • ADR trail: 050 (recipes produce, library renders) / 024 (recipes not
 //   packages) / 025 (validator purity — the coerceTypes corruption story) /
-//   026 (toStandardSchema) / 047-048 (interceptRules + typed registrar).
+//   026 (toStandardSchema) / 047-048 (renderNodeRules + typed registrar).
 // • Async option sets for `plan`-style enums: not modelled by Core yet
 //   (ADR 029 §5, bd cm7) — a fetched option list is a consumer resolver's
 //   job today (pin `{ widget: 'select' }` so a count change can't re-pick

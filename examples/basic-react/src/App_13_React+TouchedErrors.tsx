@@ -14,20 +14,16 @@
 // the form (focusout bubbles, so a single handler covers every field) and
 // spread its validation capability into `NativeValidationProvider`.
 import { useState } from 'react'
-import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import {
-  useFormTree,
-  useInterceptRules,
-  type TypedRuleRegistrar,
-} from '@formframe/renderer-react'
+import { useFormTree } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
 import {
   NativeValidationProvider,
   useNativeValidator,
   type ShowErrorsWhen,
 } from './nativeValidation.recipe'
-import { InputControl } from './nativeFieldControls.recipe'
+import { nativeFieldDefaults } from './nativeFieldControls.recipe'
 
 const schema = {
   type: 'object',
@@ -50,20 +46,16 @@ const schema = {
 const tree = jsonSchemaToTree(schema)
 const validator = createAjvValidator(schema)
 
-type Shape = FormShapeOf<typeof schema>
-const nativeRules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.control('input', InputControl)
-}
-
 const policies: ShowErrorsWhen[] = ['always', 'touched', 'submit']
 
 function App() {
-  const { form, SchemaFields } = useFormTree(tree)
+  const { form, SchemaFields } = useFormTree(tree, {
+    defaults: nativeFieldDefaults,
+  })
   const { validation, submit, revalidate, handleBlur } = useNativeValidator(
     form,
     validator
   )
-  const intercept = useInterceptRules(form, nativeRules)
   const [mode, setMode] = useState<ShowErrorsWhen>('touched')
   const [submittedData, setSubmittedData] = useState<Record<
     string,
@@ -110,7 +102,7 @@ function App() {
         }}
       >
         <NativeValidationProvider {...validation} showErrorsWhen={mode}>
-          <SchemaFields intercept={intercept} />
+          <SchemaFields />
         </NativeValidationProvider>
         <button type="submit">Submit</button>
       </form>

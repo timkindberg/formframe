@@ -23,8 +23,6 @@ import { fromStandardSchema } from '@formframe/core'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   useFormTree,
-  useInterceptRules,
-  type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import {
   ValidationSummary,
@@ -34,11 +32,7 @@ import {
   NativeValidationProvider,
   useNativeValidator,
 } from './nativeValidation.recipe'
-import {
-  InputControl,
-  SelectControl,
-  ChoiceGroupControl,
-} from './nativeFieldControls.recipe'
+import { nativeFieldDefaults } from './nativeFieldControls.recipe'
 
 const schema = z
   .object({
@@ -76,23 +70,17 @@ const schema = z
     path: ['confirmPassword'],
   })
 
-type Shape = FormShapeOf<typeof schema>
 type Data = z.output<typeof schema>
-
-const nativeRules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.control('input', InputControl)
-  r.control('select', SelectControl)
-  r.control('choicegroup', ChoiceGroupControl)
-}
 
 const tree = zodToTree(schema)
 // Same nested-empty glue as the JSON Schema twin — see withMissingGroups.
 const validator = withMissingGroups(fromStandardSchema(schema), ['address'])
 
 export default function App() {
-  const { form, SchemaFields } = useFormTree(tree)
+  const { form, SchemaFields } = useFormTree(tree, {
+    defaults: nativeFieldDefaults,
+  })
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
-  const intercept = useInterceptRules(form, nativeRules)
   const [submitted, setSubmitted] = useState<Data | null>(null)
 
   return (
@@ -118,7 +106,7 @@ export default function App() {
           form={form}
         />
         <NativeValidationProvider {...validation}>
-          <SchemaFields intercept={intercept} />
+          <SchemaFields />
         </NativeValidationProvider>
         <button type="submit" style={{ marginTop: 12 }}>
           Submit

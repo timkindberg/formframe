@@ -32,17 +32,10 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { z } from 'zod'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
-  SchemaFields,
-  useInterceptRules,
-  type TypedRuleRegistrar,
+  useFormTree,
 } from '@formframe/renderer-react'
 import { ValidationSummary } from './fieldPresentation.recipe'
-import {
-  InputControl,
-  SelectControl,
-  ChoiceGroupControl,
-  rhfErrorsToList,
-} from './rhfFieldControls.recipe'
+import { rhfFieldDefaults, rhfErrorsToList } from './rhfFieldControls.recipe'
 
 const schema = z
   .object({
@@ -88,14 +81,7 @@ const schema = z
     path: ['confirmPassword'],
   })
 
-type Shape = FormShapeOf<typeof schema>
 type Data = z.output<typeof schema>
-
-const rhfRules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.control('input', InputControl)
-  r.control('select', SelectControl)
-  r.control('choicegroup', ChoiceGroupControl)
-}
 
 // Static schema → build once at module scope (use `useMemo` in the component
 // instead if your schema arrives at runtime). No cast anywhere: the Zod
@@ -107,7 +93,7 @@ export default function App() {
   // RHF's default mode: validate at first submit, revalidate on change after.
   const methods = useForm({ resolver })
   const { errors } = methods.formState
-  const intercept = useInterceptRules(tree, rhfRules)
+  const { SchemaFields } = useFormTree(tree, { defaults: rhfFieldDefaults })
   // Typed by the schema: `z.output` flows through the resolver into
   // `handleSubmit`, so `data.age` is `number`, `data.contactMethod` is
   // 'email' | 'phone' — no annotations needed.
@@ -133,7 +119,7 @@ export default function App() {
           onSubmit={methods.handleSubmit((data) => setSubmitted(data))}
         >
           <ValidationSummary errors={rhfErrorsToList(errors)} form={tree} />
-          <SchemaFields form={tree} intercept={intercept} />
+          <SchemaFields />
           <button type="submit" style={{ marginTop: 12 }}>
             Submit
           </button>

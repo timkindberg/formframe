@@ -41,16 +41,12 @@ import { z } from 'zod'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
-  SchemaFields,
-  useInterceptRules,
-  type TypedRuleRegistrar,
+  useFormTree,
 } from '@formframe/renderer-react'
 import { ValidationSummary } from './fieldPresentation.recipe'
 import {
   TanStackFormProvider,
-  InputControl,
-  SelectControl,
-  ChoiceGroupControl,
+  tanstackFieldDefaults,
   tanstackFieldMetaToErrors,
 } from './tanstackFieldControls.recipe'
 
@@ -100,12 +96,6 @@ type Data = z.output<typeof schema>
 
 const tree = zodToTree(schema)
 
-const tanStackRules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.control('input', InputControl)
-  r.control('select', SelectControl)
-  r.control('choicegroup', ChoiceGroupControl)
-}
-
 export default function App() {
   const [submitted, setSubmitted] = useState<Data | null>(null)
   const form = useForm({
@@ -125,7 +115,7 @@ export default function App() {
       setSubmitted(parsed.success ? parsed.data : value)
     },
   })
-  const intercept = useInterceptRules(tree, tanStackRules)
+  const { SchemaFields } = useFormTree(tree, { defaults: tanstackFieldDefaults })
   const fieldMeta = useStore(form.store, (s) => s.fieldMeta)
 
   return (
@@ -154,7 +144,7 @@ export default function App() {
             errors={tanstackFieldMetaToErrors(fieldMeta)}
             form={tree}
           />
-          <SchemaFields form={tree} intercept={intercept} />
+          <SchemaFields />
           <button type="submit" style={{ marginTop: 12 }}>
             Submit
           </button>

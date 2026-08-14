@@ -41,17 +41,13 @@ import { toStandardSchema } from '@formframe/core'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
 import {
-  SchemaFields,
-  useInterceptRules,
-  type TypedRuleRegistrar,
+  useFormTree,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
 import { ValidationSummary, withMatchRule } from './fieldPresentation.recipe'
 import {
   TanStackFormProvider,
-  InputControl,
-  SelectControl,
-  ChoiceGroupControl,
+  tanstackFieldDefaults,
   tanstackFieldMetaToErrors,
 } from './tanstackFieldControls.recipe'
 
@@ -127,12 +123,6 @@ const standardSchema = toStandardSchema(validator) as StandardSchemaV1<
   Data
 >
 
-const tanStackRules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.control('input', InputControl)
-  r.control('select', SelectControl)
-  r.control('choicegroup', ChoiceGroupControl)
-}
-
 export default function App() {
   const [submitted, setSubmitted] = useState<Data | null>(null)
   const form = useForm({
@@ -149,7 +139,7 @@ export default function App() {
       setSubmitted(result.data ?? value)
     },
   })
-  const intercept = useInterceptRules(tree, tanStackRules)
+  const { SchemaFields } = useFormTree(tree, { defaults: tanstackFieldDefaults })
   const fieldMeta = useStore(form.store, (s) => s.fieldMeta)
 
   return (
@@ -179,7 +169,7 @@ export default function App() {
             errors={tanstackFieldMetaToErrors(fieldMeta)}
             form={tree}
           />
-          <SchemaFields form={tree} intercept={intercept} />
+          <SchemaFields />
           <button type="submit" style={{ marginTop: 12 }}>
             Submit
           </button>

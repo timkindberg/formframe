@@ -1,7 +1,7 @@
 /**
  * Test-local RHF parity recipe (#125 option B) — field-wiring only.
  */
-import { useMemo, type ReactNode } from 'react'
+import { useContext, useMemo, type ReactNode } from 'react'
 import {
   useForm,
   FormProvider,
@@ -10,21 +10,19 @@ import {
   get,
 } from 'react-hook-form'
 import type { FieldError, FieldValues } from 'react-hook-form'
+import type { FieldControl, GroupNode, FormShape, TypedTree, ValidationError } from '@formframe/core'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import type {
-  ValidationError,
-  GroupNode,
-  FormShape,
-  TypedTree,
-} from '@formframe/core'
+import type { GroupNode, FormShape, TypedTree } from '@formframe/core'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import { zodToTree } from '@formframe/input-zod'
 import {
-  Default,
-  SchemaFields,
-  useInterceptRules,
-  type ControlProps,
+  errorA11yProps,
+  FieldA11yContext,
+  injectFieldErrors,
+  nativeDefaults,
+  useFormTree,
+  type ReactPartialDefaults,
 } from '../../index'
 import {
   accountSignupJsonSchema,
@@ -54,23 +52,37 @@ function useFieldValidationErrors(path: string): ValidationError[] {
     : []
 }
 
-function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
+function RhfParityFieldRoot({
+  node,
+  overrides,
+}: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
+  const errors = useFieldValidationErrors(node.path)
+  const Root = nativeDefaults.field.root
+  return injectFieldErrors(errors, <Root node={node} overrides={overrides} />)
+}
+
+function RhfParityFieldControl(control: FieldControl): ReactNode {
   const { register } = useFormContext()
-  const errors = useFieldValidationErrors(path)
-  return (
-    <Default
-      of={node}
-      errors={errors}
-      parts={{
-        control: (c) => (
-          <input
-            {...c.attrs}
-            {...register(path, { setValueAs: blankToUndefined })}
-          />
-        ),
-      }}
-    />
-  )
+  const path = control.attrs.name
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  switch (control.kind) {
+    case 'input':
+      return (
+        <input
+          {...control.attrs}
+          {...register(path, { setValueAs: blankToUndefined })}
+          {...errorA11y}
+        />
+      )
+  }
+  return nativeDefaults.field.control(control)
+}
+
+const rhfParityDefaults: ReactPartialDefaults = {
+  field: {
+    root: RhfParityFieldRoot,
+    control: RhfParityFieldControl,
+  },
 }
 
 function flattenRhfErrors(
@@ -145,11 +157,9 @@ export function RhfParityRecipe({
 
   const methods = useForm({ resolver })
   const { isValidating } = useFormState({ control: methods.control })
-  const intercept = useInterceptRules(
+  const { SchemaFields } = useFormTree(
     tree as TypedTree<FormShape, unknown>,
-    (r) => {
-      r.control('input', InputControl)
-    }
+    { defaults: rhfParityDefaults }
   )
 
   return (
@@ -165,7 +175,7 @@ export function RhfParityRecipe({
         )}
       >
         <Summary />
-        <SchemaFields form={tree} intercept={intercept} />
+        <SchemaFields />
         <button type="submit">Submit</button>
       </form>
     </FormProvider>

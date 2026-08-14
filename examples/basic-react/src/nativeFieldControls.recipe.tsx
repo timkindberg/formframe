@@ -1,5 +1,5 @@
-// RECIPE (native form-state): control bindings that inject gated errors into
-// FormFrame's `<Default of={node} errors={…} />` seam.
+// RECIPE (native form-state): defaults bindings that inject gated errors into
+// FormFrame's field root under `InjectedFieldErrorsContext`.
 //
 // Layer 2 of the native recipe stack — the peer of `rhfFieldControls.recipe.tsx`
 // / `tanstackFieldControls.recipe.tsx`:
@@ -10,34 +10,32 @@
 //   Recipe_NativeForm_*              per schema front-end
 //
 // Native forms are uncontrolled (FormData on submit) — FormFrame's default
-// controls already emit the right `name`/`id` attrs. These handlers only
+// controls already emit the right `name`/`id` attrs. These defaults only
 // inject pre-gated errors so the library renders them; they do not replace
-// the control markup. Typed against FormFrame's neutral `ControlProps<K>`
-// seam, so ONE copy serves every schema front-end.
+// the control markup.
 //
 // Display timing lives in `NativeValidationProvider` (default `'submit'`),
-// not here — these controls inject whatever the provider says is displayable.
+// not here — these defaults inject whatever the provider says is displayable.
 import type { ReactNode } from 'react'
-import { Default, type ControlProps } from '@formframe/renderer-react'
+import {
+  injectFieldErrors,
+  nativeDefaults,
+  type ReactPartialDefaults,
+} from '@formframe/renderer-react'
 import { useFieldValidationErrors } from './nativeValidation.recipe'
 
-export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
-  const errors = useFieldValidationErrors(path)
-  return <Default of={node} errors={errors} />
+function NativeRecipeFieldRoot({
+  node,
+  overrides,
+}: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
+  const errors = useFieldValidationErrors(node.path)
+  const Root = nativeDefaults.field.root
+  return injectFieldErrors(errors, <Root node={node} overrides={overrides} />)
 }
 
-export function SelectControl({
-  path,
-  node,
-}: ControlProps<'select'>): ReactNode {
-  const errors = useFieldValidationErrors(path)
-  return <Default of={node} errors={errors} />
-}
-
-export function ChoiceGroupControl({
-  path,
-  node,
-}: ControlProps<'choicegroup'>): ReactNode {
-  const errors = useFieldValidationErrors(path)
-  return <Default of={node} errors={errors} />
+/** Kind-wide native recipe defaults — pass to `useFormTree({ defaults })`. */
+export const nativeFieldDefaults: ReactPartialDefaults = {
+  field: {
+    root: NativeRecipeFieldRoot,
+  },
 }

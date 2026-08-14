@@ -41,8 +41,6 @@ import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
 import {
   useFormTree,
-  useInterceptRules,
-  type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
 import {
@@ -55,9 +53,7 @@ import {
   useNativeValidator,
 } from './nativeValidation.recipe'
 import {
-  InputControl,
-  SelectControl,
-  ChoiceGroupControl,
+  nativeFieldDefaults,
 } from './nativeFieldControls.recipe'
 
 const schema = {
@@ -111,12 +107,6 @@ const schema = {
 type Shape = FormShapeOf<typeof schema>
 type Data = InferData<typeof schema>
 
-const nativeRules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.control('input', InputControl)
-  r.control('select', SelectControl)
-  r.control('choicegroup', ChoiceGroupControl)
-}
-
 const tree = jsonSchemaToTree(schema)
 // Native FormData drops empty nested groups — seed `address: {}` so the
 // required failure lands on `address.street` (visible), matching RHF/TanStack.
@@ -128,9 +118,10 @@ const validator = withMatchRule(
 )
 
 export default function App() {
-  const { form, SchemaFields } = useFormTree(tree)
+  const { form, SchemaFields } = useFormTree(tree, {
+    defaults: nativeFieldDefaults,
+  })
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
-  const intercept = useInterceptRules(form, nativeRules)
   const [submitted, setSubmitted] = useState<Data | null>(null)
 
   return (
@@ -160,7 +151,7 @@ export default function App() {
           form={form}
         />
         <NativeValidationProvider {...validation}>
-          <SchemaFields intercept={intercept} />
+          <SchemaFields />
         </NativeValidationProvider>
         <button type="submit" style={{ marginTop: 12 }}>
           Submit

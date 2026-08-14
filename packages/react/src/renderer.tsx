@@ -885,6 +885,24 @@ function InjectedErrorsGate({
 }
 
 /**
+ * Wrap field markup so {@link DefaultFieldRoot} sees recipe-pre-gated errors
+ * without calling `<Default of={field} errors={…} />` from a custom
+ * `defaults.field.root` (that would mean the current merged defaults and
+ * infinite-loop). Call the previous root, then wrap its result:
+ * `injectFieldErrors(errors, nativeDefaults.field.root(props))`.
+ */
+export function injectFieldErrors(
+  errors: ValidationError[],
+  children: ReactNode
+): ReactNode {
+  return (
+    <InjectedFieldErrorsContext.Provider value={errors}>
+      {children}
+    </InjectedFieldErrorsContext.Provider>
+  )
+}
+
+/**
  * Render a container handle's children through the active resolver. Null-safe
  * and kind-safe: a non-container (a field) or `null/undefined` renders nothing.
  */

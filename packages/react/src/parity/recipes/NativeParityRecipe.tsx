@@ -28,10 +28,10 @@ import {
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import { zodToTree } from '@formframe/input-zod'
 import {
-  Default,
+  injectFieldErrors,
+  nativeDefaults,
   useFormTree,
-  useInterceptRules,
-  type ControlProps,
+  type ReactPartialDefaults,
 } from '../../index'
 import {
   accountSignupJsonSchema,
@@ -97,9 +97,19 @@ function useFieldValidationErrors(path: string): ValidationError[] {
   return submitted ? errors : EMPTY_ERRORS
 }
 
-function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
-  const errors = useFieldValidationErrors(path)
-  return <Default of={node} errors={errors} />
+function NativeParityFieldRoot({
+  node,
+  overrides,
+}: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
+  const errors = useFieldValidationErrors(node.path)
+  const Root = nativeDefaults.field.root
+  return injectFieldErrors(errors, <Root node={node} overrides={overrides} />)
+}
+
+const nativeParityDefaults: ReactPartialDefaults = {
+  field: {
+    root: NativeParityFieldRoot,
+  },
 }
 
 function SummaryBridge(): ReactNode {
@@ -139,11 +149,9 @@ export function NativeParityRecipe({
 
   // No sync validator — async SS is recipe-owned below.
   const { form, SchemaFields } = useFormTree(
-    tree as TypedTree<FormShape, unknown>
+    tree as TypedTree<FormShape, unknown>,
+    { defaults: nativeParityDefaults }
   )
-  const intercept = useInterceptRules(form, (r) => {
-    r.control('input', InputControl)
-  })
 
   const [store] = useState(() => createErrorStore())
   const [submitted, setSubmitted] = useState(false)
@@ -215,7 +223,7 @@ export function NativeParityRecipe({
           onInput={handleInput}
         >
           <SummaryBridge />
-          <SchemaFields intercept={intercept} />
+          <SchemaFields />
           <button type="submit">Submit</button>
         </form>
       </SubmittedContext.Provider>

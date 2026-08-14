@@ -1,4 +1,4 @@
-// RECIPE (per form library): React Hook Form control bindings for FormFrame.
+// RECIPE (per form library): React Hook Form defaults bindings for FormFrame.
 //
 // Layer 2 of the three-layer recipe stack:
 //
@@ -7,23 +7,28 @@
 //   Recipe_ReactHookForm_JSONSchema (JSON Schema) / Recipe_ReactHookForm_Zod (Zod)   ← per schema front-end
 //
 // Everything here is about RHF and nothing else: `register()` bindings and
-// mapping RHF errors → `ValidationError[]` for FormFrame's
-// `<Default of={node} errors={…} />` inject. Field chrome + error-state a11y
-// come from the library (merged into `c.attrs` for input/select; choicegroup
-// spreads `c.errorA11y` on the wrapper). Typed against FormFrame's neutral
-// `ControlProps<K>` seam (no schema generics), so ONE copy serves every schema
-// front-end.
+// mapping RHF errors → `ValidationError[]` for FormFrame's error inject.
+// Field chrome + error-state a11y come from the library (merged into `attrs`
+// for input/select; choicegroup spreads error a11y on the wrapper). Typed
+// against FormFrame's neutral control seam (no schema generics), so ONE copy
+// serves every schema front-end.
 //
 // Display timing is RHF's, not this file's: whatever `mode`/`reValidateMode`
-// you pass to `useForm` decides when errors exist, and these controls inject
+// you pass to `useForm` decides when errors exist, and these defaults inject
 // whatever RHF is holding. RHF's defaults give the recommended out-of-box UX
 // (quiet until the first submit attempt, then reveal and clear live). Want
 // blur-gated reveal instead? `mode: 'onTouched'` — nothing here changes.
+import { useContext, type ReactNode } from 'react'
 import { useFormContext, useFormState, get } from 'react-hook-form'
 import type { FieldError, FieldErrors } from 'react-hook-form'
-import type { ReactNode } from 'react'
-import type { ValidationError } from '@formframe/core'
-import { Default, type ControlProps } from '@formframe/renderer-react'
+import type { FieldControl, ValidationError } from '@formframe/core'
+import {
+  errorA11yProps,
+  FieldA11yContext,
+  injectFieldErrors,
+  nativeDefaults,
+  type ReactPartialDefaults,
+} from '@formframe/renderer-react'
 import {
   blankToUndefined,
   unselectedToUndefined,
@@ -93,78 +98,70 @@ export function rhfErrorsToList(errors: FieldErrors): ValidationError[] {
 const blankOption = { setValueAs: blankToUndefined }
 const unselectedOption = { setValueAs: unselectedToUndefined }
 
-// --- One handler per control archetype ---------------------------------------
-// Registered via `r.control('input' | 'select' | 'choicegroup', …)` in the
-// front-end file. Inject errors; override only the control part so FormFrame
-// keeps label / description / errors / a11y. `ControlProps<'input'>` narrows
-// `node.parts.control`, so the override callback is already an input — no
-// `c.kind ===` guard.
-
-export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
-  const { register } = useFormContext()
-  const errors = useFieldValidationErrors(path)
-  return (
-    <Default
-      of={node}
-      errors={errors}
-      parts={{
-        control: (c) => <input {...c.attrs} {...register(path, blankOption)} />,
-      }}
-    />
-  )
+function RhfRecipeFieldRoot({
+  node,
+  overrides,
+}: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
+  const errors = useFieldValidationErrors(node.path)
+  const Root = nativeDefaults.field.root
+  return injectFieldErrors(errors, <Root node={node} overrides={overrides} />)
 }
 
-export function SelectControl({
-  path,
-  node,
-}: ControlProps<'select'>): ReactNode {
+function RhfRecipeFieldControl(control: FieldControl): ReactNode {
   const { register } = useFormContext()
-  const errors = useFieldValidationErrors(path)
-  return (
-    <Default
-      of={node}
-      errors={errors}
-      parts={{
-        control: (c) => (
-          <select
-            {...c.attrs}
-            {...register(path, c.attrs.multiple ? undefined : blankOption)}
-          >
-            {!c.attrs.multiple && <option value="">-- select --</option>}
-            {c.options.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        ),
-      }}
-    />
-  )
+  const path = control.attrs.name
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  switch (control.kind) {
+    case 'input':
+      return (
+        <input
+          {...control.attrs}
+          {...register(path, blankOption)}
+          {...errorA11y}
+        />
+      )
+    case 'select': {
+      const { attrs, options } = control
+      return (
+        <select
+          {...attrs}
+          {...register(path, attrs.multiple ? undefined : blankOption)}
+          {...errorA11y}
+        >
+          {!attrs.multiple && <option value="">-- select --</option>}
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      )
+    }
+    case 'choicegroup':
+      return (
+        <div
+          className="jsf-choicegroup"
+          role={control.role}
+          aria-labelledby={control.labelledBy}
+          {...errorA11y}
+        >
+          {control.options.map((o) => (
+            <label key={o.attrs.id} className="jsf-choice">
+              <input {...o.attrs} {...register(path, unselectedOption)} />
+              <span className="jsf-choice-text">{o.label}</span>
+            </label>
+          ))}
+        </div>
+      )
+    default:
+      return nativeDefaults.field.control(control)
+  }
 }
 
-export function ChoiceGroupControl({
-  path,
-  node,
-}: ControlProps<'choicegroup'>): ReactNode {
-  const { register } = useFormContext()
-  const errors = useFieldValidationErrors(path)
-  return (
-    <Default
-      of={node}
-      errors={errors}
-      parts={{
-        control: (c) => (
-          <div role={c.role} aria-labelledby={c.labelledBy} {...c.errorA11y}>
-            {c.options.map((o) => (
-              <label key={o.attrs.id}>
-                <input {...o.attrs} {...register(path, unselectedOption)} />{' '}
-                {o.label}
-              </label>
-            ))}
-          </div>
-        ),
-      }}
-    />
-  )
+/** Kind-wide RHF recipe defaults — pass to `useFormTree({ defaults })`. */
+export const rhfFieldDefaults: ReactPartialDefaults = {
+  field: {
+    root: RhfRecipeFieldRoot,
+    control: RhfRecipeFieldControl,
+  },
 }
