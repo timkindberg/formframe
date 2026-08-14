@@ -7,7 +7,8 @@
 //   Recipe_ReactHookForm_JSONSchema (JSON Schema) / Recipe_ReactHookForm_Zod (Zod)   ← per schema front-end
 //
 // Everything here is about RHF and nothing else: `register()` bindings and
-// mapping RHF errors → `ValidationError[]` for FormFrame's error inject.
+// mapping RHF errors → `ValidationError[]`, injected on `defaults.field.root`
+// via `injectFieldErrors` (form-lib wiring on `defaults.field.control`).
 // Field chrome + error-state a11y come from the library (merged into `attrs`
 // for input/select; choicegroup spreads error a11y on the wrapper). Typed
 // against FormFrame's neutral control seam (no schema generics), so ONE copy

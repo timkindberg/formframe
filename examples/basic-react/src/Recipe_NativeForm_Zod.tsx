@@ -5,7 +5,7 @@
 //
 //   fieldPresentation.recipe.tsx     shared blank/match helpers + ValidationSummary
 //   nativeValidation.recipe.tsx      stores + NativeValidationProvider + hook
-//   nativeFieldControls.recipe.tsx   inject bindings
+//   nativeFieldControls.recipe.tsx   defaults bindings (`nativeFieldDefaults`)
 //   this file                        the Zod half
 //
 // Compared to the JSON Schema + AJV version:

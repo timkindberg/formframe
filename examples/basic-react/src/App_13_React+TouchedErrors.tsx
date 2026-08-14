@@ -12,7 +12,8 @@
 //
 // `useNativeValidator` owns the touched/submitted state. Wire one `onBlur` at
 // the form (focusout bubbles, so a single handler covers every field) and
-// spread its validation capability into `NativeValidationProvider`.
+// spread its validation capability into `NativeValidationProvider`. Field
+// errors render via `useFormTree({ defaults: nativeFieldDefaults })`.
 import { useState } from 'react'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
