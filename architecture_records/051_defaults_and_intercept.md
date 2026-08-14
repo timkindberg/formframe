@@ -1,7 +1,7 @@
 # ADR 051: Defaults vs Intercept — Two Jobs, Two Names
 
 **Date:** 2026-08-14
-**Status:** Accepted
+**Status:** Accepted (GitHub epic [#141](https://github.com/timkindberg/formframe/issues/141))
 **Deciders:** Tim Kindberg
 **Annotates:** ADR 013 (renderer set is **defaults**; React adoption is not `createRenderer` + a second selector language), ADR 047 §3 and §6 (kind blankets / `control` on the registrar are not a stylesheet; adapter and customize are not one registrar at two scopes)
 **Builds on:** ADR 010 / 017 (continuation floor), ADR 013 (renderer set), ADR 047 §1–§2 and §4 (mounted handlers, arrangeable parts, path-narrowed types), ADR 048 (`FormShape` binding), ADR 031 (`present()` is a different axis)
