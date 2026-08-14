@@ -1,6 +1,6 @@
 {
   "name": "@formframe/input-zod",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Zod front-end for @formframe/core — compiles a Zod schema into the neutral form tree by direct introspection (ADR 034)",
   "type": "module",
   "sideEffects": false,
@@ -45,6 +45,18 @@
   ],
   "author": "Tim Kindberg",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/timkindberg/formframe.git",
+    "directory": "packages/input-zod"
+  },
+  "homepage": "https://github.com/timkindberg/formframe/tree/main/packages/input-zod",
+  "bugs": {
+    "url": "https://github.com/timkindberg/formframe/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "@formframe/core": "*",
     "zod": "^4"

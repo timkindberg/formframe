@@ -1,0 +1,64 @@
+# Manual publish of @formframe/* to npm. Not on push to main.
+#
+# Requires repo secret NPM_TOKEN (npm automation token with publish rights
+# to the @formframe scope). Create it in GitHub; do not commit tokens.
+# Actual registry publish is a maintainer step — see AGENTS.md.
+
+name: Publish
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require main
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Publish only from main (ref: ${GITHUB_REF})"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all packages (tsup ESM + CJS + d.ts)
+        run: npm run build
+
+      - name: External-consumer smoke test (pack + publint + attw + dual runtime)
+        run: npm run smoke
+
+      - name: Check NPM_TOKEN
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "Create repo secret NPM_TOKEN (npm automation token for @formframe)."
+            exit 1
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @formframe packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish -w @formframe/core --access public
+          npm publish -w @formframe/input-jsonschema --access public
+          npm publish -w @formframe/input-zod --access public
+          npm publish -w @formframe/input-conformance --access public
+          npm publish -w @formframe/renderer-vanilla --access public
+          npm publish -w @formframe/renderer-react --access public

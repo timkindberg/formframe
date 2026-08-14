@@ -1,6 +1,6 @@
 {
   "name": "@formframe/renderer-react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "React adapter for FormFrame trees from any schema front-end",
   "type": "module",
   "sideEffects": false,
@@ -46,6 +46,18 @@
   ],
   "author": "Tim Kindberg",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/timkindberg/formframe.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/timkindberg/formframe/tree/main/packages/react",
+  "bugs": {
+    "url": "https://github.com/timkindberg/formframe/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "@formframe/core": "*",
     "react": "^18.0.0"

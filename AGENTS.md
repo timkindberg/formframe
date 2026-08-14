@@ -101,6 +101,29 @@ history/
 For more details about the project architecture, see `architecture_records/` and `ARCHITECTURE.md`.
 For more details about the project and the product vision, see `README.md`.
 
+## Publishing `@formframe/*` (maintainers)
+
+Registry publish is **Tim's**, not an agent step. Do not `npm publish` or `npm login` from an agent session.
+
+Packages are `0.1.0` (pre-1.0). The publishable set is the same as `scripts/smoke-external.mjs` `PACKAGES`: `core`, `input-jsonschema`, `input-zod`, `input-conformance`, `renderer-vanilla`, `renderer-react`. Root and `examples/*` stay private.
+
+**GitHub Actions (preferred):** repo secret `NPM_TOKEN` (npm automation token with publish rights to `@formframe`). Then run the **Publish** workflow (`workflow_dispatch`) from `main`. It builds, runs `npm run smoke`, and publishes. It does not run on push.
+
+**Local / OTP:** if you publish from a laptop with 2FA instead of the automation token:
+
+```bash
+npm run build
+npm run smoke
+npm publish -w @formframe/core --access public --otp=<otp>
+npm publish -w @formframe/input-jsonschema --access public --otp=<otp>
+npm publish -w @formframe/input-zod --access public --otp=<otp>
+npm publish -w @formframe/input-conformance --access public --otp=<otp>
+npm publish -w @formframe/renderer-vanilla --access public --otp=<otp>
+npm publish -w @formframe/renderer-react --access public --otp=<otp>
+```
+
+Do not republish removed `validation-*` packages (ADR 050).
+
 ## Session Completion
 
 **When ending a work session:**
