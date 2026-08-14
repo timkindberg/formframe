@@ -91,52 +91,87 @@ the Standard Schema helpers (`fromStandardSchema` / `toStandardSchema`) stay
 in `@formframe/core` as shared display/interop vocabulary — not a library
 validation runtime.
 
-## Customize one generated part
+## Customize generated fields
 
-Every default is also a re-entry point. This adds context to the generated email
-label while preserving its default control, description, errors, and the rest
-of the form:
-
-```tsx
-<SchemaFields
-  renderNode={(node, { Default }) =>
-    node.isField && node.path === 'email' ? (
-      <Default
-        of={node}
-        parts={{
-          label: (label) => (
-            <span>
-              <Default of={label} />
-              <small> Account notifications only.</small>
-            </span>
-          ),
-        }}
-      />
-    ) : (
-      <Default of={node} />
-    )
-  }
-/>
-```
-
-The fallback `<Default of={node} />` renders a whole node normally. To own a
-group's layout while preserving its generated descendants, re-enter through
-`Children`:
+The adoption path is `useRenderNodeRules`: each `if` in a `renderNode`
+mega-switch becomes one registrar call, and **specificity replaces order**.
 
 ```tsx
-renderNode={(node, { Default, Children }) =>
-  node.isGroup && node.path === 'address' ? (
+import { z } from 'zod'
+import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
+import {
+  useFormTree,
+  useRenderNodeRules,
+  type TypedRuleRegistrar,
+} from '@formframe/renderer-react'
+
+const schema = z.object({
+  email: z.string().email().meta({ title: 'Email' }),
+  address: z
+    .object({
+      street: z.string().meta({ title: 'Street' }),
+      city: z.string().meta({ title: 'City' }),
+    })
+    .meta({ title: 'Address' }),
+})
+
+type Shape = FormShapeOf<typeof schema>
+const tree = zodToTree(schema)
+
+const rules = (r: TypedRuleRegistrar<Shape>): void => {
+  r.field('email', ({ parts }) => (
+    <>
+      <span>
+        <parts.Label />
+        <small> Account notifications only.</small>
+      </span>
+      <parts.Control />
+      <parts.Errors />
+    </>
+  ))
+  r.group('address', ({ parts, children }) => (
     <section className="address-grid">
-      <Children of={node} />
+      <parts.Label />
+      {children}
     </section>
-  ) : (
-    <Default of={node} />
+  ))
+}
+
+export function ProfileForm() {
+  const { form, SchemaFields, submit } = useFormTree(tree)
+  const renderNode = useRenderNodeRules(form, rules)
+
+  return (
+    <form onSubmit={submit((data) => console.log(data))}>
+      <SchemaFields renderNode={renderNode} />
+      <button type="submit">Save profile</button>
+    </form>
   )
 }
 ```
 
+**From a mega-switch:** `if (node.isField && node.path === 'email')` becomes
+`r.field('email', …)`; `if (node.isGroup && node.path === 'address')` becomes
+`r.group('address', …)`. Unmatched nodes keep the default, so there is no
+fallback branch. Register in any order. One winning rule per node, most
+specific first: exact path, then `where`, then `control(kind)`, then
+`allFields` / `allGroups` / `allArrays`, then `default`. Recipes use the same
+registrar for a blanket widget swap (`r.control('input', InputControl)`).
+
+Handlers place parts (`<parts.Label />`, `<parts.Control />`, `{children}` for
+a group's descendants) or re-enter the whole node with `<Default />`. Type the
+hook off `form` from `useFormTree`, not the input tree. JSON Schema literals
+need `as const` for path types. Hoist handlers that call hooks.
+
+`renderNode` is still the floor (`<Default of={node} />` / `<Children of={node} />`).
+The numbered gallery in [`examples/basic-react`](./examples/basic-react) walks
+up to that floor on purpose (App_08 is the mega-switch). Copy a recipe, or
+[App_16](./examples/basic-react/src/App_16_React+Customize.tsx) /
+[App_17](./examples/basic-react/src/App_17_React+CustomizeZod.tsx), for the
+rules path.
+
 `Default` and `Children` are also exported from
-`@formframe/renderer-react` for authored layouts outside `renderNode`.
+`@formframe/renderer-react` for authored layouts outside a rule handler.
 
 ## Choose a schema input
 

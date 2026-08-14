@@ -117,7 +117,10 @@ Supplying your own JSX for a node or part instead of the default renderer — at
 _Avoid_: widget override, template (RJSF's schema-keyed registries; ours is a JSX continuation).
 
 **`renderNode`**:
-The per-node hook the renderer calls while walking the tree. Return custom JSX to hijack a node, or `<node.Default/>` to keep the default. The function form of node-scope customization.
+The per-node hook the renderer calls while walking the tree. Return custom JSX to hijack a node, or `<node.Default/>` to keep the default. The function form of node-scope customization — the floor. The numbered gallery apps walk up to it on purpose.
+
+**`useRenderNodeRules` / `renderNodeRules`**:
+Typed selector-registry sugar over `renderNode` (ADR 047/048). Each rule is a mounted component with arrangeable parts. Exact path > `where` > `control(kind)` > kind blankets (`allFields` / `allGroups` / `allArrays`) > `default`. `useRenderNodeRules` is the adoption front door (reads the `FormShape` branded on the tree and memoizes the resolver); don't call `renderNodeRules()` inline in render.
 
 **`Default`**:
 The component that renders the default for the thing it hangs off — `node.Default` (a whole node) or `part.Default` (one part). Re-enters the engine, so descendants still pass through `renderNode`.
