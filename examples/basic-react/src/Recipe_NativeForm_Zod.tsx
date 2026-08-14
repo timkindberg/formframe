@@ -20,7 +20,7 @@
 import { useState } from 'react'
 import { z } from 'zod'
 import { fromStandardSchema } from '@formframe/core'
-import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
+import { zodToTree } from '@formframe/input-zod'
 import {
   useFormTree,
 } from '@formframe/renderer-react'

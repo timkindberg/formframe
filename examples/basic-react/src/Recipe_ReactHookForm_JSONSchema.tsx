@@ -49,7 +49,7 @@ import type { FieldValues } from 'react-hook-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { toStandardSchema } from '@formframe/core'
-import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
 import {
   useFormTree,
