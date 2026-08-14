@@ -1,6 +1,6 @@
 {
   "name": "@formframe/renderer-vanilla",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Framework-agnostic HTML renderer and conformance oracle for FormFrame trees",
   "type": "module",
   "sideEffects": false,
@@ -45,6 +45,18 @@
   ],
   "author": "Tim Kindberg",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/timkindberg/formframe.git",
+    "directory": "packages/vanilla"
+  },
+  "homepage": "https://github.com/timkindberg/formframe/tree/main/packages/vanilla",
+  "bugs": {
+    "url": "https://github.com/timkindberg/formframe/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "@formframe/core": "*"
   },

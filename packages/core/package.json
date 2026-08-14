@@ -1,6 +1,6 @@
 {
   "name": "@formframe/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "FormFrame's schema-agnostic form-tree IR and recursive fold",
   "type": "module",
   "sideEffects": false,
@@ -46,6 +46,18 @@
   ],
   "author": "Tim Kindberg",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/timkindberg/formframe.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/timkindberg/formframe/tree/main/packages/core",
+  "bugs": {
+    "url": "https://github.com/timkindberg/formframe/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "typescript": "^5.3.3",
     "vitest": "^4.0.9"

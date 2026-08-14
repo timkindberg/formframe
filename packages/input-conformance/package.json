@@ -1,6 +1,6 @@
 {
   "name": "@formframe/input-conformance",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The shared input-conformance oracle — expected neutral trees every @formframe/input-* front-end must produce for equivalent schemas (ADR 039). Test-only; imports nothing from any input-* package.",
   "type": "module",
   "sideEffects": false,
@@ -41,6 +41,18 @@
   ],
   "author": "Tim Kindberg",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/timkindberg/formframe.git",
+    "directory": "packages/input-conformance"
+  },
+  "homepage": "https://github.com/timkindberg/formframe/tree/main/packages/input-conformance",
+  "bugs": {
+    "url": "https://github.com/timkindberg/formframe/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "@formframe/core": "*",
     "vitest": "^4"
