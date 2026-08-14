@@ -188,7 +188,7 @@ function RecipeHarness({
     form,
     validator
   )
-  const renderNode = useRenderNodeRules(form, (r) => {
+  const intercept = useRenderNodeRules(form, (r) => {
     r.control('input', InputControl)
   })
   return (
@@ -202,7 +202,7 @@ function RecipeHarness({
       }}
     >
       <NativeValidationProvider {...validation} showErrorsWhen={mode}>
-        <SchemaFields renderNode={renderNode} />
+        <SchemaFields intercept={intercept} />
       </NativeValidationProvider>
       <button type="submit">Submit</button>
     </form>

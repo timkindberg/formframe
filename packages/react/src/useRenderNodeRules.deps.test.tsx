@@ -49,14 +49,14 @@ describe('useRenderNodeRules `deps` escape hatch (bd jsonschema-form-108)', () =
           </div>
         ))
       }
-      const renderNode = useRenderNodeRules(tree, rules, [label])
-      seen.push(renderNode)
+      const intercept = useRenderNodeRules(tree, rules, [label])
+      seen.push(intercept)
       return (
         <div>
           <button type="button" onClick={() => setLabel('second')}>
             swap
           </button>
-          <SchemaFields form={tree} renderNode={renderNode} />
+          <SchemaFields form={tree} intercept={intercept} />
         </div>
       )
     }
@@ -88,7 +88,7 @@ describe('useRenderNodeRules `deps` escape hatch (bd jsonschema-form-108)', () =
 
     function Parent() {
       const [n, setN] = useState(0)
-      const renderNode = useRenderNodeRules(tree, (r) => {
+      const intercept = useRenderNodeRules(tree, (r) => {
         r.field('name', ({ Default }) => Default())
       })
       return (
@@ -96,7 +96,7 @@ describe('useRenderNodeRules `deps` escape hatch (bd jsonschema-form-108)', () =
           <button type="button" onClick={() => setN((x) => x + 1)}>
             bump {n}
           </button>
-          <SchemaFields form={tree} renderNode={renderNode} />
+          <SchemaFields form={tree} intercept={intercept} />
         </div>
       )
     }

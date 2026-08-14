@@ -41,7 +41,7 @@ describe('component handles — <Default of/> / <Children of/>', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        renderNode={(node, { Default }) => <Default of={node} />}
+        intercept={(node, { Default }) => <Default of={node} />}
       />
     )
     await expect
@@ -57,7 +57,7 @@ describe('component handles — <Default of/> / <Children of/>', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        renderNode={(node, helpers) => {
+        intercept={(node, helpers) => {
           expect(helpers.Default).toBe(Default)
           expect(helpers.Children).toBe(Children)
           return <Default of={node} />
@@ -109,7 +109,7 @@ describe('component handles — <Default of/> / <Children of/>', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        renderNode={(node, { Default, Children }) =>
+        intercept={(node, { Default, Children }) =>
           node.isGroup && node.path === 'address' ? (
             <section data-testid="addr-wrap">
               <Children of={node} />
@@ -140,7 +140,7 @@ describe('component handles — <Default of/> / <Children of/>', () => {
           {/* fresh closure every render → resolver identity changes → real re-render */}
           <SchemaFields
             form={form}
-            renderNode={(node, { Default }) => <Default of={node} />}
+            intercept={(node, { Default }) => <Default of={node} />}
           />
         </div>
       )

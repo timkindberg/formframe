@@ -130,7 +130,7 @@ const validator = withMatchRule(
 export default function App() {
   const { form, SchemaFields } = useFormTree(tree)
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
-  const renderNode = useRenderNodeRules(form, nativeRules)
+  const intercept = useRenderNodeRules(form, nativeRules)
   const [submitted, setSubmitted] = useState<Data | null>(null)
 
   return (
@@ -160,7 +160,7 @@ export default function App() {
           form={form}
         />
         <NativeValidationProvider {...validation}>
-          <SchemaFields renderNode={renderNode} />
+          <SchemaFields intercept={intercept} />
         </NativeValidationProvider>
         <button type="submit" style={{ marginTop: 12 }}>
           Submit

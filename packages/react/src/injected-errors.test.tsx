@@ -85,7 +85,7 @@ describe('<Default errors={ValidationError[]}> inject path', () => {
       return (
         <SchemaFields
           form={f}
-          renderNode={(node) =>
+          intercept={(node) =>
             node.isField && node.path === 'username' ? (
               <Default of={node} errors={injected} />
             ) : (

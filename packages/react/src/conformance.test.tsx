@@ -32,9 +32,9 @@ import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema, JSONSchemaObject } from '@formframe/input-jsonschema'
 import {
   renderToString,
-  type RenderNode as VanillaRenderNode,
+  type Intercept as VanillaRenderNode,
 } from '@formframe/renderer-vanilla'
-import { SchemaFields, type RenderNode as ReactRenderNode } from './renderer'
+import { SchemaFields, type Intercept as ReactRenderNode } from './renderer'
 
 /**
  * The tree the adapters actually render is the *presented* tree (ADR 029), so
@@ -83,8 +83,8 @@ function canonical(el: Element): string {
 type Tree = GroupNode<JSONSchemaObject>
 
 /** Vanilla oracle → canonical <form> (chrome-free content wrapped for compare). */
-function vanillaDom(tree: Tree, renderNode?: VanillaRenderNode): string {
-  const html = renderToString(tree, renderNode ? { renderNode } : {})
+function vanillaDom(tree: Tree, intercept?: VanillaRenderNode): string {
+  const html = renderToString(tree, intercept ? { intercept } : {})
   const doc = new DOMParser().parseFromString(
     `<form>${html}</form>`,
     'text/html'
@@ -97,11 +97,11 @@ function vanillaDom(tree: Tree, renderNode?: VanillaRenderNode): string {
 /** Live React → canonical <form> (chrome-free content wrapped for compare). */
 async function reactDom(
   tree: Tree,
-  renderNode?: ReactRenderNode
+  intercept?: ReactRenderNode
 ): Promise<string> {
   await render(
     <form>
-      <SchemaFields form={tree} renderNode={renderNode} />
+      <SchemaFields form={tree} intercept={intercept} />
     </form>
   )
   const el = document.querySelector('form')

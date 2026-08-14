@@ -93,8 +93,38 @@ validation runtime.
 
 ## Customize generated fields
 
-The adoption path is `useRenderNodeRules`: each `if` in a `renderNode`
-mega-switch becomes one registrar call, and **specificity replaces order**.
+**Defaults** are the kind-wide table of templates + parts
+(`useFormTree(tree, { defaults })`). **Intercept** is this node
+(`<SchemaFields intercept={…} />`). Kind-wide look and form-lib wiring live
+on defaults, not on a winning intercept.
+
+Org → team → feature composition is userland. Close over team defaults with a
+wrapper hook — there is no library context:
+
+```tsx
+import {
+  useFormTree,
+  mergeDefaults,
+  nativeDefaults,
+  type UseFormTreeOptions,
+} from '@formframe/renderer-react'
+import type { GroupNode } from '@formframe/core'
+
+const teamDefaults = mergeDefaults(nativeDefaults, {
+  field: { label: TeamLabel },
+})
+
+function useTeamFormTree<S>(tree: GroupNode<S>, options?: UseFormTreeOptions<S>) {
+  return useFormTree(tree, {
+    ...options,
+    defaults: mergeDefaults(teamDefaults, options?.defaults ?? {}),
+  })
+}
+```
+
+Path intercepts still use `useRenderNodeRules` (sugar over `intercept`): each
+`if` in an intercept mega-switch becomes one registrar call, and
+**specificity replaces order**.
 
 ```tsx
 import { z } from 'zod'
@@ -139,11 +169,11 @@ const rules = (r: TypedRuleRegistrar<Shape>): void => {
 
 export function ProfileForm() {
   const { form, SchemaFields, submit } = useFormTree(tree)
-  const renderNode = useRenderNodeRules(form, rules)
+  const intercept = useRenderNodeRules(form, rules)
 
   return (
     <form onSubmit={submit((data) => console.log(data))}>
-      <SchemaFields renderNode={renderNode} />
+      <SchemaFields intercept={intercept} />
       <button type="submit">Save profile</button>
     </form>
   )
@@ -163,7 +193,7 @@ a group's descendants) or re-enter the whole node with `<Default />`. Type the
 hook off `form` from `useFormTree`, not the input tree. JSON Schema literals
 need `as const` for path types. Hoist handlers that call hooks.
 
-`renderNode` is still the floor (`<Default of={node} />` / `<Children of={node} />`).
+`intercept` is still the floor (`<Default of={node} />` / `<Children of={node} />`).
 The numbered gallery in [`examples/basic-react`](./examples/basic-react) walks
 up to that floor on purpose (App_08 is the mega-switch). Copy a recipe, or
 [App_16](./examples/basic-react/src/App_16_React+Customize.tsx) /

@@ -63,7 +63,7 @@ function App() {
     form,
     validator
   )
-  const renderNode = useRenderNodeRules(form, nativeRules)
+  const intercept = useRenderNodeRules(form, nativeRules)
   const [mode, setMode] = useState<ShowErrorsWhen>('touched')
   const [submittedData, setSubmittedData] = useState<Record<
     string,
@@ -110,7 +110,7 @@ function App() {
         }}
       >
         <NativeValidationProvider {...validation} showErrorsWhen={mode}>
-          <SchemaFields renderNode={renderNode} />
+          <SchemaFields intercept={intercept} />
         </NativeValidationProvider>
         <button type="submit">Submit</button>
       </form>

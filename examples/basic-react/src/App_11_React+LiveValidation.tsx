@@ -56,7 +56,7 @@ const nativeRules = (r: TypedRuleRegistrar<Shape>): void => {
 function App() {
   const { form, SchemaFields } = useFormTree(tree)
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
-  const renderNode = useRenderNodeRules(form, nativeRules)
+  const intercept = useRenderNodeRules(form, nativeRules)
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
     null
   )
@@ -107,7 +107,7 @@ function App() {
         onChange={revalidate}
       >
         <NativeValidationProvider {...validation} showErrorsWhen="always">
-          <SchemaFields renderNode={renderNode} />
+          <SchemaFields intercept={intercept} />
         </NativeValidationProvider>
         <button type="submit">Submit</button>
       </form>

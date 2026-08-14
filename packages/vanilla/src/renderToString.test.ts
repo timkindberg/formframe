@@ -4,7 +4,7 @@ import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
   renderToString,
   createRenderer,
-  defaultAdapter,
+  nativeDefaults,
 } from './renderToString'
 
 const schema: JSONSchema = {
@@ -88,7 +88,7 @@ describe('renderToString — continuation model', () => {
 
   it('renderNode hijacks one node; the rest stay default', () => {
     const html = renderToString(form, {
-      renderNode: (node) =>
+      intercept: (node) =>
         node.isField && node.path === 'name'
           ? '<p>custom-name</p>'
           : node.Default(),
@@ -99,7 +99,7 @@ describe('renderToString — continuation model', () => {
 
   it('place-yourself: compose a field from its part Defaults', () => {
     const html = renderToString(form, {
-      renderNode: (node) => {
+      intercept: (node) => {
         if (node.isField && node.widget === 'input' && node.path === 'name') {
           return `<div class="hand">${node.parts.control.Default()}${node.parts.label.Default()}</div>`
         }
@@ -115,7 +115,7 @@ describe('renderToString — continuation model', () => {
 
   it('node.Children() re-enters the resolver for descendants', () => {
     const html = renderToString(form, {
-      renderNode: (node) =>
+      intercept: (node) =>
         node.isGroup && node.path === 'address'
           ? `<section class="addr">${node.Children()}</section>`
           : node.Default(),
@@ -128,7 +128,7 @@ describe('renderToString — continuation model', () => {
 
   it('node.Default({ renderNode }) scopes a resolver to that subtree only', () => {
     const html = renderToString(form, {
-      renderNode: (node) => {
+      intercept: (node) => {
         if (node.isGroup && node.path === 'address') {
           return node.Default({
             renderNode: (n) =>
@@ -173,8 +173,8 @@ describe('createRenderer — the floor (ADR 013)', () => {
     expect(html).toContain('not implemented: label')
   })
 
-  it('createRenderer(defaultAdapter) equals the batteries renderToString', () => {
-    const render = createRenderer(defaultAdapter)
+  it('createRenderer(nativeDefaults) equals the batteries renderToString', () => {
+    const render = createRenderer(nativeDefaults)
     expect(render(form)).toBe(renderToString(form))
   })
 })

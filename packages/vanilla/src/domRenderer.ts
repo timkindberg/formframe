@@ -25,9 +25,9 @@ import {
 // Public types — enriched nodes at R = Node.
 // ---------------------------------------------------------------------------
 
-export type DomRenderNode = AnySchemaResolver<Node>
-export type DomAdapter = RendererAdapter<Node>
-export type DomPartialAdapter = PartialAdapter<Node>
+export type DomIntercept = AnySchemaResolver<Node>
+export type DomDefaults = RendererAdapter<Node>
+export type DomPartialDefaults = PartialAdapter<Node>
 export type DomVNode = ENode<Node>
 export type DomField = EField<Node>
 export type DomGroup = EGroup<Node>
@@ -35,8 +35,8 @@ export type DomArray = EArray<Node>
 export type DomArrayItem = EArrayItem<Node>
 
 export interface RenderToDomOptions {
-  /** Per-node hijack. Omit to render every node's default. */
-  renderNode?: DomRenderNode
+  /** Per-node intercept. Omit to render every node's default. */
+  intercept?: DomIntercept
 }
 
 // ---------------------------------------------------------------------------
@@ -126,7 +126,7 @@ function appendRendered(parent: Node, rendered: Node): void {
 // Default renderer set (R = Node) — mirrors renderToString.ts markup exactly.
 // ---------------------------------------------------------------------------
 
-const defaultAdapterImpl: DomAdapter = {
+const nativeDefaultsImpl: DomDefaults = {
   field: {
     root({ node, overrides }) {
       const renderPart = (
@@ -297,7 +297,7 @@ const defaultAdapterImpl: DomAdapter = {
 }
 
 /** The real defaults — spread this to override entries by reference. */
-export const defaultDomAdapter = defaultAdapterImpl
+export const nativeDomDefaults = nativeDefaultsImpl
 
 // ---------------------------------------------------------------------------
 // Diagnostic renderer set — floor fallback (ADR 013).
@@ -311,7 +311,7 @@ function notImplemented(kind: string, data: unknown): HTMLElement {
   )
 }
 
-export const diagnosticDomAdapter: DomAdapter = {
+export const diagnosticDomDefaults: DomDefaults = {
   field: {
     root({ node, overrides }) {
       const div = createEl('div', {
@@ -322,7 +322,7 @@ export const diagnosticDomAdapter: DomAdapter = {
         div,
         notImplemented('field', { path: node.path, widget: node.widget })
       )
-      appendRendered(div, defaultAdapterImpl.field.root({ node, overrides }))
+      appendRendered(div, nativeDefaultsImpl.field.root({ node, overrides }))
       return div
     },
     label: (data) => notImplemented('label', data),
@@ -368,7 +368,7 @@ export const diagnosticDomAdapter: DomAdapter = {
     },
     removeButton: (data) => notImplemented('removeButton', data),
   },
-  combine: defaultAdapterImpl.combine,
+  combine: nativeDefaultsImpl.combine,
 }
 
 // ---------------------------------------------------------------------------
@@ -376,25 +376,32 @@ export const diagnosticDomAdapter: DomAdapter = {
 // ---------------------------------------------------------------------------
 
 /**
- * Bind a DOM renderer set and get a `renderToDom`-style function. Partial
- * adapter gaps fall back to `diagnosticDomAdapter`. Emits content only.
+ * Bind a DOM defaults object and get a `renderToDom`-style function. Partial
+ * gaps fall back to `diagnosticDomDefaults`. Emits content only.
  */
-export function createDomRenderer(adapter: DomPartialAdapter) {
+export function mergeDomDefaults(
+  base: DomDefaults,
+  over: DomPartialDefaults
+): DomDefaults {
+  return mergeAdapter(base, over)
+}
+
+export function createDomRenderer(defaults: DomPartialDefaults) {
   const engine = createContinuation<Node>(
-    mergeAdapter(diagnosticDomAdapter, adapter)
+    mergeDomDefaults(diagnosticDomDefaults, defaults)
   )
   return function renderToDom(
     form: AnyGroupNode,
     options: RenderToDomOptions = {}
   ): Node {
-    const resolver: DomRenderNode =
-      options.renderNode ?? ((node) => node.Default())
+    const resolver: DomIntercept =
+      options.intercept ?? ((node) => node.Default())
     return engine.resolve(form, resolver)
   }
 }
 
-/** Batteries-included DOM renderer over `defaultDomAdapter`. */
-export const renderToDom = createDomRenderer(defaultDomAdapter)
+/** Batteries-included DOM renderer over `nativeDomDefaults`. */
+export const renderToDom = createDomRenderer(nativeDomDefaults)
 
 /**
  * Serialize a DOM render result with the same HTML rules as `renderToString`.

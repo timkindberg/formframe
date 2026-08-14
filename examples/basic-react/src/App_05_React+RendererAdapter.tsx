@@ -1,6 +1,6 @@
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import { createRenderer, defaultAdapter } from '@formframe/renderer-react'
+import { createRenderer, nativeDefaults } from '@formframe/renderer-react'
 
 // The floor (ADR 013): the lowest public rendering rung. `createRenderer` binds
 // a renderer set and returns a `SchemaFields`-style component. The set is *partial* —
@@ -8,7 +8,7 @@ import { createRenderer, defaultAdapter } from '@formframe/renderer-react'
 // diagnostic markers, so an incomplete adapter still runs and tells you exactly
 // what's missing. Watch the same form come alive as we fill entries in, and
 // note the punchline: the batteries-included `SchemaFields` is just
-// `createRenderer(defaultAdapter)`.
+// `createRenderer(nativeDefaults)`.
 
 const schema: JSONSchema = {
   type: 'object',
@@ -85,7 +85,7 @@ const FieldsMost = createRenderer({
 })
 
 // 4. The punchline: spread the real defaults → this *is* `SchemaFields`.
-const FieldsBatteries = createRenderer(defaultAdapter)
+const FieldsBatteries = createRenderer(nativeDefaults)
 
 function Section({
   title,
@@ -125,7 +125,7 @@ export default function App() {
         <FieldsMost form={form} />
       </Section>
 
-      <Section title="4. createRenderer(defaultAdapter) — this is exactly <SchemaFields/>">
+      <Section title="4. createRenderer(nativeDefaults) — this is exactly <SchemaFields/>">
         <FieldsBatteries form={form} />
       </Section>
     </div>

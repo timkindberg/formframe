@@ -3,7 +3,7 @@
 // props. `renderNodeRules` (formerly `customize`) is sugar over `renderNode`.
 //
 // This rides entirely on the ADR 010/016/017 engine: `renderNodeRules(build)`
-// returns an ordinary `RenderNode` (the low-level continuation primitive), so
+// returns an ordinary `Intercept` (the low-level continuation primitive), so
 // there is NO Core change and no new engine seam. Everything here is React sugar:
 //
 //  • §1 Handlers are components, not called callbacks. A matched selector renders
@@ -43,7 +43,7 @@ import {
   type EGroup,
   type ENode,
   type RenderHelpers,
-  type RenderNode,
+  type Intercept,
 } from './renderer'
 
 // ---------------------------------------------------------------------------
@@ -306,8 +306,8 @@ interface Rule {
 export type RulesBuild = (r: RuleRegistrar) => void
 
 /**
- * Build a `RenderNode` from selector rules (ADR 047/048) — sugar over the
- * low-level `renderNode`, granting no capability a hand-written resolver lacks.
+ * Build an `Intercept` from selector rules (ADR 047/048) — sugar over the
+ * low-level `intercept` prop, granting no capability a hand-written resolver lacks.
  * Memoize the result in the consumer (`useMemo`, or use `useRenderNodeRules`
  * which bakes it in) so the resolver identity is stable — an inline call rebuilds
  * it every render and defeats the `NodeRenderer` memo bail.
@@ -319,7 +319,7 @@ export type RulesBuild = (r: RuleRegistrar) => void
  * defaults and inline `<Default parts={…}/>`. At EQUAL specificity the later
  * (higher-scope) rule wins, exactly like the CSS cascade.
  */
-export function renderNodeRules(...builds: RulesBuild[]): RenderNode {
+export function renderNodeRules(...builds: RulesBuild[]): Intercept {
   const rules: Rule[] = []
   const add = (
     specificity: number,
@@ -364,7 +364,7 @@ export function renderNodeRules(...builds: RulesBuild[]): RenderNode {
     .sort((a, b) => b.rule.specificity - a.rule.specificity || b.i - a.i)
     .map((x) => x.rule)
 
-  // eslint-disable-next-line react/display-name -- returns a RenderNode, not a component
+  // eslint-disable-next-line react/display-name -- returns an Intercept, not a component
   return (node, helpers) => {
     const rule = sorted.find((rl) => rl.match(node))
     if (!rule) return <helpers.Default of={node} />

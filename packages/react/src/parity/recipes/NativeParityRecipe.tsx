@@ -141,7 +141,7 @@ export function NativeParityRecipe({
   const { form, SchemaFields } = useFormTree(
     tree as TypedTree<FormShape, unknown>
   )
-  const renderNode = useRenderNodeRules(form, (r) => {
+  const intercept = useRenderNodeRules(form, (r) => {
     r.control('input', InputControl)
   })
 
@@ -215,7 +215,7 @@ export function NativeParityRecipe({
           onInput={handleInput}
         >
           <SummaryBridge />
-          <SchemaFields renderNode={renderNode} />
+          <SchemaFields intercept={intercept} />
           <button type="submit">Submit</button>
         </form>
       </SubmittedContext.Provider>

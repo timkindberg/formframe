@@ -3,7 +3,7 @@
 // when its `build` argument changes identity, but nothing warned when a
 // consumer skips the hook and calls the low-level `renderNodeRules(build)`
 // sugar directly inside a render body — that call has no `useRef` of its own,
-// so it returns a BRAND NEW `RenderNode` every render regardless of whether
+// so it returns a BRAND NEW `Intercept` every render regardless of whether
 // `build` itself is stable, silently remounting every matched field. This test
 // locks down that `SchemaFields` itself now catches an unstable `renderNode`
 // prop, no matter which layer produced it.
@@ -44,9 +44,9 @@ describe('SchemaFields renderNode-stability warning (bd jsonschema-form-108)', (
     function Parent() {
       const [n, setN] = useState(0)
       // The footgun: calling the low-level sugar directly in the render body.
-      // Every render produces a fresh `RenderNode` closure, even though the
+      // Every render produces a fresh `Intercept` closure, even though the
       // builder below reads no outer state.
-      const renderNode = renderNodeRules((r) => {
+      const intercept = renderNodeRules((r) => {
         r.field('name', ({ Default }: FieldHandlerProps) => Default())
       })
       return (
@@ -54,7 +54,7 @@ describe('SchemaFields renderNode-stability warning (bd jsonschema-form-108)', (
           <button type="button" onClick={() => setN((x) => x + 1)}>
             bump {n}
           </button>
-          <SchemaFields form={form} renderNode={renderNode} />
+          <SchemaFields form={form} intercept={intercept} />
         </div>
       )
     }
@@ -84,7 +84,7 @@ describe('SchemaFields renderNode-stability warning (bd jsonschema-form-108)', (
           <button type="button" onClick={() => setN((x) => x + 1)}>
             bump {n}
           </button>
-          <SchemaFields form={form} renderNode={rn} />
+          <SchemaFields form={form} intercept={rn} />
         </div>
       )
     }

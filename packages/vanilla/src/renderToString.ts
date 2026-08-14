@@ -8,11 +8,12 @@
 // the engine threads the active resolver as a parameter, which is all an eager
 // string fold ever needed.
 //
-// Customization mirrors React (ADR 013): spread `defaultAdapter` to swap an
-// entry by reference, or hand `createRenderer` a partial set whose gaps fall
-// back to the visible `diagnosticAdapter` markers. `renderToString` is the
-// batteries rung and emits the form's *content only* — the `<form>` + submit
-// button are the consumer's.
+// Customization mirrors React (ADR 013 / ADR 051): spread `nativeDefaults` to
+// swap an entry by reference, or `mergeDefaults(nativeDefaults, …)`. Hand
+// `createRenderer` a partial set whose gaps fall back to the visible
+// `diagnosticDefaults` markers. `renderToString` is the batteries rung and
+// emits the form's *content only* — the `<form>` + submit button are the
+// consumer's.
 
 import {
   createContinuation,
@@ -30,12 +31,12 @@ import {
 } from '@formframe/core'
 
 // ---------------------------------------------------------------------------
-// Public types — the enriched node handed to `renderNode`, at R = string.
+// Public types — the enriched node handed to `intercept`, at R = string.
 // ---------------------------------------------------------------------------
 
-export type RenderNode = AnySchemaResolver<string>
-export type VanillaAdapter = RendererAdapter<string>
-export type VanillaPartialAdapter = PartialAdapter<string>
+export type Intercept = AnySchemaResolver<string>
+export type VanillaDefaults = RendererAdapter<string>
+export type VanillaPartialDefaults = PartialAdapter<string>
 export type VNode = ENode<string>
 export type VField = EField<string>
 export type VGroup = EGroup<string>
@@ -43,8 +44,8 @@ export type VArray = EArray<string>
 export type VArrayItem = EArrayItem<string>
 
 export interface RenderToStringOptions {
-  /** Per-node hijack. Omit to render every node's default. */
-  renderNode?: RenderNode
+  /** Per-node intercept. Omit to render every node's default. */
+  intercept?: Intercept
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +88,7 @@ function renderAttrs(attrs: object): string {
 
 type StringPart = { Default(): string }
 
-const defaultAdapterImpl: VanillaAdapter = {
+const nativeDefaultsImpl: VanillaDefaults = {
   field: {
     root({ node, overrides }) {
       const renderPart = (
@@ -227,8 +228,8 @@ const defaultAdapterImpl: VanillaAdapter = {
   },
 }
 
-/** The real defaults — spread this to override entries by reference. */
-export const defaultAdapter = defaultAdapterImpl
+/** Native HTML defaults — spread or merge this to override entries by reference. */
+export const nativeDefaults = nativeDefaultsImpl
 
 // ---------------------------------------------------------------------------
 // Diagnostic renderer set — the floor's fallback (ADR 013).
@@ -242,13 +243,13 @@ function notImplemented(kind: string, data: unknown): string {
   )}]</span>`
 }
 
-export const diagnosticAdapter: VanillaAdapter = {
+export const diagnosticDefaults: VanillaDefaults = {
   field: {
     root({ node, overrides }) {
       return `<div class="jsf-not-implemented" data-jsf-not-implemented="field.root">${notImplemented(
         'field',
         { path: node.path, widget: node.widget }
-      )}${defaultAdapterImpl.field.root({ node, overrides })}</div>`
+      )}${nativeDefaultsImpl.field.root({ node, overrides })}</div>`
     },
     label: (data) => notImplemented('label', data),
     description: (data) => notImplemented('description', data),
@@ -284,31 +285,39 @@ export const diagnosticAdapter: VanillaAdapter = {
     },
     removeButton: (data) => notImplemented('removeButton', data),
   },
-  combine: defaultAdapterImpl.combine,
+  combine: nativeDefaultsImpl.combine,
 }
 
 // ---------------------------------------------------------------------------
 // Public entry — takes the Core tree (front-end-agnostic, like SchemaFields)
 // ---------------------------------------------------------------------------
 
+/** Last-wins merge of renderer defaults (ADR 051). Core's engine name is `mergeAdapter`. */
+export function mergeDefaults(
+  base: VanillaDefaults,
+  over: VanillaPartialDefaults
+): VanillaDefaults {
+  return mergeAdapter(base, over)
+}
+
 /**
- * The floor (ADR 013): bind a renderer set and get a `renderToString`-style
- * function. The `adapter` is partial — missing content entries fall back to the
- * `diagnosticAdapter` markers. Emits the form's *content only*.
+ * The floor (ADR 013 / ADR 051): bind a defaults object and get a
+ * `renderToString`-style function. The set is partial — missing content
+ * entries fall back to the `diagnosticDefaults` markers. Emits the form's
+ * *content only*.
  */
-export function createRenderer(adapter: VanillaPartialAdapter) {
+export function createRenderer(defaults: VanillaPartialDefaults) {
   const engine = createContinuation<string>(
-    mergeAdapter(diagnosticAdapter, adapter)
+    mergeDefaults(diagnosticDefaults, defaults)
   )
   return function renderToString(
     form: AnyGroupNode,
     options: RenderToStringOptions = {}
   ): string {
-    const resolver: RenderNode =
-      options.renderNode ?? ((node) => node.Default())
+    const resolver: Intercept = options.intercept ?? ((node) => node.Default())
     return engine.resolve(form, resolver)
   }
 }
 
-/** Batteries-included: the floor over the real `defaultAdapter`. */
-export const renderToString = createRenderer(defaultAdapter)
+/** Batteries-included: the floor over `nativeDefaults`. */
+export const renderToString = createRenderer(nativeDefaults)

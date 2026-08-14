@@ -14,8 +14,8 @@ import type { JSONSchema } from '@formframe/input-jsonschema'
 import { useState } from 'react'
 import {
   createRenderer,
-  defaultAdapter,
-  type ReactPartialAdapter,
+  nativeDefaults,
+  type ReactPartialDefaults,
 } from './renderer'
 import type { FieldControl } from '@formframe/core'
 
@@ -30,11 +30,11 @@ function controlName(control: FieldControl): string {
 }
 
 /** Wrap the real defaults, tallying each renderer invocation by a stable key. */
-function countingAdapter(counts: Counts): ReactPartialAdapter {
+function countingAdapter(counts: Counts): ReactPartialDefaults {
   const bump = (key: string) => {
     counts[key] = (counts[key] ?? 0) + 1
   }
-  const d = defaultAdapter
+  const d = nativeDefaults
   return {
     field: {
       root: (p) => {

@@ -4,9 +4,9 @@
 // the neutral rule registrar off it. React imports NO front-end: the brand is the
 // front-end-agnostic seam, so one binding serves every front-end.
 //
-// This is pure sugar over the low-level `renderNode` prop — it grants nothing a
+// This is pure sugar over the low-level `intercept` prop — it grants nothing a
 // hand-written resolver can't do. What it adds: (1) tree-typed authoring, (2)
-// baked memoization, (3) the selector cascade. Layering: `renderNode` (floor) ‹
+// baked memoization, (3) the selector cascade. Layering: `intercept` (floor) ‹
 // `renderNodeRules()` (rule sugar) ‹ `useRenderNodeRules()` (typed + memoized).
 import { useMemo, useRef, type ReactNode } from 'react'
 import type {
@@ -19,7 +19,7 @@ import type {
   TypedTree,
   ValidationError,
 } from '@formframe/core'
-import type { EArray, EField, EGroup, RenderNode } from './renderer'
+import type { EArray, EField, EGroup, Intercept } from './renderer'
 import {
   renderNodeRules,
   type PartComponent,
@@ -242,13 +242,13 @@ export type TypedRuleRegistrar<TS extends FormShape> = Omit<
 }
 
 /**
- * Bind typed selector rules to a memoized `RenderNode` for `<SchemaFields>`
- * (ADR 048). Sugar over `renderNode`:
+ * Bind typed selector rules to a memoized `Intercept` for `<SchemaFields>`
+ * (ADR 048). Sugar over `intercept`:
  *   • **tree-typed authoring** — `r.field('name', …)` autocompletes real paths and
  *     narrows `value`/`parts` off the `FormShape` the front-end branded onto the
  *     tree (React imports no front-end);
  *   • **guaranteed-stable resolver** — the builder is captured ONCE and the
- *     `RenderNode` identity is held for the component's lifetime, so
+ *     `Intercept` identity is held for the component's lifetime, so
  *     `NodeRenderer`'s memo bail holds even if you pass an inline `(r) => …`.
  *     A per-render-new resolver would remount every handler subtree and drop
  *     input focus / local state (bd bh7.5);
@@ -270,7 +270,7 @@ export type TypedRuleRegistrar<TS extends FormShape> = Omit<
  * deliberately remount) whenever a listed dep changes:
  *
  * ```ts
- * const renderNode = useRenderNodeRules(tree, (r) => { … uses locale … }, [locale])
+ * const intercept = useRenderNodeRules(tree, (r) => { … uses locale … }, [locale])
  * ```
  *
  * Don't reach for `useCallback(build, [locale])` instead: `useCallback` gives the
@@ -292,29 +292,29 @@ export type TypedRuleRegistrar<TS extends FormShape> = Omit<
  * ```ts
  * const tree = useMemo(() => jsonSchemaToTree(schema), [])
  * const { form } = useFormTree(tree, { resolvePresentation: overrideWidgets(MAP) })
- * const renderNode = useRenderNodeRules(form, rules)  // types track the overrides
- * return <Fields renderNode={renderNode} />
+ * const intercept = useRenderNodeRules(form, rules)  // types track the overrides
+ * return <Fields intercept={intercept} />
  * ```
  */
 export function useRenderNodeRules<TS extends FormShape, Origin>(
   tree: TypedTree<TS, Origin>,
   build: (r: TypedRuleRegistrar<TS>) => void,
   deps?: readonly unknown[]
-): RenderNode {
+): Intercept {
   // `tree` is a compile-time type carrier only (the runtime is source-agnostic);
   // referenced here to reserve it for a future dev-time path-validation warning.
   void tree
 
   // TYPE TOUR (runtime, not types) — the focus-loss BLOCKER fix (bh7.5). Think of
   // rules as a STYLESHEET: read once, not reactive state. We stash the builder in a
-  // ref on first render and never rebuild, so the returned `RenderNode` keeps ONE
+  // ref on first render and never rebuild, so the returned `Intercept` keeps ONE
   // identity for the component's life. Why it matters: React diffs by identity — a
   // fresh resolver each render looks like a different component type, so it UNMOUNTS
   // and remounts every matched field, and a remounted <input> loses focus mid-type.
   // `useRef` (not `useMemo`, which React may throw away and recompute) is what makes
   // this a guarantee even when the caller passes an inline `(r) => …`.
   const firstBuild = useRef(build)
-  const resolverRef = useRef<RenderNode>()
+  const resolverRef = useRef<Intercept>()
   const onceResolver = (resolverRef.current ??= renderNodeRules(
     firstBuild.current as unknown as RulesBuild
   ))

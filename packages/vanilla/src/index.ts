@@ -7,19 +7,21 @@
  */
 
 // `renderToString` is batteries-included; `createRenderer` is the public floor
-// (bind a partial renderer set; gaps fall back to `diagnosticAdapter` markers);
-// spread `defaultAdapter` to override entries by reference (ADR 013).
+// (bind a partial defaults object; gaps fall back to `diagnosticDefaults`
+// markers); `nativeDefaults` + `mergeDefaults` override entries by reference
+// (ADR 013 / ADR 051). Per-node customization is `intercept`.
 export {
   renderToString,
   createRenderer,
-  defaultAdapter,
-  diagnosticAdapter,
+  nativeDefaults,
+  diagnosticDefaults,
+  mergeDefaults,
 } from './renderToString'
 export type {
-  RenderNode,
+  Intercept,
   RenderToStringOptions,
-  VanillaAdapter,
-  VanillaPartialAdapter,
+  VanillaDefaults,
+  VanillaPartialDefaults,
   VNode,
   VField,
   VGroup,
@@ -30,15 +32,16 @@ export type {
 export {
   renderToDom,
   createDomRenderer,
-  defaultDomAdapter,
-  diagnosticDomAdapter,
+  nativeDomDefaults,
+  diagnosticDomDefaults,
+  mergeDomDefaults,
   serializeDomToOracleHtml,
 } from './domRenderer'
 export type {
-  DomRenderNode,
+  DomIntercept,
   RenderToDomOptions,
-  DomAdapter,
-  DomPartialAdapter,
+  DomDefaults,
+  DomPartialDefaults,
   DomVNode,
   DomField,
   DomGroup,

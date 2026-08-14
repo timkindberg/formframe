@@ -49,9 +49,9 @@ Core is **stateless** — it only compiles a schema into the form-tree structure
 Tree traversal: Nodes have `walk(handlers)` for recursive traversal with `field` and `group` handlers. Queries (`getField`, `getAllFields`) use **relative paths** from the calling group.
 
 ### React Layer (`@formframe/renderer-react`)
-- `useFormTree(tree)` → Binds source-agnostic React behavior to a tree from `jsonSchemaToTree`, `zodToTree`, or another front-end; returns `{ form, SchemaFields, submit, … }` (content only — you own the `<form>` + submit, ADR 013/035)
-- `SchemaFields` (batteries-included) / `createRenderer` (the public floor that takes a partial renderer set) / `defaultAdapter` + `diagnosticAdapter` (the two built-in renderer sets you spread over) — ADR 013
-- Customization: `useRenderNodeRules(form, rules)` is the adoption path (ADR 047/048) — each `if` becomes one registrar call, specificity replaces order. `renderNode(node, { Default, Children })` remains the floor (ADR 010/017); the numbered gallery apps walk up to it on purpose. `<Default of={node}/>` / `<Children of={node}/>` / `<Default of={node} parts={{…}}/>` re-enter the engine. The callables (`node.Default()`) are the low-level primitive (ADR 016). Fractal from `<SchemaFields>` down to a single part.
+- `useFormTree(tree, { defaults })` → Binds source-agnostic React behavior to a tree from `jsonSchemaToTree`, `zodToTree`, or another front-end; returns `{ form, SchemaFields, submit, … }` (content only — you own the `<form>` + submit, ADR 013/035). `{ defaults }` is `createRenderer(mergeDefaults(nativeDefaults, defaults))`. Close over team defaults as userland `useTeamFormTree`, not a library context.
+- `SchemaFields` (batteries-included) / `createRenderer` (the public floor that takes a partial defaults object) / `nativeDefaults` + `diagnosticDefaults` + `mergeDefaults` (ADR 013/051)
+- Customization: defaults (kind-wide) vs intercept (this node). `useRenderNodeRules(form, rules)` still lowers to `intercept` (ADR 047/048) until the intercept bag ships. `intercept(node, { Default, Children })` is the floor (ADR 010/017); the numbered gallery apps walk up to it on purpose. `<Default of={node}/>` / `<Children of={node}/>` / `<Default of={node} parts={{…}}/>` re-enter the engine. The callables (`node.Default()`) are the low-level primitive (ADR 016). Fractal from `<SchemaFields>` down to a single part.
 
 ## Issue Tracking
 

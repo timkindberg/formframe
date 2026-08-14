@@ -178,14 +178,14 @@ function LiveCustomizedForm() {
   // desync-proof habit that lets a later `overrideWidgets` re-narrow the control for
   // free. `useRenderNodeRules` reads that brand — the SAME React hook App_16 uses,
   // no per-front-end binding (ADR 048).
-  const renderNode = useRenderNodeRules(form, customizeRules)
+  const intercept = useRenderNodeRules(form, customizeRules)
   // Recipe-owned validation: produce errors here, inject via the provider.
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (
     <form noValidate onSubmit={submit((d) => setData(d))} onInput={revalidate}>
       <NativeValidationProvider {...validation} showErrorsWhen="always">
-        <Fields renderNode={renderNode} />
+        <Fields intercept={intercept} />
       </NativeValidationProvider>
       <button type="submit" style={{ marginTop: 12 }}>
         Submit
