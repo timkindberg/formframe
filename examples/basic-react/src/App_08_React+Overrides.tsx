@@ -95,10 +95,10 @@ export default function App() {
         <SchemaFields form={form} />
       </Section>
 
-      <Section title="2. renderNode: hijack a subtree, swap parts, place-yourself, reorder">
+      <Section title="2. intercept: hijack a subtree, swap parts, place-yourself, reorder">
         <SchemaFields
           form={form}
-          renderNode={(node, { Default, Children }) => {
+          intercept={(node, { Default, Children }) => {
             // augment ONLY the email label (input/description stay default)
             if (
               node.isField &&
@@ -226,7 +226,7 @@ export default function App() {
                   {address.isGroup && (
                     <Default
                       of={address}
-                      renderNode={(node, { Default }) => {
+                      intercept={(node, { Default }) => {
                         // deep: tweak just the street label
                         if (
                           node.isField &&

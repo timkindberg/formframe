@@ -7,7 +7,7 @@ import { renderToString } from './renderToString'
 import {
   renderToDom,
   createDomRenderer,
-  defaultDomAdapter,
+  nativeDomDefaults,
   serializeDomToOracleHtml,
 } from './domRenderer'
 
@@ -138,8 +138,8 @@ describe('createDomRenderer — the floor (ADR 013)', () => {
     expect(first.className).toBe('jsf-field')
   })
 
-  it('createDomRenderer(defaultDomAdapter) equals the batteries renderToDom', () => {
-    const render = createDomRenderer(defaultDomAdapter)
+  it('createDomRenderer(nativeDomDefaults) equals the batteries renderToDom', () => {
+    const render = createDomRenderer(nativeDomDefaults)
     expect(serializeDomToOracleHtml(render(form))).toBe(
       serializeDomToOracleHtml(renderToDom(form))
     )

@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import { SchemaFields, createRenderer, defaultAdapter } from './renderer'
+import {
+  SchemaFields,
+  createRenderer,
+  nativeDefaults,
+  mergeDefaults,
+} from './renderer'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -53,7 +58,7 @@ describe('SchemaFields', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        renderNode={(node, { Default }) =>
+        intercept={(node, { Default }) =>
           node.isField && node.path === 'name' ? (
             <p>custom-name</p>
           ) : (
@@ -75,7 +80,7 @@ describe('SchemaFields', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        renderNode={(node, { Default }) => {
+        intercept={(node, { Default }) => {
           // the unified `control` part is overridable regardless of widget (v60)
           if (node.isField && node.widget === 'input' && node.path === 'name') {
             return (
@@ -105,7 +110,7 @@ describe('SchemaFields', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        renderNode={(node, { Default }) => {
+        intercept={(node, { Default }) => {
           if (node.isField && node.widget === 'input' && node.path === 'name') {
             const { label, control } = node.parts
             return (
@@ -160,7 +165,7 @@ describe('SchemaFields', () => {
           return address.isGroup ? (
             <Default
               of={address}
-              renderNode={(node, { Default }) =>
+              intercept={(node, { Default }) =>
                 node.isField && node.path === 'address.street' ? (
                   <p>scoped-street</p>
                 ) : (
@@ -206,12 +211,22 @@ describe('createRenderer — the floor (ADR 013)', () => {
     ).not.toBeNull()
   })
 
-  it('createRenderer(defaultAdapter) is the batteries SchemaFields', async () => {
-    const Floor = createRenderer(defaultAdapter)
+  it('createRenderer(nativeDefaults) is the batteries SchemaFields', async () => {
+    const Floor = createRenderer(nativeDefaults)
     const form = jsonSchemaToRuntimeTree(schema)
     const screen = await render(<Floor form={form} />)
     await expect
       .element(screen.getByRole('textbox', { name: 'Name' }))
       .toBeInTheDocument()
+  })
+
+  it('mergeDefaults last-wins per key and leaves untouched slots on the base', () => {
+    const customControl = () => <input data-merged />
+    const merged = mergeDefaults(nativeDefaults, {
+      field: { control: customControl },
+    })
+    expect(merged.field.control).toBe(customControl)
+    expect(merged.field.label).toBe(nativeDefaults.field.label)
+    expect(merged.group.root).toBe(nativeDefaults.group.root)
   })
 })

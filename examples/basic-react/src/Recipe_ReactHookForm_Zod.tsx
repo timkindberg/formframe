@@ -107,7 +107,7 @@ export default function App() {
   // RHF's default mode: validate at first submit, revalidate on change after.
   const methods = useForm({ resolver })
   const { errors } = methods.formState
-  const renderNode = useRenderNodeRules(tree, rhfRules)
+  const intercept = useRenderNodeRules(tree, rhfRules)
   // Typed by the schema: `z.output` flows through the resolver into
   // `handleSubmit`, so `data.age` is `number`, `data.contactMethod` is
   // 'email' | 'phone' — no annotations needed.
@@ -133,7 +133,7 @@ export default function App() {
           onSubmit={methods.handleSubmit((data) => setSubmitted(data))}
         >
           <ValidationSummary errors={rhfErrorsToList(errors)} form={tree} />
-          <SchemaFields form={tree} renderNode={renderNode} />
+          <SchemaFields form={tree} intercept={intercept} />
           <button type="submit" style={{ marginTop: 12 }}>
             Submit
           </button>

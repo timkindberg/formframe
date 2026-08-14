@@ -10,6 +10,8 @@ import { z } from 'zod'
 import { zodToTree } from '@formframe/input-zod'
 import { jsonSchemaToTree, type JSONSchema } from '@formframe/input-jsonschema'
 import { useFormTree } from './index'
+import type { BoundSchemaFieldsProps, UseFormTreeOptions } from './index'
+import type { FieldControl } from '@formframe/core'
 
 const schema = z.object({
   name: z.string().min(2).meta({ title: 'Name' }),
@@ -128,5 +130,66 @@ describe('useFormTree', () => {
     }
 
     expectTypeOf(TypeHarness).toBeFunction()
+  })
+
+  it('binds { defaults } over nativeDefaults so kind-wide slots apply without intercept', async () => {
+    const teamDefaults = {
+      field: {
+        control: (control: FieldControl) =>
+          control.kind === 'input' ? (
+            <input {...control.attrs} data-team="yes" />
+          ) : null,
+      },
+    }
+
+    function Harness() {
+      const { SchemaFields } = useFormTree(tree, { defaults: teamDefaults })
+      return <SchemaFields />
+    }
+
+    const screen = await render(<Harness />)
+    const name = screen.getByRole('textbox', { name: 'Name' })
+    await expect.element(name).toBeInTheDocument()
+    expect(name.element()).toHaveAttribute('data-team', 'yes')
+    // Unspecified slots stay native (the label still names the textbox) —
+    // this is mergeDefaults(nativeDefaults, defaults), not createRenderer(partial).
+    expect(document.querySelector('[data-jsf-not-implemented]')).toBeNull()
+  })
+
+  it('SchemaFields intercept still hijacks a node when defaults are bound', async () => {
+    const teamDefaults = {
+      field: {
+        control: (control: FieldControl) =>
+          control.kind === 'input' ? (
+            <input {...control.attrs} data-team="yes" />
+          ) : null,
+      },
+    }
+
+    function Harness() {
+      const { SchemaFields } = useFormTree(tree, { defaults: teamDefaults })
+      return (
+        <SchemaFields
+          intercept={(node, { Default }) =>
+            node.isField && node.path === 'name' ? (
+              <p>intercepted</p>
+            ) : (
+              <Default of={node} />
+            )
+          }
+        />
+      )
+    }
+
+    const screen = await render(<Harness />)
+    await expect.element(screen.getByText('intercepted')).toBeInTheDocument()
+    expect(document.querySelector('input')).toBeNull()
+  })
+
+  it('public options name defaults and intercept, not renderNode/adapter', () => {
+    expectTypeOf<UseFormTreeOptions>().toHaveProperty('defaults')
+    expectTypeOf<UseFormTreeOptions>().not.toHaveProperty('adapter')
+    expectTypeOf<BoundSchemaFieldsProps>().toHaveProperty('intercept')
+    expectTypeOf<BoundSchemaFieldsProps>().not.toHaveProperty('renderNode')
   })
 })

@@ -100,7 +100,7 @@ function App() {
       >
         <NativeValidationProvider {...validation}>
           <SchemaFields
-            renderNode={(node) =>
+            intercept={(node) =>
               node.isField && node.path === 'email' ? (
                 <EmailFieldWithNote node={node} />
               ) : node.isField ? (

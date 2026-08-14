@@ -10,8 +10,12 @@ import type {
 } from '@formframe/core'
 import {
   SchemaFields as SchemaFieldsRenderer,
+  createRenderer,
+  mergeDefaults,
+  nativeDefaults,
   type EGroup,
-  type RenderNode,
+  type Intercept,
+  type ReactPartialDefaults,
 } from './renderer'
 
 /**
@@ -20,8 +24,8 @@ import {
  * holds the tree.
  */
 export interface BoundSchemaFieldsProps {
-  /** Per-node hijack (ADR 010). Omit to render every node's default. */
-  renderNode?: RenderNode
+  /** Per-node intercept (ADR 010 / ADR 051). Omit to render every node's default. */
+  intercept?: Intercept
   /** Place-yourself at the root: receives the enriched root node. */
   children?: (root: EGroup) => ReactNode
 }
@@ -42,6 +46,13 @@ export interface UseFormTreeOptions<
    * between the typed control and what renders (bd bh7.8).
    */
   resolvePresentation?: R
+  /**
+   * Partial renderer defaults merged over {@link nativeDefaults} (ADR 051).
+   * Kind-wide templates and parts live here; per-node customization is the
+   * `intercept` prop on `SchemaFields`. Keep the object reference stable; a new
+   * identity rebuilds the bound `SchemaFields` component type.
+   */
+  defaults?: ReactPartialDefaults
 }
 
 /**
@@ -53,6 +64,10 @@ export interface UseFormTreeOptions<
  * NOT produce, schedule, or store validation errors (ADR 050) — the
  * library renders errors via the inject seam (`<Default of={field} errors={…}
  * />`); a validation adapter or recipe owns producing them.
+ *
+ * Pass `{ defaults }` to bind a merged renderer set
+ * (`createRenderer(mergeDefaults(nativeDefaults, defaults))`). Close over team
+ * defaults in userland (`useTeamFormTree`) rather than a library context.
  */
 export interface UseFormTreeResult<F, Output> {
   /** The presented tree that actually renders. For a branded input tree it carries
@@ -98,7 +113,7 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
   tree: GroupNode<S>,
   options: UseFormTreeOptions<S> = {}
 ): UseFormTreeResult<GroupNode<S>, Output> {
-  const { resolvePresentation } = options
+  const { resolvePresentation, defaults } = options
   const form = useMemo(
     () =>
       present<S>(
@@ -120,17 +135,20 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
 
   // Stable component type: re-renders do not remount uncontrolled fields.
   const SchemaFields = useMemo<FC<BoundSchemaFieldsProps>>(() => {
+    const Renderer = defaults
+      ? createRenderer(mergeDefaults(nativeDefaults, defaults))
+      : SchemaFieldsRenderer
     return function SchemaFields({
-      renderNode,
+      intercept,
       children,
     }: BoundSchemaFieldsProps) {
       return (
-        <SchemaFieldsRenderer form={form} renderNode={renderNode}>
+        <Renderer form={form} intercept={intercept}>
           {children}
-        </SchemaFieldsRenderer>
+        </Renderer>
       )
     }
-  }, [form])
+  }, [form, defaults])
 
   return { form, SchemaFields, submit }
 }

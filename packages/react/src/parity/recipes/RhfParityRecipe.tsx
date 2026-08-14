@@ -145,7 +145,7 @@ export function RhfParityRecipe({
 
   const methods = useForm({ resolver })
   const { isValidating } = useFormState({ control: methods.control })
-  const renderNode = useRenderNodeRules(
+  const intercept = useRenderNodeRules(
     tree as TypedTree<FormShape, unknown>,
     (r) => {
       r.control('input', InputControl)
@@ -165,7 +165,7 @@ export function RhfParityRecipe({
         )}
       >
         <Summary />
-        <SchemaFields form={tree} renderNode={renderNode} />
+        <SchemaFields form={tree} intercept={intercept} />
         <button type="submit">Submit</button>
       </form>
     </FormProvider>

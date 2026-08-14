@@ -73,7 +73,7 @@ describe('render stability', () => {
           {/* fresh closure every render → resolver prop changes → real re-render */}
           <SchemaFields
             form={form}
-            renderNode={(node, { Default }) => <Default of={node} />}
+            intercept={(node, { Default }) => <Default of={node} />}
           />
         </div>
       )

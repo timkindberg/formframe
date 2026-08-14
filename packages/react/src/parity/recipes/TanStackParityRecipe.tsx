@@ -206,7 +206,7 @@ export function TanStackParityRecipe({
     return out
   }, [fieldMeta])
 
-  const renderNode = useRenderNodeRules(
+  const intercept = useRenderNodeRules(
     tree as TypedTree<FormShape, unknown>,
     (r) => {
       r.control('input', InputControl)
@@ -228,7 +228,7 @@ export function TanStackParityRecipe({
         }}
       >
         <ParityValidationSummary errors={flatErrors} />
-        <SchemaFields form={tree} renderNode={renderNode} />
+        <SchemaFields form={tree} intercept={intercept} />
         <button type="submit">Submit</button>
       </form>
     </TanStackFormProvider>

@@ -125,7 +125,7 @@ export default function App() {
       setSubmitted(parsed.success ? parsed.data : value)
     },
   })
-  const renderNode = useRenderNodeRules(tree, tanStackRules)
+  const intercept = useRenderNodeRules(tree, tanStackRules)
   const fieldMeta = useStore(form.store, (s) => s.fieldMeta)
 
   return (
@@ -154,7 +154,7 @@ export default function App() {
             errors={tanstackFieldMetaToErrors(fieldMeta)}
             form={tree}
           />
-          <SchemaFields form={tree} renderNode={renderNode} />
+          <SchemaFields form={tree} intercept={intercept} />
           <button type="submit" style={{ marginTop: 12 }}>
             Submit
           </button>

@@ -54,7 +54,7 @@ describe('renderNodeRules — selector cascade (ADR 047 §3)', () => {
       r.field('name', NameHandler)
     })
     const form = jsonSchemaToRuntimeTree(schema)
-    const screen = await render(<SchemaFields form={form} renderNode={rn} />)
+    const screen = await render(<SchemaFields form={form} intercept={rn} />)
     // `name` picks the exact-path rule even though allFields also matches, and
     // order of registration does not matter (registered blanket-first above).
     await expect.element(screen.getByTestId('exact')).toBeInTheDocument()
@@ -73,7 +73,7 @@ describe('renderNodeRules — selector cascade (ADR 047 §3)', () => {
       ))
     })
     const form = jsonSchemaToRuntimeTree(schema)
-    const screen = await render(<SchemaFields form={form} renderNode={rn} />)
+    const screen = await render(<SchemaFields form={form} intercept={rn} />)
     // `name` is an <input>; the small enum `plan` is a radio (choicegroup), so it
     // must NOT match the input-kind rule.
     const inputWrappers = document.querySelectorAll(
@@ -91,7 +91,7 @@ describe('renderNodeRules — selector cascade (ADR 047 §3)', () => {
       r.field('name', ({ Default }: FieldHandlerProps) => <>{Default()}</>)
     })
     const form = jsonSchemaToRuntimeTree(schema)
-    const screen = await render(<SchemaFields form={form} renderNode={rn} />)
+    const screen = await render(<SchemaFields form={form} intercept={rn} />)
     await expect
       .element(screen.getByRole('textbox', { name: 'Street' }))
       .toBeInTheDocument()
@@ -112,7 +112,7 @@ describe('renderNodeRules — arrangeable parts (ADR 047 §2)', () => {
       r.group('address', Card)
     })
     const form = jsonSchemaToRuntimeTree(schema)
-    const screen = await render(<SchemaFields form={form} renderNode={rn} />)
+    const screen = await render(<SchemaFields form={form} intercept={rn} />)
     await expect.element(screen.getByTestId('card')).toBeInTheDocument()
     await expect
       .element(screen.getByTestId('legend'))
@@ -137,7 +137,7 @@ describe('renderNodeRules — arrangeable parts (ADR 047 §2)', () => {
     }
     const rn = renderNodeRules((r) => r.field('name', Stateful))
     const form = jsonSchemaToRuntimeTree(schema)
-    const screen = await render(<SchemaFields form={form} renderNode={rn} />)
+    const screen = await render(<SchemaFields form={form} intercept={rn} />)
     await expect
       .element(screen.getByRole('button'))
       .toHaveTextContent('count 0')
@@ -161,7 +161,7 @@ describe('renderNodeRules — one registrar, cascading scopes (ADR 047 §6)', ()
     // Composed app-first, form-last: form wins the tie on `name` (CSS cascade).
     const rn = renderNodeRules(app, form)
     const f = jsonSchemaToRuntimeTree(schema)
-    const screen = await render(<SchemaFields form={f} renderNode={rn} />)
+    const screen = await render(<SchemaFields form={f} intercept={rn} />)
     await expect.element(screen.getByTestId('form-name')).toBeInTheDocument()
     expect(document.querySelectorAll('[data-testid="app-name"]').length).toBe(0)
   })
@@ -182,7 +182,7 @@ describe('renderNodeRules — one registrar, cascading scopes (ADR 047 §6)', ()
       ))
     })
     const f = jsonSchemaToRuntimeTree(schema)
-    const screen = await render(<SchemaFields form={f} renderNode={rn} />)
+    const screen = await render(<SchemaFields form={f} intercept={rn} />)
     await expect
       .element(screen.getByTestId('inline-label'))
       .toHaveTextContent('Name (inline)')
@@ -217,7 +217,7 @@ describe('renderNodeRules — Errors promoted to a movable part keeps a11y (ADR 
         }),
       []
     )
-    return <SchemaFields form={form} renderNode={rn} />
+    return <SchemaFields form={form} intercept={rn} />
   }
 
   it('control keeps aria-describedby pointing at the (separately placed) error list', async () => {

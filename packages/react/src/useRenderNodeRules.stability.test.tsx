@@ -7,7 +7,7 @@
 // type every render → React remounts the matched field → the user's uncontrolled
 // input value and focus are discarded. For a form library that is a blocker.
 //
-// The hook therefore captures the builder ONCE and holds a stable `RenderNode`
+// The hook therefore captures the builder ONCE and holds a stable `Intercept`
 // for the component's lifetime. These tests assert (1) an inline builder+handler
 // does NOT remount the field (DOM identity + value survive an unrelated
 // re-render) and warns in dev, and (2) a stable builder yields a stable resolver
@@ -53,7 +53,7 @@ describe('useRenderNodeRules resolver stability (bd bh7.5)', () => {
       const [n, setN] = useState(0)
       // The footgun: a brand-new builder closure AND a brand-new inline handler
       // on every render. The hook must capture them once regardless.
-      const renderNode = useRenderNodeRules(tree, (r) => {
+      const intercept = useRenderNodeRules(tree, (r) => {
         r.field('name', ({ Default }) => Default())
       })
       return (
@@ -61,7 +61,7 @@ describe('useRenderNodeRules resolver stability (bd bh7.5)', () => {
           <button type="button" onClick={() => setN((x) => x + 1)}>
             bump {n}
           </button>
-          <SchemaFields form={tree} renderNode={renderNode} />
+          <SchemaFields form={tree} intercept={intercept} />
         </div>
       )
     }
@@ -95,14 +95,14 @@ describe('useRenderNodeRules resolver stability (bd bh7.5)', () => {
 
     function Parent() {
       const [n, setN] = useState(0)
-      const renderNode = useRenderNodeRules(tree, rules)
-      seen.push(renderNode)
+      const intercept = useRenderNodeRules(tree, rules)
+      seen.push(intercept)
       return (
         <div>
           <button type="button" onClick={() => setN((x) => x + 1)}>
             bump {n}
           </button>
-          <SchemaFields form={tree} renderNode={renderNode} />
+          <SchemaFields form={tree} intercept={intercept} />
         </div>
       )
     }

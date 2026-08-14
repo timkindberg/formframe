@@ -8,12 +8,13 @@
 export { useFormTree } from './useFormTree'
 export type { BoundSchemaFieldsProps, UseFormTreeOptions } from './useFormTree'
 
-// Continuation renderer (ADR 010/013) — typed, front-end-agnostic (operates on
-// the Core tree). Schema compilation lives in separate input packages.
+// Continuation renderer (ADR 010/013/051) — typed, front-end-agnostic (operates
+// on the Core tree). Schema compilation lives in separate input packages.
 //
 // `SchemaFields` is batteries-included; `createRenderer` is the public floor
-// (bind a partial renderer set; gaps fall back to `diagnosticAdapter` markers);
-// spread `defaultAdapter` to override entries by reference.
+// (bind a partial defaults object; gaps fall back to `diagnosticDefaults`
+// markers); `nativeDefaults` + `mergeDefaults` are the kind-wide table
+// `useFormTree({ defaults })` binds. Per-node customization is `intercept`.
 //
 // The library RENDERS validation errors via the inject seam
 // (`<Default of={field} errors={ValidationError[]} />`) — it does not
@@ -21,8 +22,9 @@ export type { BoundSchemaFieldsProps, UseFormTreeOptions } from './useFormTree'
 export {
   SchemaFields,
   createRenderer,
-  defaultAdapter,
-  diagnosticAdapter,
+  nativeDefaults,
+  diagnosticDefaults,
+  mergeDefaults,
   Default,
   Children,
   fieldControlId,
@@ -31,10 +33,10 @@ export {
 } from './renderer'
 export type {
   SchemaFieldsProps,
-  RenderNode,
+  Intercept,
   RenderHelpers,
-  ReactAdapter,
-  ReactPartialAdapter,
+  ReactDefaults,
+  ReactPartialDefaults,
   ENode,
   EField,
   EGroup,
@@ -45,8 +47,9 @@ export type {
 } from './renderer'
 
 // The render-node rules layer (ADR 047/048) — a form-scope selector registry
-// lowering to an ordinary `RenderNode` (no engine seam); handlers are mounted
-// components receiving arrangeable parts. Source-agnostic runtime.
+// lowering to an ordinary `Intercept` (no engine seam); handlers are mounted
+// components receiving arrangeable parts. Source-agnostic runtime. Kind-wide
+// look belongs on defaults (ADR 051), not on registrar blankets.
 export { renderNodeRules } from './renderNodeRules'
 export type {
   RuleRegistrar,

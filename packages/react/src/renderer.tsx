@@ -21,10 +21,11 @@
 // that take the handle as a prop and delegate to its callable — JSX ergonomics
 // with the same stable-type guarantee. The two IOC seams inject these helpers.
 //
-// Customization is by-reference over this set (ADR 013): spread `defaultAdapter`
-// and swap an entry, or hand `createRenderer` a partial set whose gaps fall back
-// to the visible `diagnosticAdapter` markers (the "floor"). `SchemaFields` is
-// the batteries-included rung — the floor over `defaultAdapter` — and renders
+// Customization is by-reference over this set (ADR 013 / ADR 051): spread
+// `nativeDefaults` and swap an entry, or `mergeDefaults(nativeDefaults, …)`.
+// `createRenderer` binds a partial set whose gaps fall back to the visible
+// `diagnosticDefaults` markers (the "floor"). `SchemaFields` is the
+// batteries-included rung — the floor over `nativeDefaults` — and renders
 // the form's *content only*; the `<form>` + submit button are the consumer's.
 //
 // Front-end-agnostic: this operates on the Core form *tree*, never a schema.
@@ -70,9 +71,9 @@ import {
  * `<Default of={node} />` to re-enter the engine. (`RenderHelpers`, `Default`,
  * and `Children` are defined in the component-handle layer below.)
  */
-export type RenderNode = (node: ENode, helpers: RenderHelpers) => ReactNode
-export type ReactAdapter = RendererAdapter<ReactNode>
-export type ReactPartialAdapter = PartialAdapter<ReactNode>
+export type Intercept = (node: ENode, helpers: RenderHelpers) => ReactNode
+export type ReactDefaults = RendererAdapter<ReactNode>
+export type ReactPartialDefaults = PartialAdapter<ReactNode>
 export type ENode = CoreENode<ReactNode>
 export type EField = CoreEField<ReactNode>
 export type EGroup = CoreEGroup<ReactNode>
@@ -562,7 +563,7 @@ function PartHost({ render }: { render: () => ReactNode }): ReactNode {
 // or positional index), stable across a dense array re-path — so the fragment key
 // is stable too, and a surviving item reconciles in place instead of remounting
 // (ADR 018). We render through it verbatim.
-const combine: ReactAdapter['combine'] = ({ children }) => (
+const combine: ReactDefaults['combine'] = ({ children }) => (
   <>
     {children.map((c) => (
       <Fragment key={c.key}>{c.node}</Fragment>
@@ -570,8 +571,8 @@ const combine: ReactAdapter['combine'] = ({ children }) => (
   </>
 )
 
-/** The real defaults — spread this to override entries by reference. */
-export const defaultAdapter: ReactAdapter = {
+/** Native HTML defaults — merge or spread this to override entries by reference. */
+export const nativeDefaults: ReactDefaults = {
   field: {
     root: DefaultFieldRoot,
     label: DefaultFieldLabel,
@@ -619,7 +620,7 @@ function NotImplemented({
   )
 }
 
-export const diagnosticAdapter: ReactAdapter = {
+export const diagnosticDefaults: ReactDefaults = {
   field: {
     root: ({ node, overrides }) => (
       <div
@@ -679,6 +680,14 @@ export const diagnosticAdapter: ReactAdapter = {
   combine,
 }
 
+/** Last-wins merge of renderer defaults (ADR 051). Core's engine name is `mergeAdapter`. */
+export function mergeDefaults(
+  base: ReactDefaults,
+  over: ReactPartialDefaults
+): ReactDefaults {
+  return mergeAdapter(base, over)
+}
+
 // ---------------------------------------------------------------------------
 // Component re-entry layer (ADR 017) — JSX handles over the callable engine.
 //
@@ -701,9 +710,9 @@ export interface RenderHelpers {
 
 const helpers: RenderHelpers = { Default, Children }
 
-/** Adapt a user `RenderNode` (node + helpers) to Core's 1-arg `Resolver`. */
+/** Adapt a user `Intercept` (node + helpers) to Core's 1-arg `Resolver`. */
 const adaptResolver =
-  (rn: RenderNode): AnySchemaResolver<ReactNode> =>
+  (rn: Intercept): AnySchemaResolver<ReactNode> =>
   (node) =>
     rn(node, helpers)
 
@@ -750,13 +759,13 @@ type DefaultExtra<H> =
     parts?: infer P
     renderNode?: unknown
   }
-    ? { parts?: WidenParts<H, P>; renderNode?: RenderNode }
+    ? { parts?: WidenParts<H, P>; intercept?: Intercept }
     : Record<never, never>
 
 /**
  * Render any handle's default — a node, a child node, or a part (anything with a
  * `.Default()`). `of={null/undefined}` renders nothing, so optional parts and
- * absent children are safe. `parts` / `renderNode` apply only to nodes (a part's
+ * absent children are safe. `parts` / `intercept` apply only to nodes (a part's
  * type offers neither). `errors` injects per-field `ValidationError[]` for
  * field nodes — recipe-pre-gated (present == show); omit for no errors (the
  * library does not produce/store them itself — ADR 050). Stable module-level
@@ -772,16 +781,16 @@ export function Default<
 ): ReactNode {
   const { of, errors } = props
   if (of == null) return null
-  const { parts, renderNode } = props as {
+  const { parts, intercept } = props as {
     parts?: PartOverrideMap<ReactNode>
-    renderNode?: RenderNode
+    intercept?: Intercept
   }
   const render = (): ReactNode =>
-    !parts && !renderNode
+    !parts && !intercept
       ? of.Default()
       : of.Default({
           parts,
-          renderNode: renderNode ? adaptResolver(renderNode) : undefined,
+          renderNode: intercept ? adaptResolver(intercept) : undefined,
         })
   // `of.Default()` calls `DefaultFieldRoot` as a function (engine contract), so
   // its hooks run in whatever component invokes it. Bridge `errors` by mounting
@@ -824,8 +833,8 @@ export function Children({
 export interface SchemaFieldsProps {
   /** The Core form tree (e.g. from `jsonSchemaToTree`). */
   form: AnyGroupNode
-  /** Per-node hijack (ADR 010). Omit to render every node's default. */
-  renderNode?: RenderNode
+  /** Per-node intercept (ADR 010 / ADR 051). Omit to render every node's default. */
+  intercept?: Intercept
   /** Place-yourself at the root: receives the enriched root + injected helpers. */
   children?: (root: EGroup, helpers: RenderHelpers) => ReactNode
 }
@@ -838,15 +847,16 @@ const defaultResolver: AnySchemaResolver<ReactNode> = (node) => node.Default()
 declare const process: { env: { NODE_ENV?: string } } | undefined
 
 /**
- * The floor (ADR 013): bind a renderer set and get a `SchemaFields` component.
- * The `adapter` is partial — missing content entries fall back to the visible
- * `diagnosticAdapter` markers, so an incomplete set still runs. `SchemaFields`
- * is just `createRenderer(defaultAdapter)`.
+ * The floor (ADR 013 / ADR 051): bind a defaults object and get a `SchemaFields`
+ * component. The set is partial — missing content entries fall back to the
+ * visible `diagnosticDefaults` markers, so an incomplete set still runs.
+ * `SchemaFields` is just `createRenderer(nativeDefaults)`. Kind-wide look
+ * belongs here; per-node customization is the `intercept` prop.
  *
  * Renders the form's *content only* — wrap it in your own `<form>` + submit.
  */
-export function createRenderer(adapter: ReactPartialAdapter) {
-  const merged = mergeAdapter(diagnosticAdapter, adapter)
+export function createRenderer(defaults: ReactPartialDefaults) {
+  const merged = mergeDefaults(diagnosticDefaults, defaults)
 
   // Tie the knot: the engine renders each child through `renderChild`, which
   // emits this memoized per-node component; the component calls back into the
@@ -878,10 +888,10 @@ export function createRenderer(adapter: ReactPartialAdapter) {
 
   return function SchemaFields({
     form,
-    renderNode,
+    intercept,
     children,
   }: SchemaFieldsProps) {
-    // Dev-only remount guard (bd jsonschema-form-108): `renderNode` changing
+    // Dev-only remount guard (bd jsonschema-form-108): `intercept` changing
     // identity between renders defeats the `memo` bail below no matter WHY it
     // changed — a hand-rolled unstable resolver, or the low-level
     // `renderNodeRules(build)` called fresh inline (that sugar has no `useRef`
@@ -896,10 +906,10 @@ export function createRenderer(adapter: ReactPartialAdapter) {
     // An unmemoized inline call instead changes it on EVERY render, forever, so
     // we only flag TWO consecutive changes (never a chance to stabilize) —
     // one-off deliberate swaps stay silent; persistent churn is still loud.
-    const prevRenderNode = useRef(renderNode)
+    const prevIntercept = useRef(intercept)
     const consecutiveChanges = useRef(0)
-    const warnedUnstableRenderNode = useRef(false)
-    const changedThisRender = renderNode !== prevRenderNode.current
+    const warnedUnstableIntercept = useRef(false)
+    const changedThisRender = intercept !== prevIntercept.current
     consecutiveChanges.current = changedThisRender
       ? consecutiveChanges.current + 1
       : 0
@@ -907,11 +917,11 @@ export function createRenderer(adapter: ReactPartialAdapter) {
       typeof process !== 'undefined' &&
       process.env.NODE_ENV !== 'production' &&
       consecutiveChanges.current >= 2 &&
-      !warnedUnstableRenderNode.current
+      !warnedUnstableIntercept.current
     ) {
-      warnedUnstableRenderNode.current = true
+      warnedUnstableIntercept.current = true
       console.error(
-        '[formframe] SchemaFields: the `renderNode` prop changed identity on ' +
+        '[formframe] SchemaFields: the `intercept` prop changed identity on ' +
           'consecutive renders, which remounts every matched field (losing ' +
           'focus and uncontrolled DOM state). Memoize it — hoist a ' +
           '`renderNodeRules(…)` call to module scope, or bind it with ' +
@@ -920,14 +930,14 @@ export function createRenderer(adapter: ReactPartialAdapter) {
           'hook) rebuilds it fresh every render.'
       )
     }
-    prevRenderNode.current = renderNode
+    prevIntercept.current = intercept
 
-    // Adapt the user's 2-arg `RenderNode` to Core's 1-arg `Resolver`, injecting
-    // the handle helpers. Memoized on `renderNode` so a stable hook keeps a
+    // Adapt the user's 2-arg `Intercept` to Core's 1-arg `Resolver`, injecting
+    // the handle helpers. Memoized on `intercept` so a stable hook keeps a
     // stable resolver identity (the `memo` bail); an inlined hook re-renders.
     const resolver = useMemo<AnySchemaResolver<ReactNode>>(
-      () => (renderNode ? adaptResolver(renderNode) : defaultResolver),
-      [renderNode]
+      () => (intercept ? adaptResolver(intercept) : defaultResolver),
+      [intercept]
     )
     const root = useMemo(
       () => engine.enrich(form, resolver) as EGroup,
@@ -945,5 +955,5 @@ export function createRenderer(adapter: ReactPartialAdapter) {
   }
 }
 
-/** Batteries-included: the floor over the real `defaultAdapter`. */
-export const SchemaFields = createRenderer(defaultAdapter)
+/** Batteries-included: the floor over `nativeDefaults`. */
+export const SchemaFields = createRenderer(nativeDefaults)
