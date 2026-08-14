@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import { SchemaFields } from './renderer'
+import { SchemaFields, createRenderer, nativeDefaults } from './renderer'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -150,5 +150,50 @@ describe('dense array submission (ADR 018)', () => {
     await expect.poll(() => submitted).toBeDefined()
     // dense: a single contiguous element, no leading hole (would be [null, …])
     expect(submitted).toEqual({ contacts: [{ name: 'Bob' }] })
+  })
+})
+
+describe('custom array.root template (#145 / #139)', () => {
+  const CustomFields = createRenderer({
+    ...nativeDefaults,
+    array: {
+      ...nativeDefaults.array,
+      root: ({ node, children }) => (
+        <fieldset className="custom-array">
+          {node.parts.label && node.parts.label.Default()}
+          <div className="custom-items">{children}</div>
+          {node.parts.addButton.Default()}
+        </fieldset>
+      ),
+    },
+  })
+
+  it('add/remove still work when the root template arranges parts without wrapping Default', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(<CustomFields form={form} />)
+
+    await expect
+      .element(screen.getByRole('group', { name: 'Contacts' }))
+      .toBeInTheDocument()
+
+    const first = screen.getByRole('textbox', { name: 'Contact name' })
+    await first.fill('Alice')
+    await expect.element(first).toHaveValue('Alice')
+
+    await screen.getByRole('button', { name: /add/i }).click()
+
+    const inputs = () =>
+      document.querySelectorAll<HTMLInputElement>('input[name$=".name"]')
+    await expect.poll(() => inputs().length).toBe(2)
+    expect(inputs()[0].value).toBe('Alice')
+    expect(inputs()[1].value).toBe('')
+
+    const name = screen.getByRole('textbox', { name: 'Contact name' })
+    await name.nth(1).fill('Bob')
+    await screen.getByRole('button', { name: 'Remove' }).nth(0).click()
+
+    await expect.poll(() => inputs().length).toBe(1)
+    expect(inputs()[0].value).toBe('Bob')
+    expect(inputs()[0].name).toBe('contacts.0.name')
   })
 })
