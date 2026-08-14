@@ -30,6 +30,8 @@ export {
   fieldControlId,
   fieldErrorId,
   errorA11yProps,
+  injectFieldErrors,
+  FieldA11yContext,
 } from './renderer'
 export type {
   Intercept,

@@ -15,9 +15,8 @@ import {
   fieldControlId,
   fieldErrorId,
   useFormTree,
-  useInterceptRules,
 } from '@formframe/renderer-react'
-import { InputControl } from './nativeFieldControls.recipe'
+import { nativeFieldDefaults } from './nativeFieldControls.recipe'
 import {
   createErrorStore,
   createTouchedStore,
@@ -183,14 +182,13 @@ function RecipeHarness({
   live?: boolean
 }): ReactNode {
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { form, SchemaFields } = useFormTree(tree)
+  const { form, SchemaFields } = useFormTree(tree, {
+    defaults: nativeFieldDefaults,
+  })
   const { validation, submit, revalidate, handleBlur } = useNativeValidator(
     form,
     validator
   )
-  const intercept = useInterceptRules(form, (r) => {
-    r.control('input', InputControl)
-  })
   return (
     <form
       noValidate
@@ -202,7 +200,7 @@ function RecipeHarness({
       }}
     >
       <NativeValidationProvider {...validation} showErrorsWhen={mode}>
-        <SchemaFields intercept={intercept} />
+        <SchemaFields />
       </NativeValidationProvider>
       <button type="submit">Submit</button>
     </form>

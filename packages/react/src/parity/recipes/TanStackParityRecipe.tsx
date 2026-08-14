@@ -10,6 +10,7 @@ import { useForm, revalidateLogic, useStore } from '@tanstack/react-form'
 import type { AnyFieldApi } from '@tanstack/react-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type {
+  FieldControl,
   ValidationError,
   GroupNode,
   FormShape,
@@ -18,10 +19,12 @@ import type {
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import { zodToTree } from '@formframe/input-zod'
 import {
-  Default,
-  SchemaFields,
-  useInterceptRules,
-  type ControlProps,
+  errorA11yProps,
+  FieldA11yContext,
+  injectFieldErrors,
+  nativeDefaults,
+  useFormTree,
+  type ReactPartialDefaults,
 } from '../../index'
 import {
   accountSignupJsonSchema,
@@ -62,6 +65,7 @@ interface RecipeFormApi {
 }
 
 const TanStackFormContext = createContext<RecipeFormApi | null>(null)
+const TanStackFieldBindingContext = createContext<RecipeFieldApi | null>(null)
 
 function TanStackFormProvider({
   form,
@@ -87,53 +91,72 @@ function useTanStackForm(): RecipeFormApi {
   return form
 }
 
-function Field({
-  path,
-  children,
+function TanStackParityControlInner({
+  control,
+  field,
 }: {
-  path: string
-  children: (field: RecipeFieldApi, errors: ValidationError[]) => ReactNode
+  control: FieldControl
+  field: RecipeFieldApi
 }): ReactNode {
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  switch (control.kind) {
+    case 'input':
+      return (
+        <input
+          {...control.attrs}
+          {...errorA11y}
+          value={String(field.state.value ?? '')}
+          onChange={(e) =>
+            field.handleChange(blankToUndefined(e.target.value))
+          }
+          onBlur={field.handleBlur}
+        />
+      )
+    default:
+      return nativeDefaults.field.control(control)
+  }
+}
+
+function TanStackParityFieldRoot({
+  node,
+  overrides,
+}: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
   const form = useTanStackForm()
-  const tanstackName = dotPathToBracket(path)
+  const dotPath = node.path
+  const tanstackName = dotPathToBracket(dotPath)
+  const Root = nativeDefaults.field.root
   return (
     <form.Field name={tanstackName}>
-      {(field) =>
-        children(
-          field,
-          field.state.meta.errors.map((e) => ({
-            path: bracketPathToDot(path),
-            message: e.message,
-          }))
-        )
-      }
+      {(field) => (
+        <TanStackFieldBindingContext.Provider value={field}>
+          {injectFieldErrors(
+            field.state.meta.errors.map((e) => ({
+              path: bracketPathToDot(dotPath),
+              message: e.message,
+            })),
+            <Root node={node} overrides={overrides} />
+          )}
+        </TanStackFieldBindingContext.Provider>
+      )}
     </form.Field>
   )
 }
 
-function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
-  return (
-    <Field path={path}>
-      {(field, errors) => (
-        <Default
-          of={node}
-          errors={errors}
-          parts={{
-            control: (c) => (
-              <input
-                {...c.attrs}
-                value={String(field.state.value ?? '')}
-                onChange={(e) =>
-                  field.handleChange(blankToUndefined(e.target.value))
-                }
-                onBlur={field.handleBlur}
-              />
-            ),
-          }}
-        />
-      )}
-    </Field>
-  )
+function TanStackParityFieldControl(control: FieldControl): ReactNode {
+  const field = useContext(TanStackFieldBindingContext)
+  if (!field) {
+    throw new Error(
+      'TanStackParityRecipe: field.control rendered outside TanStackParityFieldRoot'
+    )
+  }
+  return <TanStackParityControlInner control={control} field={field} />
+}
+
+const tanstackParityDefaults: ReactPartialDefaults = {
+  field: {
+    root: TanStackParityFieldRoot,
+    control: TanStackParityFieldControl,
+  },
 }
 
 export function TanStackParityRecipe({
@@ -206,11 +229,9 @@ export function TanStackParityRecipe({
     return out
   }, [fieldMeta])
 
-  const intercept = useInterceptRules(
+  const { SchemaFields } = useFormTree(
     tree as TypedTree<FormShape, unknown>,
-    (r) => {
-      r.control('input', InputControl)
-    }
+    { defaults: tanstackParityDefaults }
   )
 
   return (
@@ -228,7 +249,7 @@ export function TanStackParityRecipe({
         }}
       >
         <ParityValidationSummary errors={flatErrors} />
-        <SchemaFields form={tree} intercept={intercept} />
+        <SchemaFields />
         <button type="submit">Submit</button>
       </form>
     </TanStackFormProvider>

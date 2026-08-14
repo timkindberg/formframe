@@ -1,4 +1,4 @@
-// RECIPE (per form library): TanStack Form control bindings for FormFrame.
+// RECIPE (per form library): TanStack Form defaults bindings for FormFrame.
 //
 // Layer 2 of the three-layer recipe stack — the peer of
 // `rhfFieldControls.recipe.tsx`:
@@ -8,12 +8,11 @@
 //   Recipe_TanStackForm_JSONSchema (JSON Schema) / Recipe_TanStackForm_Zod (Zod)      ← per schema front-end
 //
 // Everything here is about TanStack Form and nothing else. Mapping field
-// `meta.errors` → `ValidationError[]` for FormFrame's
-// `<Default of={node} errors={…} />` inject. Field chrome + error-state a11y
-// come from the library (merged into `c.attrs` for input/select; choicegroup
-// spreads `c.errorA11y` on the wrapper). Typed against FormFrame's neutral
-// `ControlProps<K>` seam (no schema generics), so ONE copy serves every schema
-// front-end.
+// `meta.errors` → `ValidationError[]` for FormFrame's error inject. Field
+// chrome + error-state a11y come from the library (merged into `attrs` for
+// input/select; choicegroup spreads error a11y on the wrapper). Typed against
+// FormFrame's neutral control seam (no schema generics), so ONE copy serves
+// every schema front-end.
 //
 // How this differs from the RHF controls file, and why:
 //
@@ -22,13 +21,19 @@
 //   • No ambient provider. TanStack ships no FormProvider/useFormContext, so
 //     this file supplies a small Context. Wrap your form in
 //     `<TanStackFormProvider form={form}>`.
-//   • Display timing is `validationLogic`'s, not this file's. These controls
+//   • Display timing is `validationLogic`'s, not this file's. These defaults
 //     inject whatever TanStack holds; `revalidateLogic()` (no arguments) is
 //     TanStack's recommended default and matches RHF's out-of-box behavior.
 import { createContext, useContext, type ReactNode } from 'react'
 import type { AnyFieldApi } from '@tanstack/react-form'
-import type { ValidationError } from '@formframe/core'
-import { Default, type ControlProps } from '@formframe/renderer-react'
+import type { FieldControl, ValidationError } from '@formframe/core'
+import {
+  errorA11yProps,
+  FieldA11yContext,
+  injectFieldErrors,
+  nativeDefaults,
+  type ReactPartialDefaults,
+} from '@formframe/renderer-react'
 import {
   blankToUndefined,
   unselectedToUndefined,
@@ -84,6 +89,7 @@ interface RecipeFormApi {
 }
 
 const TanStackFormContext = createContext<RecipeFormApi | null>(null)
+const TanStackFieldBindingContext = createContext<RecipeFieldApi | null>(null)
 
 /**
  * Makes your `useForm()` instance reachable from the control handlers — the
@@ -145,130 +151,111 @@ export function tanstackFieldMetaToErrors(
   return out
 }
 
-/**
- * Mounts the TanStack field for `path` and hands back the field plus its
- * errors as `ValidationError[]` for FormFrame's error inject.
- *
- * No display gate here: `validationLogic` already decides when errors exist.
- */
-function Field({
-  path,
-  children,
+function TanStackControlInner({
+  control,
+  field,
 }: {
-  path: string
-  children: (field: RecipeFieldApi, errors: ValidationError[]) => ReactNode
+  control: FieldControl
+  field: RecipeFieldApi
 }): ReactNode {
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  switch (control.kind) {
+    case 'input':
+      return (
+        <input
+          {...control.attrs}
+          {...errorA11y}
+          value={String(field.state.value ?? '')}
+          onChange={(e) =>
+            field.handleChange(blankToUndefined(e.target.value))
+          }
+          onBlur={field.handleBlur}
+        />
+      )
+    case 'select': {
+      const { attrs, options } = control
+      return (
+        <select
+          {...attrs}
+          {...errorA11y}
+          value={String(field.state.value ?? '')}
+          onChange={(e) =>
+            field.handleChange(blankToUndefined(e.target.value))
+          }
+          onBlur={field.handleBlur}
+        >
+          {!attrs.multiple && <option value="">-- select --</option>}
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      )
+    }
+    case 'choicegroup':
+      return (
+        <div
+          className="jsf-choicegroup"
+          role={control.role}
+          aria-labelledby={control.labelledBy}
+          onBlur={field.handleBlur}
+          {...errorA11y}
+        >
+          {control.options.map((o) => (
+            <label key={o.attrs.id} className="jsf-choice">
+              <input
+                {...o.attrs}
+                checked={field.state.value === o.attrs.value}
+                onChange={() =>
+                  field.handleChange(unselectedToUndefined(o.attrs.value))
+                }
+              />
+              <span className="jsf-choice-text">{o.label}</span>
+            </label>
+          ))}
+        </div>
+      )
+    default:
+      return nativeDefaults.field.control(control)
+  }
+}
+
+function TanStackRecipeFieldRoot({
+  node,
+  overrides,
+}: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
   const form = useTanStackForm()
+  const path = node.path
+  const Root = nativeDefaults.field.root
   return (
     <form.Field name={path}>
-      {(field) =>
-        children(field, toValidationErrors(path, field.state.meta.errors))
-      }
+      {(field) => (
+        <TanStackFieldBindingContext.Provider value={field}>
+          {injectFieldErrors(
+            toValidationErrors(path, field.state.meta.errors),
+            <Root node={node} overrides={overrides} />
+          )}
+        </TanStackFieldBindingContext.Provider>
+      )}
     </form.Field>
   )
 }
 
-// --- One handler per control archetype ---------------------------------------
-// Registered via `r.control('input' | 'select' | 'choicegroup', …)` in the
-// front-end file. Every control applies the shared "empty means absent"
-// normalization on change. Inject errors; override only the control.
-// `ControlProps<'input'>` narrows `node.parts.control`, so no `c.kind ===` guard.
-
-export function InputControl({ path, node }: ControlProps<'input'>): ReactNode {
-  return (
-    <Field path={path}>
-      {(field, errors) => (
-        <Default
-          of={node}
-          errors={errors}
-          parts={{
-            control: (c) => (
-              <input
-                {...c.attrs}
-                value={String(field.state.value ?? '')}
-                onChange={(e) =>
-                  field.handleChange(blankToUndefined(e.target.value))
-                }
-                onBlur={field.handleBlur}
-              />
-            ),
-          }}
-        />
-      )}
-    </Field>
-  )
+function TanStackRecipeFieldControl(control: FieldControl): ReactNode {
+  const field = useContext(TanStackFieldBindingContext)
+  if (!field) {
+    throw new Error(
+      'TanStack controls: field.control rendered outside TanStackRecipeFieldRoot'
+    )
+  }
+  return <TanStackControlInner control={control} field={field} />
 }
 
-export function SelectControl({
-  path,
-  node,
-}: ControlProps<'select'>): ReactNode {
-  return (
-    <Field path={path}>
-      {(field, errors) => (
-        <Default
-          of={node}
-          errors={errors}
-          parts={{
-            control: (c) => (
-              <select
-                {...c.attrs}
-                value={String(field.state.value ?? '')}
-                onChange={(e) =>
-                  field.handleChange(blankToUndefined(e.target.value))
-                }
-                onBlur={field.handleBlur}
-              >
-                {!c.attrs.multiple && <option value="">-- select --</option>}
-                {c.options.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            ),
-          }}
-        />
-      )}
-    </Field>
-  )
-}
-
-export function ChoiceGroupControl({
-  path,
-  node,
-}: ControlProps<'choicegroup'>): ReactNode {
-  return (
-    <Field path={path}>
-      {(field, errors) => (
-        <Default
-          of={node}
-          errors={errors}
-          parts={{
-            control: (c) => (
-              <div
-                role={c.role}
-                aria-labelledby={c.labelledBy}
-                onBlur={field.handleBlur}
-                {...c.errorA11y}
-              >
-                {c.options.map((o) => (
-                  <label key={o.attrs.id}>
-                    <input
-                      {...o.attrs}
-                      checked={field.state.value === o.attrs.value}
-                      onChange={() =>
-                        field.handleChange(unselectedToUndefined(o.attrs.value))
-                      }
-                    />{' '}
-                    {o.label}
-                  </label>
-                ))}
-              </div>
-            ),
-          }}
-        />
-      )}
-    </Field>
-  )
+/** Kind-wide TanStack recipe defaults — pass to `useFormTree({ defaults })`. */
+export const tanstackFieldDefaults: ReactPartialDefaults = {
+  field: {
+    root: TanStackRecipeFieldRoot,
+    control: TanStackRecipeFieldControl,
+  },
 }

@@ -5,19 +5,15 @@
 // submit. Thin demo of the same stack `Recipe_NativeForm_JSONSchema` uses,
 // trimmed to one schema and no cross-field rule.
 import { useState } from 'react'
-import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import {
-  useFormTree,
-  useInterceptRules,
-  type TypedRuleRegistrar,
-} from '@formframe/renderer-react'
+import { useFormTree } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
 import {
   NativeValidationProvider,
   useNativeValidator,
 } from './nativeValidation.recipe'
-import { InputControl } from './nativeFieldControls.recipe'
+import { nativeFieldDefaults } from './nativeFieldControls.recipe'
 
 const schema = {
   type: 'object',
@@ -46,15 +42,11 @@ const schema = {
 const tree = jsonSchemaToTree(schema)
 const validator = createAjvValidator(schema)
 
-type Shape = FormShapeOf<typeof schema>
-const nativeRules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.control('input', InputControl)
-}
-
 function App() {
-  const { form, SchemaFields } = useFormTree(tree)
+  const { form, SchemaFields } = useFormTree(tree, {
+    defaults: nativeFieldDefaults,
+  })
   const { validation, submit } = useNativeValidator(form, validator)
-  const intercept = useInterceptRules(form, nativeRules)
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
     null
   )
@@ -89,7 +81,7 @@ function App() {
 
       <form noValidate onSubmit={submit(handleValid)}>
         <NativeValidationProvider {...validation}>
-          <SchemaFields intercept={intercept} />
+          <SchemaFields />
         </NativeValidationProvider>
         <button type="submit">Submit</button>
       </form>
