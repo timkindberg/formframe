@@ -183,5 +183,5 @@ export default function App() {
 //   is the peer of TanStack's `defaultValues: { address: {} }` so required
 //   failures land on `address.street`.
 // • Async / pending / stale coverage lives in `packages/react/src/parity/`,
-//   not this demo. ValidationSummary is the shared recipe helper (#109).
+//   not this demo.
 // ──────────────────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 // RECIPE TESTS — copy with `fieldPresentation.recipe.tsx`. Pins ValidationSummary
-// tree/DOM order so a pasted native / RHF / TanStack stack stays covered (#109).
+// tree/DOM order so a pasted native / RHF / TanStack stack stays covered.
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'

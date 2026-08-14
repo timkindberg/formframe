@@ -98,9 +98,8 @@ export function withMatchRule<T>(
 }
 
 // --- Validation summary ------------------------------------------------------
-// Convenient copy-paste helper — not a library API (#109 / ADR 050). Order
-// follows `form.getAllFields()` (tree / DOM order). Unknown paths append at
-// the end, in the order they arrived. Each row links via `fieldControlId`.
+// Form-level error list in tree/DOM order. Unknown paths append at the end,
+// in the order they arrived. Each row links via `fieldControlId`.
 
 /** Minimal tree surface the summary needs — a Core `GroupNode` satisfies this. */
 export interface ValidationSummaryForm {
