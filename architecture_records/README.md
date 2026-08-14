@@ -63,6 +63,7 @@ no first-party store, annotated).
 | [048](./048_typed_tree_form_shape_binding.md) | Front-ends brand the tree with a resolved `FormShape` | |
 | [049](./049_as_const_guard_and_runtime_door.md) | The `as const` narrowing guard | |
 | [050](./050_validation_is_a_non_goal.md) | Validation Is a Non-Goal — Library Renders; Recipes Produce | Current validation framing |
+| [051](./051_defaults_and_intercept.md) | Defaults vs Intercept — Two Jobs, Two Names | Annotates ADR 013 and ADR 047 §3/§6 |
 
 ## Proposed
 
