@@ -83,6 +83,8 @@ The React renderer is built on **one recursive primitive: the continuation** ([A
 
 **Fully fractal** — `<SchemaFields/>` resolves the form tree to its defaults. `<SchemaFields>{(root, { Default }) => …}</SchemaFields>` places yourself at the root, which is sugar for `renderNode` firing on the root. `SchemaFields` renders the form's *content only* — the chrome (the `<form>` element, submit, reset/cancel) is the consumer's, not a root part (ADR 013); the root's *children* are the top-level fields/groups. `renderNode` reappears, scoped, via `<Default of={container} renderNode={…} />` — nearest scope wins. A field bottoms node-recursion (it has parts, no child nodes); an atomic part bottoms part-recursion.
 
+The React **adoption** path is `useRenderNodeRules(form, rules)` ([ADR 047](./architecture_records/047_customize_component_handlers_and_parts.md), [ADR 048](./architecture_records/048_typed_tree_form_shape_binding.md)): selector rules that lower to an ordinary `renderNode`. Each path `if` becomes one registrar call; the winner is specificity, not source order. `renderNode` remains the floor — the numbered gallery walks up to it on purpose. See the README customize section.
+
 `Default`/`Children` are stable, module-level components that delegate to the node's own callable re-entry points — the callables are generic over the result type `R` and owned by Core's `createContinuation` (ADR 014), so the JSX layer (ADR 017) is React-only sugar with no remount (ADR 016). Core's node stays headless data; enrichment wraps it with these handles at fold time.
 
 A typed-factory skin (`<fields.address.street/>`, `.Default`-free, keyed and renderable) is planned on top of the same engine once shape inference lands — see ADR 010 for status.
