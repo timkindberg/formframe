@@ -60,6 +60,12 @@ import {
   type FieldControl,
   type ValidationError,
 } from '@formframe/core'
+import {
+  resolveIntercept,
+  interceptStabilityDeps,
+  type Intercept,
+  type InterceptFn,
+} from './intercept'
 
 // ---------------------------------------------------------------------------
 // Public types — React instantiates the generic engine at R = ReactNode.
@@ -70,8 +76,10 @@ import {
  * `{ Default, Children }` helpers; return custom JSX to hijack the node, or
  * `<Default of={node} />` to re-enter the engine. (`RenderHelpers`, `Default`,
  * and `Children` are defined in the component-handle layer below.)
+ *
+ * Also accepts path-map and `{ paths, where }` bag sugar — see `intercept.ts`.
  */
-export type Intercept = (node: ENode, helpers: RenderHelpers) => ReactNode
+export type { Intercept, InterceptFn } from './intercept'
 export type ReactDefaults = RendererAdapter<ReactNode>
 export type ReactPartialDefaults = PartialAdapter<ReactNode>
 export type ENode = CoreENode<ReactNode>
@@ -710,9 +718,9 @@ export interface RenderHelpers {
 
 const helpers: RenderHelpers = { Default, Children }
 
-/** Adapt a user `Intercept` (node + helpers) to Core's 1-arg `Resolver`. */
+/** Adapt a user `InterceptFn` (node + helpers) to Core's 1-arg `Resolver`. */
 const adaptResolver =
-  (rn: Intercept): AnySchemaResolver<ReactNode> =>
+  (rn: InterceptFn): AnySchemaResolver<ReactNode> =>
   (node) =>
     rn(node, helpers)
 
@@ -790,7 +798,9 @@ export function Default<
       ? of.Default()
       : of.Default({
           parts,
-          renderNode: intercept ? adaptResolver(intercept) : undefined,
+          renderNode: intercept
+            ? adaptResolver(resolveIntercept(intercept))
+            : undefined,
         })
   // `of.Default()` calls `DefaultFieldRoot` as a function (engine contract), so
   // its hooks run in whatever component invokes it. Bridge `errors` by mounting
@@ -909,13 +919,16 @@ export function createRenderer(defaults: ReactPartialDefaults) {
     const prevIntercept = useRef(intercept)
     const consecutiveChanges = useRef(0)
     const warnedUnstableIntercept = useRef(false)
-    const changedThisRender = intercept !== prevIntercept.current
+    const isFunctionIntercept = typeof intercept === 'function'
+    const changedThisRender =
+      isFunctionIntercept && intercept !== prevIntercept.current
     consecutiveChanges.current = changedThisRender
       ? consecutiveChanges.current + 1
       : 0
     if (
       typeof process !== 'undefined' &&
       process.env.NODE_ENV !== 'production' &&
+      isFunctionIntercept &&
       consecutiveChanges.current >= 2 &&
       !warnedUnstableIntercept.current
     ) {
@@ -932,12 +945,20 @@ export function createRenderer(defaults: ReactPartialDefaults) {
     }
     prevIntercept.current = intercept
 
+    const resolvedIntercept = useMemo(
+      () => (intercept ? resolveIntercept(intercept) : undefined),
+      interceptStabilityDeps(intercept)
+    )
+
     // Adapt the user's 2-arg `Intercept` to Core's 1-arg `Resolver`, injecting
-    // the handle helpers. Memoized on `intercept` so a stable hook keeps a
-    // stable resolver identity (the `memo` bail); an inlined hook re-renders.
+    // the handle helpers. Memoized on resolved identity so map/bag sugar stays
+    // stable when handler references are stable even if the map object is new.
     const resolver = useMemo<AnySchemaResolver<ReactNode>>(
-      () => (intercept ? adaptResolver(intercept) : defaultResolver),
-      [intercept]
+      () =>
+        resolvedIntercept
+          ? adaptResolver(resolvedIntercept)
+          : defaultResolver,
+      [resolvedIntercept]
     )
     const root = useMemo(
       () => engine.enrich(form, resolver) as EGroup,

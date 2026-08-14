@@ -43,8 +43,8 @@ import {
   type EGroup,
   type ENode,
   type RenderHelpers,
-  type Intercept,
 } from './renderer'
+import type { InterceptFn } from './intercept'
 
 // ---------------------------------------------------------------------------
 // The active-node handle the parts read (the current node + the engine helpers).
@@ -256,6 +256,8 @@ export type NodeHandler = (props: NodeHandlerProps) => ReactNode
 /** The selector registry (§3). Register rules by axis; a single node picks one
  * winning rule by specificity. Handlers must be stable references (§1). */
 export interface RuleRegistrar {
+  /** Exact path, any node kind (field, group, or array). */
+  path(path: string, Handler: NodeHandler): void
   /** Exact field path (highest specificity). */
   field(path: string, Handler: FieldHandler): void
   /** Exact (non-root) group path. */
@@ -319,7 +321,7 @@ export type RulesBuild = (r: RuleRegistrar) => void
  * defaults and inline `<Default parts={…}/>`. At EQUAL specificity the later
  * (higher-scope) rule wins, exactly like the CSS cascade.
  */
-export function renderNodeRules(...builds: RulesBuild[]): Intercept {
+export function renderNodeRules(...builds: RulesBuild[]): InterceptFn {
   const rules: Rule[] = []
   const add = (
     specificity: number,
@@ -329,6 +331,7 @@ export function renderNodeRules(...builds: RulesBuild[]): Intercept {
     rules.push({ specificity, match, Handler: Handler as Rule['Handler'] })
   }
   const r: RuleRegistrar = {
+    path: (path, H) => add(SPECIFICITY.path, (n) => n.path === path, H),
     field: (path, H) =>
       add(SPECIFICITY.path, (n) => n.isField && n.path === path, H),
     group: (path, H) =>
