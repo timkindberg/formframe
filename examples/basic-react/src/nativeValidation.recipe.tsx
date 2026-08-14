@@ -5,7 +5,7 @@
 // Layer 1.5 of the native recipe stack (between shared presentation helpers
 // and the per-control inject bindings):
 //
-//   fieldPresentation.recipe.tsx     shared blank/match helpers
+//   fieldPresentation.recipe.tsx     shared blank/match helpers + ValidationSummary
 //   nativeValidation.recipe.tsx      ← you are here. Recipe-owned stores.
 //   nativeFieldControls.recipe.tsx   injects gated errors into `<Default>`
 //   Recipe_NativeForm_*              per schema front-end

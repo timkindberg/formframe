@@ -1,6 +1,7 @@
 // RECIPE (shared, form-library-agnostic): helpers every form-lib recipe needs
-// that are NOT error chrome — blank-value normalization and cross-field match
-// rules. Per-field errors + a11y come from FormFrame's inject seam:
+// that are NOT per-field error chrome — blank-value normalization, cross-field
+// match rules, and a tree-order ValidationSummary. Per-field errors + a11y
+// come from FormFrame's inject seam:
 // `<Default of={field} errors={ValidationError[]} />`.
 //
 // This is the bottom layer of a three-layer recipe stack:
@@ -10,7 +11,9 @@
 //   Recipe_ReactHookForm_JSONSchema / Recipe_TanStackForm_JSONSchema …        ← per schema front-end (JSON Schema / Zod).
 //
 // Copy this file once; it serves every recipe you use.
-import type { Validator } from '@formframe/core'
+import type { ReactNode } from 'react'
+import type { ValidationError, Validator } from '@formframe/core'
+import { fieldControlId } from '@formframe/renderer-react'
 
 // --- "Empty means absent" ----------------------------------------------------
 // A field the user never filled in should submit as MISSING, not as "". An
@@ -92,4 +95,44 @@ export function withMatchRule<T>(
     }
     return result
   }
+}
+
+// --- Validation summary ------------------------------------------------------
+// Convenient copy-paste helper — not a library API (#109 / ADR 050). Order
+// follows `form.getAllFields()` (tree / DOM order). Unknown paths append at
+// the end, in the order they arrived. Each row links via `fieldControlId`.
+
+/** Minimal tree surface the summary needs — a Core `GroupNode` satisfies this. */
+export interface ValidationSummaryForm {
+  getAllFields(): ReadonlyArray<{ path: string }>
+}
+
+export function ValidationSummary({
+  errors,
+  form,
+}: {
+  errors: readonly ValidationError[]
+  form: ValidationSummaryForm
+}): ReactNode {
+  if (errors.length === 0) return null
+  const order = new Map(form.getAllFields().map((field, i) => [field.path, i]))
+  const sorted = [...errors].sort((a, b) => {
+    const ai = order.get(a.path)
+    const bi = order.get(b.path)
+    if (ai === undefined && bi === undefined) return 0
+    if (ai === undefined) return 1
+    if (bi === undefined) return -1
+    return ai - bi
+  })
+  return (
+    <ul className="jsf-validation-summary">
+      {sorted.map((error, i) => (
+        <li key={`${error.path}-${i}`}>
+          <a href={`#${fieldControlId(error.path)}`}>
+            {error.path}: {error.message}
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
 }

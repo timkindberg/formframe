@@ -3,7 +3,7 @@
 // Layer 2 of the three-layer recipe stack — the peer of
 // `rhfFieldControls.recipe.tsx`:
 //
-//   fieldPresentation.recipe.tsx        ← shared blank/match helpers (copy too)
+//   fieldPresentation.recipe.tsx        ← shared blank/match helpers + ValidationSummary (copy too)
 //   tanstackFieldControls.recipe.tsx    ← you are here. TanStack-specific.
 //   Recipe_TanStackForm_JSONSchema (JSON Schema) / Recipe_TanStackForm_Zod (Zod)      ← per schema front-end
 //
@@ -126,6 +126,23 @@ function toValidationErrors(
   issues: FieldIssue[]
 ): ValidationError[] {
   return issues.map((e) => ({ path, message: e.message }))
+}
+
+/**
+ * Flatten TanStack `form.store` `fieldMeta` into the `ValidationError[]`
+ * `ValidationSummary` expects. Field-level inject stays per-control;
+ * this is only for the form-level list.
+ */
+export function tanstackFieldMetaToErrors(
+  fieldMeta: Record<string, { errors?: ReadonlyArray<{ message: string }> }>
+): ValidationError[] {
+  const out: ValidationError[] = []
+  for (const [name, meta] of Object.entries(fieldMeta)) {
+    for (const e of meta.errors ?? []) {
+      out.push({ path: name, message: e.message })
+    }
+  }
+  return out
 }
 
 /**

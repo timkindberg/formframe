@@ -4,7 +4,7 @@
 // Layer 2 of the native recipe stack — the peer of `rhfFieldControls.recipe.tsx`
 // / `tanstackFieldControls.recipe.tsx`:
 //
-//   fieldPresentation.recipe.tsx     shared blank/match helpers
+//   fieldPresentation.recipe.tsx     shared blank/match helpers + ValidationSummary
 //   nativeValidation.recipe.tsx      recipe-owned stores + provider
 //   nativeFieldControls.recipe.tsx   ← you are here.
 //   Recipe_NativeForm_*              per schema front-end

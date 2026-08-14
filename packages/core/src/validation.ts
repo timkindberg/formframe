@@ -1,10 +1,7 @@
-// The validation capability slot (ADR 019) — a neutral, side-loaded contract.
-//
-// Core does not validate; it only names the shape. An adapter package (AJV, and
-// later Zod/Valibot) supplies the implementation, and a consumer (React's submit
-// path) runs it. These are pure types plus one pure helper — no imports, no
-// state, no DOM — so the stubborn Core boundary holds while validation still
-// "rides on" Core as the shared vocabulary every renderer/validator can depend on.
+// Validation vocabulary (ADR 037 / ADR 050) — display types plus one path-
+// grouping helper. Core does not run validators; recipes produce errors and
+// the library renders them. Pure types + one pure helper — no imports, no
+// state, no DOM.
 
 /**
  * One validation problem, keyed to a field by the **same dot-path as
@@ -44,9 +41,10 @@ export interface ValidationResult<T = unknown> {
 }
 
 /**
- * The slot itself: given the form's assembled data, return the result.
- * Synchronous (submit-time, native-adapter path — ADR 019); async validators are
- * a future seam evolution. Side-loaded: Core defines this; adapters implement it.
+ * Recipe-owned: given the form's assembled data, return the result.
+ * Synchronous (native / Standard Schema path — async is a separate seam).
+ * Core defines the shape; recipes implement it (`ajvValidator.recipe.ts`,
+ * `fromStandardSchema`, or a form-library resolver).
  *
  * **Purity invariant (ADR 025): a `Validator` MUST NOT mutate its input** (or
  * anything reachable from it). Adapters whose engine mutates (e.g. AJV's

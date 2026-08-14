@@ -88,11 +88,11 @@ export function toStandardSchema<T>(
  * Standard-Schema library (Zod/Valibot/ArkType, …) plug straight into our seam
  * without a dedicated adapter package.
  *
- * The Validator seam is synchronous (ADR 019), so a schema that validates
+ * The Validator seam is synchronous, so a schema that validates
  * asynchronously (returns a `Promise`) throws — async is a separate seam
  * evolution. Standard's segment-array path is collapsed to our dot-path; Standard
- * carries no keyword, so `error.keyword` is left unset (a dedicated adapter like
- * `createZodValidator` preserves more — e.g. Zod's issue `code`).
+ * carries no keyword, so `error.keyword` is left unset (a dedicated recipe can
+ * preserve more — e.g. Zod's issue `code`).
  */
 export function fromStandardSchema<O>(
   schema: StandardSchemaV1<unknown, O>

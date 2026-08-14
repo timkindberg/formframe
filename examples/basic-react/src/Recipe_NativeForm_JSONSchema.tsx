@@ -5,7 +5,7 @@
 // FOUR files to copy for the Zod half (shared stack) — JSON Schema recipes
 // also copy `ajvValidator.recipe.ts`:
 //
-//   fieldPresentation.recipe.tsx     shared blank/match helpers
+//   fieldPresentation.recipe.tsx     shared blank/match helpers + ValidationSummary
 //   nativeValidation.recipe.tsx      stores + NativeValidationProvider + hook
 //   nativeFieldControls.recipe.tsx   inject bindings (this stack's "controls")
 //   this file                        the JSON Schema + AJV half
@@ -45,7 +45,11 @@ import {
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
-import { withMatchRule, withMissingGroups } from './fieldPresentation.recipe'
+import {
+  ValidationSummary,
+  withMatchRule,
+  withMissingGroups,
+} from './fieldPresentation.recipe'
 import {
   NativeValidationProvider,
   useNativeValidator,
@@ -151,6 +155,10 @@ export default function App() {
         onSubmit={submit((data) => setSubmitted(data as Data))}
         onInput={revalidate}
       >
+        <ValidationSummary
+          errors={validation.submitted ? validation.errors : []}
+          form={form}
+        />
         <NativeValidationProvider {...validation}>
           <SchemaFields renderNode={renderNode} />
         </NativeValidationProvider>
@@ -175,6 +183,5 @@ export default function App() {
 //   is the peer of TanStack's `defaultValues: { address: {} }` so required
 //   failures land on `address.street`.
 // • Async / pending / stale coverage lives in `packages/react/src/parity/`,
-//   not this demo. No ValidationSummary here — parity asserts per-field DOM
-//   + onSubmit.
+//   not this demo. ValidationSummary is the shared recipe helper (#109).
 // ──────────────────────────────────────────────────────────────────────────────

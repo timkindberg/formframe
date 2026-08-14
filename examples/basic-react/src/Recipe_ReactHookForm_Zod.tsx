@@ -3,7 +3,7 @@
 //
 // THREE files to copy, TWO of them shared verbatim with Recipe_ReactHookForm_JSONSchema:
 //
-//   fieldPresentation.recipe.tsx   shared blank/match helpers
+//   fieldPresentation.recipe.tsx   shared blank/match helpers + ValidationSummary
 //   rhfFieldControls.recipe.tsx    RHF control bindings
 //   this file                      the Zod half
 //
@@ -36,10 +36,12 @@ import {
   useRenderNodeRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
+import { ValidationSummary } from './fieldPresentation.recipe'
 import {
   InputControl,
   SelectControl,
   ChoiceGroupControl,
+  rhfErrorsToList,
 } from './rhfFieldControls.recipe'
 
 const schema = z
@@ -104,6 +106,7 @@ const resolver = standardSchemaResolver(schema)
 export default function App() {
   // RHF's default mode: validate at first submit, revalidate on change after.
   const methods = useForm({ resolver })
+  const { errors } = methods.formState
   const renderNode = useRenderNodeRules(tree, rhfRules)
   // Typed by the schema: `z.output` flows through the resolver into
   // `handleSubmit`, so `data.age` is `number`, `data.contactMethod` is
@@ -129,6 +132,7 @@ export default function App() {
           noValidate
           onSubmit={methods.handleSubmit((data) => setSubmitted(data))}
         >
+          <ValidationSummary errors={rhfErrorsToList(errors)} form={tree} />
           <SchemaFields form={tree} renderNode={renderNode} />
           <button type="submit" style={{ marginTop: 12 }}>
             Submit

@@ -17,7 +17,7 @@ This document records **what the compiler does today**, not what we intend. Ever
 2. **`resolveLocalRefs`** — inline same-document `#` / `#/…` `$ref`s (with sibling shallow-merge); recurse into `properties` and homogeneous `items`.
 3. **`compileRoot` → `present(defaultPresentation)`** — structural transcription (`compile.ts`) then default widget assignment (`@formframe/core` `present/present.ts`).
 
-The front-end is a **structural transcriber** (ADR 033): it reads keywords into neutral `facts` / `constraints`; it does **not** validate instance data. Validation is side-loaded (ADR 019).
+The front-end is a **structural transcriber** (ADR 033): it reads keywords into neutral `facts` / `constraints`; it does **not** validate instance data. Validation is recipe-owned (ADR 050) — copy `ajvValidator.recipe.ts` for AJV.
 
 ---
 
@@ -161,11 +161,11 @@ No `datetime` alias; `month` / `week` not mapped. Broader format coverage: bead 
 
 ## Validation-only semantics
 
-These JSON Schema keywords affect runtime validation (e.g. `@formframe/validation-ajv`) but are **not** represented in the compiled tree beyond whatever inner facts survive compilation. **Prefill** (initial field values) is a separate axis — also not handled by compile or the shipped native submit path today (bead `jsonschema-form-2qx`).
+These JSON Schema keywords affect runtime validation (e.g. `ajvValidator.recipe.ts`) but are **not** represented in the compiled tree beyond whatever inner facts survive compilation. **Prefill** (initial field values) is a separate axis — also not handled by compile or the shipped native submit path today (bead `jsonschema-form-2qx`).
 
 | Feature | Compile / shipped stack | Validation behavior |
 |---------|-------------------------|---------------------|
-| `default` | Ignored — not read at compile; no prefill in tree or native submit | Applied on validated output **only** when caller opts in (`createAjvValidator(schema, { ajv: { useDefaults: true } })`); off by default in `@formframe/validation-ajv` |
+| `default` | Ignored — not read at compile; no prefill in tree or native submit | Applied on validated output **only** when caller opts in (`createAjvValidator(schema, { ajv: { useDefaults: true } })`); off by default in `ajvValidator.recipe.ts` |
 | `const` | Ignored — plain string leaf | Fixed value enforced by validator |
 | `multipleOf`, `exclusiveMinimum`, `exclusiveMaximum` | Ignored — not copied to `facts.constraints` | Numeric constraints enforced by validator |
 | `uniqueItems` | Ignored | Array uniqueness enforced by validator |

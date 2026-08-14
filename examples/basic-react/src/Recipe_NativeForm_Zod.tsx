@@ -3,7 +3,7 @@
 //
 // FOUR files to copy, THREE of them shared verbatim with the JSON Schema half:
 //
-//   fieldPresentation.recipe.tsx     shared blank/match helpers
+//   fieldPresentation.recipe.tsx     shared blank/match helpers + ValidationSummary
 //   nativeValidation.recipe.tsx      stores + NativeValidationProvider + hook
 //   nativeFieldControls.recipe.tsx   inject bindings
 //   this file                        the Zod half
@@ -26,7 +26,10 @@ import {
   useRenderNodeRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
-import { withMissingGroups } from './fieldPresentation.recipe'
+import {
+  ValidationSummary,
+  withMissingGroups,
+} from './fieldPresentation.recipe'
 import {
   NativeValidationProvider,
   useNativeValidator,
@@ -110,6 +113,10 @@ export default function App() {
         onSubmit={submit((data) => setSubmitted(data as Data))}
         onInput={revalidate}
       >
+        <ValidationSummary
+          errors={validation.submitted ? validation.errors : []}
+          form={form}
+        />
         <NativeValidationProvider {...validation}>
           <SchemaFields renderNode={renderNode} />
         </NativeValidationProvider>

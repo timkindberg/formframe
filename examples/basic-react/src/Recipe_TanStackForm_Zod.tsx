@@ -3,7 +3,7 @@
 //
 // THREE files to copy, TWO of them shared verbatim with Recipe_TanStackForm_JSONSchema:
 //
-//   fieldPresentation.recipe.tsx       shared blank/match helpers
+//   fieldPresentation.recipe.tsx       shared blank/match helpers + ValidationSummary
 //   tanstackFieldControls.recipe.tsx   TanStack control bindings
 //   this file                          the Zod half
 //
@@ -36,7 +36,7 @@
 // validator to recover the coerced value, because TanStack's validators
 // return issues only regardless of which schema library produced them.
 import { useState } from 'react'
-import { useForm, revalidateLogic } from '@tanstack/react-form'
+import { useForm, revalidateLogic, useStore } from '@tanstack/react-form'
 import { z } from 'zod'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
@@ -45,11 +45,13 @@ import {
   useRenderNodeRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
+import { ValidationSummary } from './fieldPresentation.recipe'
 import {
   TanStackFormProvider,
   InputControl,
   SelectControl,
   ChoiceGroupControl,
+  tanstackFieldMetaToErrors,
 } from './tanstackFieldControls.recipe'
 
 const schema = z
@@ -124,6 +126,7 @@ export default function App() {
     },
   })
   const renderNode = useRenderNodeRules(tree, tanStackRules)
+  const fieldMeta = useStore(form.store, (s) => s.fieldMeta)
 
   return (
     <div>
@@ -147,6 +150,10 @@ export default function App() {
             void form.handleSubmit()
           }}
         >
+          <ValidationSummary
+            errors={tanstackFieldMetaToErrors(fieldMeta)}
+            form={tree}
+          />
           <SchemaFields form={tree} renderNode={renderNode} />
           <button type="submit" style={{ marginTop: 12 }}>
             Submit
