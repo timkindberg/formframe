@@ -2,7 +2,7 @@
 //
 // Files to copy — this one plus the layers beneath it:
 //
-//   fieldPresentation.recipe.tsx       shared blank/match helpers
+//   fieldPresentation.recipe.tsx       shared blank/match helpers + ValidationSummary
 //   tanstackFieldControls.recipe.tsx   TanStack control bindings
 //   ajvValidator.recipe.ts             AJV → FormFrame Validator helper
 //   this file                          the JSON Schema + AJV half
@@ -35,7 +35,7 @@
 //     renders); with `address: {}` it lands on `address.street`, a real field
 //     with an error slot.
 import { useState } from 'react'
-import { useForm, revalidateLogic } from '@tanstack/react-form'
+import { useForm, revalidateLogic, useStore } from '@tanstack/react-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { toStandardSchema } from '@formframe/core'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
@@ -46,12 +46,13 @@ import {
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
-import { withMatchRule } from './fieldPresentation.recipe'
+import { ValidationSummary, withMatchRule } from './fieldPresentation.recipe'
 import {
   TanStackFormProvider,
   InputControl,
   SelectControl,
   ChoiceGroupControl,
+  tanstackFieldMetaToErrors,
 } from './tanstackFieldControls.recipe'
 
 const schema = {
@@ -149,6 +150,7 @@ export default function App() {
     },
   })
   const renderNode = useRenderNodeRules(tree, tanStackRules)
+  const fieldMeta = useStore(form.store, (s) => s.fieldMeta)
 
   return (
     <div>
@@ -173,6 +175,10 @@ export default function App() {
             void form.handleSubmit()
           }}
         >
+          <ValidationSummary
+            errors={tanstackFieldMetaToErrors(fieldMeta)}
+            form={tree}
+          />
           <SchemaFields form={tree} renderNode={renderNode} />
           <button type="submit" style={{ marginTop: 12 }}>
             Submit

@@ -2,7 +2,7 @@
 //
 // Files to copy — this one plus the layers beneath it:
 //
-//   fieldPresentation.recipe.tsx   shared blank/match helpers (every recipe)
+//   fieldPresentation.recipe.tsx   shared blank/match helpers + ValidationSummary
 //   rhfFieldControls.recipe.tsx    RHF control bindings
 //   ajvValidator.recipe.ts         AJV → FormFrame Validator helper
 //   this file                      the JSON Schema + AJV half
@@ -57,11 +57,12 @@ import {
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
-import { withMatchRule } from './fieldPresentation.recipe'
+import { ValidationSummary, withMatchRule } from './fieldPresentation.recipe'
 import {
   InputControl,
   SelectControl,
   ChoiceGroupControl,
+  rhfErrorsToList,
 } from './rhfFieldControls.recipe'
 
 const schema = {
@@ -145,6 +146,7 @@ const resolver = standardSchemaResolver(
 export default function App() {
   // RHF's default mode: validate at first submit, revalidate on change after.
   const methods = useForm({ resolver })
+  const { errors } = methods.formState
   const renderNode = useRenderNodeRules(tree, rhfRules)
   // Typed by the schema: `data.age` is `number`, `data.contactMethod` is
   // 'email' | 'phone' — inference flows from the schema literal through
@@ -170,6 +172,7 @@ export default function App() {
           noValidate
           onSubmit={methods.handleSubmit((data) => setSubmitted(data))}
         >
+          <ValidationSummary errors={rhfErrorsToList(errors)} form={tree} />
           <SchemaFields form={tree} renderNode={renderNode} />
           <button type="submit" style={{ marginTop: 12 }}>
             Submit
@@ -191,9 +194,9 @@ export default function App() {
 // Safe to delete when copying this file.
 // • Ticket #123; seam locked at #117; glue list from the RHF audit (#120).
 //   Display-policy unification + parity proof: `packages/react/src/parity/` (#125).
-// • ADR trail: 019 (Validator seam) / 024 (recipes not packages) / 025
-//   (validator purity — the coerceTypes corruption story) / 026
-//   (toStandardSchema) / 047-048 (renderNodeRules + typed registrar).
+// • ADR trail: 050 (recipes produce, library renders) / 024 (recipes not
+//   packages) / 025 (validator purity — the coerceTypes corruption story) /
+//   026 (toStandardSchema) / 047-048 (renderNodeRules + typed registrar).
 // • Async option sets for `plan`-style enums: not modelled by Core yet
 //   (ADR 029 §5, bd cm7) — a fetched option list is a consumer resolver's
 //   job today (pin `{ widget: 'select' }` so a count change can't re-pick

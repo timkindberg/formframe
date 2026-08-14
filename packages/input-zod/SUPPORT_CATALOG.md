@@ -16,7 +16,7 @@ This document records **what the compiler does today**, not what we intend. Ever
 1. **`compileRoot` → `compile.ts`** — direct introspection (`zodInternals.ts`) produces neutral `facts` / `parts` / `children` and calls Core's neutral builders.
 2. **`present(defaultPresentation)`** — default widget assignment (`@formframe/core` `present/present.ts`).
 
-The front-end is a **structural transcriber** (ADR 033/034): it reads Zod definitions into neutral facts; it does **not** validate instance data. Validation is side-loaded (ADR 019) — typically `@formframe/validation-zod` against the same Zod schema. **Standard Schema does not compile forms.**
+The front-end is a **structural transcriber** (ADR 033/034): it reads Zod definitions into neutral facts; it does **not** validate instance data. Validation is recipe-owned (ADR 050) — typically `fromStandardSchema` or the form library's Standard Schema resolver against the same Zod schema. **Standard Schema does not compile forms.**
 
 ---
 
@@ -165,7 +165,7 @@ Peeling is structural: any wrapper with `def.innerType` is unwrapped (`unwrap()`
 
 ## Validation-only semantics
 
-These Zod features affect runtime validation (and `@formframe/validation-zod`) but are **not** represented in the compiled tree beyond whatever inner scalar facts survive unwrapping:
+These Zod features affect runtime validation (via `fromStandardSchema` / a recipe) but are **not** represented in the compiled tree beyond whatever inner scalar facts survive unwrapping:
 
 | Feature | Compile behavior | Validation behavior |
 |---------|------------------|---------------------|

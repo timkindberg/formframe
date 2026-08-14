@@ -2,7 +2,7 @@
 //
 // Layer 2 of the three-layer recipe stack:
 //
-//   fieldPresentation.recipe.tsx   ← shared blank/match helpers (copy it too)
+//   fieldPresentation.recipe.tsx   ← shared blank/match helpers + ValidationSummary (copy it too)
 //   rhfFieldControls.recipe.tsx    ← you are here. RHF-specific.
 //   Recipe_ReactHookForm_JSONSchema (JSON Schema) / Recipe_ReactHookForm_Zod (Zod)   ← per schema front-end
 //
@@ -20,7 +20,7 @@
 // (quiet until the first submit attempt, then reveal and clear live). Want
 // blur-gated reveal instead? `mode: 'onTouched'` — nothing here changes.
 import { useFormContext, useFormState, get } from 'react-hook-form'
-import type { FieldError } from 'react-hook-form'
+import type { FieldError, FieldErrors } from 'react-hook-form'
 import type { ReactNode } from 'react'
 import type { ValidationError } from '@formframe/core'
 import { Default, type ControlProps } from '@formframe/renderer-react'
@@ -53,6 +53,39 @@ export function useFieldValidationErrors(path: string): ValidationError[] {
         },
       ]
     : []
+}
+
+/**
+ * Flatten RHF's nested `formState.errors` into the `ValidationError[]`
+ * `ValidationSummary` expects. Field-level `useFieldValidationErrors`
+ * stays the per-control path; this is only for the form-level list.
+ */
+export function rhfErrorsToList(errors: FieldErrors): ValidationError[] {
+  const out: ValidationError[] = []
+  const walk = (node: object, prefix: string) => {
+    for (const [key, value] of Object.entries(node)) {
+      if (!value || typeof value !== 'object') continue
+      const path = prefix ? `${prefix}.${key}` : key
+      const asField = value as FieldError & Record<string, unknown>
+      if (typeof asField.message === 'string') {
+        out.push({
+          path,
+          message: asField.message || 'Invalid value.',
+          keyword: typeof asField.type === 'string' ? asField.type : undefined,
+        })
+        continue
+      }
+      if (Array.isArray(value)) {
+        value.forEach((item, i) => {
+          if (item && typeof item === 'object') walk(item, `${path}.${i}`)
+        })
+      } else {
+        walk(asField, path)
+      }
+    }
+  }
+  walk(errors, '')
+  return out
 }
 
 // `register`'s `setValueAs` is where "empty means absent" is applied for RHF

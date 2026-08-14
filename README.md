@@ -55,45 +55,41 @@ native uncontrolled controls and assembles nested submission data from
 
 ## Add schema validation
 
-Validation production is a non-goal for FormFrame ([ADR 050](./architecture_records/050_validation_is_a_non_goal.md)):
-`useFormTree` carries no `validator` option and gates nothing on submit.
-FormFrame **renders** errors you already have; whichever form framework (or
-hand-rolled hook) your app uses **produces** them — React Hook Form and
-TanStack Form already own `formState.errors` / field-state errors, and a
-library-owned validation runtime would just duplicate that job.
+Validation production is a non-goal ([ADR 050](./architecture_records/050_validation_is_a_non_goal.md)).
+The library **renders** errors via `<Default of={field} errors={…} />`; a
+form-framework recipe **produces** them. There is no `useFormTree({ validator })`,
+no `createZodValidator`, and no `validation-*` package.
 
-The render seam is a prop: pass a field's current errors into `<Default
-of={field} errors={…} />` (directly, or from a custom control), and the field
-gets `aria-invalid` / `aria-describedby` wiring and an error list for free:
+**Pick a recipe. Copy it. Don't invent a store.**
 
-```tsx
-import { Default, type ControlProps } from '@formframe/renderer-react'
-import type { ValidationError } from '@formframe/core'
+1. **Render** — inject the field's current errors (directly, or from a custom
+   control). The field gets `aria-invalid` / `aria-describedby` and an error
+   list:
 
-function InputControl({ node, path }: ControlProps<'input'>) {
-  const errors: ValidationError[] = useMyValidationErrors(path)
-  return <Default of={node} errors={errors} />
-}
-```
+   ```tsx
+   import { Default, type ControlProps } from '@formframe/renderer-react'
+   import type { ValidationError } from '@formframe/core'
 
-Wire that control in through `useRenderNodeRules` (or a `renderNode` prop),
-then fill `useMyValidationErrors` from your stack:
+   function InputControl({ node, path }: ControlProps<'input'>) {
+     const errors: ValidationError[] = useMyValidationErrors(path)
+     return <Default of={node} errors={errors} />
+   }
+   ```
 
-- **React Hook Form** / **TanStack Form** — map `formState.errors` / field
-  errors to `ValidationError[]` (`{ path, message, keyword? }`).
-- **Native `<form>` + FormData** — run any `Validator` (a Standard Schema
-  adapter via `fromStandardSchema`, or a hand-rolled AJV/Zod check) at submit
-  or on `revalidate`, keeping errors/touched/display-timing in a small
-  recipe hook.
+2. **Produce** — copy a stack from [`examples/basic-react`](./examples/basic-react):
+   - Native `<form>` + FormData (`Recipe_NativeForm_*`) — no form-state library
+   - React Hook Form (`Recipe_ReactHookForm_*`) — existing RHF / resolver interop
+   - TanStack Form (`Recipe_TanStackForm_*`) — existing TanStack / Standard Schema
 
-Full, runnable versions of all three — `Recipe_ReactHookForm_*`,
-`Recipe_TanStackForm_*`, `Recipe_NativeForm_*`, and the underlying
-`nativeValidation.recipe.tsx` — live in
-[`examples/basic-react`](./examples/basic-react); copy and adapt one rather
-than reinventing the store. `ValidationError`, `groupErrorsByPath`,
-`Validator`, `ValidationResult`, and the Standard Schema helpers
-(`fromStandardSchema`/`toStandardSchema`) stay in `@formframe/core` as shared
-vocabulary these recipes use — not a library validation runtime.
+3. **Validator source** — independently of the stack:
+   - **Zod / ArkType / Valibot:** `fromStandardSchema`, or the form library's
+     Standard Schema resolver.
+   - **JSON Schema:** copy `ajvValidator.recipe.ts`.
+
+`ValidationError`, `groupErrorsByPath`, `Validator`, `ValidationResult`, and
+the Standard Schema helpers (`fromStandardSchema` / `toStandardSchema`) stay
+in `@formframe/core` as shared display/interop vocabulary — not a library
+validation runtime.
 
 ## Customize one generated part
 
@@ -150,9 +146,9 @@ structural form input.
 
 | Source | Form generation | Validation |
 |---|---|---|
-| Zod v4 | `zodToTree` from the maintained `@formframe/input-zod` package | `fromStandardSchema` (Core), or any Zod / resolver wiring you own |
-| JSON Schema draft-07 | `jsonSchemaToTree` from the maintained `@formframe/input-jsonschema` package | Copy `ajvValidator.recipe.ts` from the examples (AJV → `Validator`), or any AJV wiring you own |
-| ArkType | No maintained input package yet; an ArkType compiler can target Core's public tree builders | `fromStandardSchema` |
+| Zod v4 | `zodToTree` from the maintained `@formframe/input-zod` package | `fromStandardSchema` (Core), or the form library's Standard Schema resolver |
+| JSON Schema draft-07 | `jsonSchemaToTree` from the maintained `@formframe/input-jsonschema` package | Copy `ajvValidator.recipe.ts` from the examples |
+| ArkType / Valibot | No maintained input package yet; a compiler can target Core's public tree builders | `fromStandardSchema` |
 | Your own source | Write a small compiler against Core's public builders | Supply any FormFrame `Validator`, produced by a recipe you own |
 
 Switching the quick start to JSON Schema changes the compiler, not the React
