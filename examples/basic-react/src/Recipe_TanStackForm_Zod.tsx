@@ -39,7 +39,7 @@ import { useState } from 'react'
 import { useForm, revalidateLogic, useStore } from '@tanstack/react-form'
 import { z } from 'zod'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
+import { zodToTree } from '@formframe/input-zod'
 import {
   useFormTree,
 } from '@formframe/renderer-react'
@@ -91,7 +91,6 @@ const schema = z
     path: ['confirmPassword'],
   })
 
-type Shape = FormShapeOf<typeof schema>
 type Data = z.output<typeof schema>
 
 const tree = zodToTree(schema)

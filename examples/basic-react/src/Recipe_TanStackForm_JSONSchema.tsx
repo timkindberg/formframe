@@ -38,7 +38,7 @@ import { useState } from 'react'
 import { useForm, revalidateLogic, useStore } from '@tanstack/react-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { toStandardSchema } from '@formframe/core'
-import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
 import {
   useFormTree,
@@ -101,7 +101,6 @@ const schema = {
   },
 } as const satisfies JSONSchema
 
-type Shape = FormShapeOf<typeof schema>
 type Data = InferData<typeof schema>
 
 const tree = jsonSchemaToTree(schema)

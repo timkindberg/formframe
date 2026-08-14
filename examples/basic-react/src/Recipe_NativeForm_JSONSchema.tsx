@@ -38,7 +38,7 @@
 //     `withMatchRule` (shared presentation layer) attaches the error to a
 //     concrete field path.
 import { useState } from 'react'
-import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
+import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
 import {
   useFormTree,
@@ -105,7 +105,6 @@ const schema = {
   },
 } as const satisfies JSONSchema
 
-type Shape = FormShapeOf<typeof schema>
 type Data = InferData<typeof schema>
 
 const tree = jsonSchemaToTree(schema)
