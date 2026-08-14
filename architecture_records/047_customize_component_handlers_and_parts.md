@@ -1,7 +1,7 @@
 # ADR 047: The Customize Layer — Component Handlers, Arrangeable Parts, and Path-Narrowed Selectors
 
 **Date:** 2026-07-12
-**Status:** Accepted (epic `jsonschema-form-8l8`; spike `jsonschema-form-gjq`)
+**Status:** Accepted (epic `jsonschema-form-8l8`; spike `jsonschema-form-gjq`). **Annotated by [ADR 051](./051_defaults_and_intercept.md)** — §1–§2 and §4 stand; §3 kind blankets / `r.control` as intercepts and §6 “one registrar at two scopes” do not.
 **Deciders:** Tim Kindberg
 **Extends / refines:** ADR 010 (continuation primitive), ADR 013 (renderer sets / `createRenderer`), ADR 016 (render by calling, stable types), ADR 017 (component re-entry layer), ADR 012 (per-node part override typing), ADR 031 (present/render boundary), ADR 033 (schema-agnostic Core + front-ends), ADR 038/040 (FormFrame `@formframe/*` package identity)
 

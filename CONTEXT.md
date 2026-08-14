@@ -105,25 +105,34 @@ The source-agnostic hook that binds a compiled form tree to presentation, a stab
 _Avoid_: source-specific React hooks that hide compilation and privilege one front-end.
 
 **`SchemaFields`** (the rendering entry point):
-The component that folds the form tree into UI — the fractal root from which `renderNode` / `Default` / `Children` descend. It renders the form's *content only*; the `<form>` element + submit button are the consumer's (chrome is deliberately not the library's, so renderers nest cleanly).
+The component that folds the form tree into UI — the fractal root from which `intercept` / `Default` / `Children` descend. It renders the form's *content only*; the `<form>` element + submit button are the consumer's (chrome is deliberately not the library's, so renderers nest cleanly).
 _Avoid_: Form, FormRenderer (it renders fields, not a `<form>`); bare `Fields` (ambiguous with a form's fields — the `Schema` prefix marks it as the schema-driven renderer).
 
 **Renderer adapter** (a presentation consumer):
-A consumer that folds the form tree into UI for one target (React, vanilla DOM, …). It supplies the **default renderer set**, organized as a *compound per node kind*: each kind has a **`root`** (its composition renderer) plus its parts — `field: { root, label, description, input, select }`, `group: { root, label, description }`, `array: { root, label, description, addButton }`, `arrayItem: { root, removeButton }` — plus the `combine` plumbing. (`root` follows the compound-component convention — Chakra/Radix/Ark — the root of *that* thing; namespaced under the kind, so distinct from the form-tree root.) You customize by overriding entries *by reference*: `{ ...defaultAdapter, field: { ...defaultAdapter.field, label: MyLabel } }`; the same set, partially overridden, is the lower rung beneath the batteries-included renderer. Parts are **per-node-context** — a field's `label` is a `<label>`, a group's `label` is a `<legend>`; an array's `addButton` and an arrayItem's `removeButton` are the add/remove controls. **Interactive behavior is per-adapter, not part of the contract** — the engine and the renderer set produce *markup*; a stateful adapter (React; a future vanilla-DOM adapter) wires add/remove, while the string oracle (`renderToString`) renders the same controls inert. Cross-adapter conformance is therefore a *markup* contract. A renderer ships two built-in sets: the real **defaults**, and a **diagnostic** set whose every content entry renders a visible `[… not implemented]` marker echoing the node's data — the floor's fallback, so an incomplete adapter still runs and tells you what's missing.
-_Avoid_: template, template-set (RJSF's schema-keyed registry; ours is a JSX continuation, overridden by reference).
+A consumer that folds the form tree into UI for one target (React, vanilla DOM, …). It supplies the **default renderer set**, organized as a *compound per node kind*: each kind has a **template** (`root` — its composition renderer) plus its **parts** — `field: { root, label, description, control }`, `group: { root, label, description }`, `array: { root, label, description, addButton }`, `arrayItem: { root, removeButton }` — plus the `combine` plumbing. (`root` follows the compound-component convention — Chakra/Radix/Ark — the root of *that* thing; namespaced under the kind, so distinct from the form-tree root.) You customize by overriding entries *by reference*: `{ ...defaultAdapter, field: { ...defaultAdapter.field, label: MyLabel } }`; the same set, partially overridden, is the lower rung beneath the batteries-included renderer. Parts are **per-node-context** — a field's `label` is a `<label>`, a group's `label` is a `<legend>`; an array's `addButton` and an arrayItem's `removeButton` are the add/remove controls. **Interactive behavior is per-adapter, not part of the contract** — the engine and the renderer set produce *markup*; a stateful adapter (React; a future vanilla-DOM adapter) wires add/remove, while the string oracle (`renderToString`) renders the same controls inert. Cross-adapter conformance is therefore a *markup* contract. A renderer ships two built-in sets: the real **defaults**, and a **diagnostic** set whose every content entry renders a visible `[… not implemented]` marker echoing the node's data — the floor's fallback, so an incomplete adapter still runs and tells you what's missing.
+_Avoid_: template-set, calling the whole adapter a template (that's RJSF's schema-keyed registry). The kind `root` *is* a template.
 
-**Hijack**:
-Supplying your own JSX for a node or part instead of the default renderer — at any level, paying only for what you change.
-_Avoid_: widget override, template (RJSF's schema-keyed registries; ours is a JSX continuation).
+**Defaults** (the renderer set):
+The table of templates + parts that `<Default />` draws — one entry per kind (`field` / `group` / `array` / `arrayItem`), each a template (`root`) plus parts. You pass `defaults` into `useFormTree` / `createRenderer`. Batteries native HTML is a defaults object; a UI-kit × form-lib recipe is another; `merge` last-wins per key.
+_Avoid_: adapter (as the React adoption name — internally it is still a renderer adapter); template-set for the whole table.
 
-**`renderNode`**:
-The per-node hook the renderer calls while walking the tree. Return custom JSX to hijack a node, or `<node.Default/>` to keep the default. The function form of node-scope customization — the floor. The numbered gallery apps walk up to it on purpose.
+**Template**:
+The kind-wide composition renderer for a field, group, array, or arrayItem — `defaults[kind].root`. It arranges that kind's parts (and `{children}` for containers). Path-specific customization is an intercept, not a template.
+_Avoid_: FieldTemplate as a second API beside the kind root; using template for an intercept or RJSF's widget/uiSchema registry.
+
+**Hijack** / **Intercept**:
+Supplying your own JSX for a node or part instead of the current defaults — at any level, paying only for what you change. Same move at form (`intercept`), node (`<Default of={node} />`), and part (`parts={{…}}` / `<Default of={part} />`). The public name of the per-node callback is **intercept** (historically `renderNode`).
+_Avoid_: widget override; using template for an intercept; `renderNode` in new public API.
+
+**`intercept`**:
+The per-node function the renderer calls while walking the tree — the floor. Return custom JSX to intercept a node, or `<Default of={node} />` to keep the current defaults. React sugar on the same prop: a dotted-path map of handlers (`{ email, 'address.street' }`), or a bag `{ paths, where }` (`where` is predicate + handler pairs, not the function floor). Exact path beats `where`. Unmatched nodes keep defaults. Nested-object maps are not the path language (`FieldPath` is dotted).
+_Avoid_: `renderNode` as the adoption name; a registrar `allFields` / `control` as a second defaults table.
 
 **`useRenderNodeRules` / `renderNodeRules`**:
-Typed selector-registry sugar over `renderNode` (ADR 047/048). Each rule is a mounted component with arrangeable parts. Exact path > `where` > `control(kind)` > kind blankets (`allFields` / `allGroups` / `allArrays`) > `default`. `useRenderNodeRules` is the adoption front door (reads the `FormShape` branded on the tree and memoizes the resolver); don't call `renderNodeRules()` inline in render.
+The previous intercept sugar (ADR 047/048 registrar). Replaced by the `intercept` prop’s path map / `{ paths, where }` bag. Do not use `allFields` / `allGroups` / `allArrays` / `control` as stylesheets — those jobs are **defaults**.
 
 **`Default`**:
-The component that renders the default for the thing it hangs off — `node.Default` (a whole node) or `part.Default` (one part). Re-enters the engine, so descendants still pass through `renderNode`.
+The component that renders the **current merged renderer set** for the thing it hangs off — `node.Default` (that kind's template + parts) or `part.Default` (one part). It does not mean the previous layer's template; wrapping a previous template is calling that root in userland. Re-enters the engine, so descendants still pass through intercepts.
 
 **`Children`**:
 `node.Children` renders a node's child *nodes* through the resolver — the inter-node continuation that lets you take the reins on a node's layout while the library renders below.
