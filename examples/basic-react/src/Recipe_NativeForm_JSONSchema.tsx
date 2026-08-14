@@ -7,7 +7,7 @@
 //
 //   fieldPresentation.recipe.tsx     shared blank/match helpers + ValidationSummary
 //   nativeValidation.recipe.tsx      stores + NativeValidationProvider + hook
-//   nativeFieldControls.recipe.tsx   inject bindings (this stack's "controls")
+//   nativeFieldControls.recipe.tsx   defaults bindings (`nativeFieldDefaults`)
 //   this file                        the JSON Schema + AJV half
 //   (+ ajvValidator.recipe.ts)       AJV → FormFrame Validator helper
 //
@@ -20,14 +20,15 @@
 //   schema ─→ jsonSchemaToTree(schema) ──→ <SchemaFields> renders the fields
 //   schema ─→ createAjvValidator(schema) → useNativeValidator(form, validator)
 //             owns submit / revalidate / errors / submitted
-//   errors ─→ NativeValidationProvider ─→ controls inject via
-//             `<Default of={field} errors={…} />`
+//   errors ─→ NativeValidationProvider ─→ `nativeFieldDefaults` inject via
+//             `injectFieldErrors` on `defaults.field.root` (ADR 051)
 //
 // Worth knowing before you adapt it:
 //
 //   • No form library. Native FormData on submit; inputs stay uncontrolled.
 //     `useFormTree` binds presentation + FormData submit; `useNativeValidator`
-//     produces errors and the controls inject them — FormFrame only renders.
+//     produces errors; `useFormTree({ defaults: nativeFieldDefaults })` injects
+//     them — FormFrame only renders.
 //   • Display timing defaults to `'submit'` in NativeValidationProvider
 //     (quiet until first submit, then reveal + clear live via `onInput={revalidate}`).
 //     Same observable behavior as RHF's default mode and TanStack's
@@ -132,8 +133,9 @@ export default function App() {
         renders the fields from the JSON Schema; one AJV validator runs at
         submit and (after the first attempt) live via <code>onInput</code>.
         Errors inject through{' '}
-        <code>&lt;Default of={'{field}'} errors=&#123;…&#125; /&gt;</code> — the
-        same seam the RHF and TanStack recipes fill. Default display timing:
+        <code>nativeFieldDefaults</code> (
+        <code>injectFieldErrors</code> on the field root) — the same defaults
+        pattern the RHF and TanStack recipes use. Default display timing:
         quiet until you press Submit, then errors reveal and clear live as you
         fix them. Copy-paste recipe — four files, this one plus{' '}
         <code>nativeFieldControls.recipe.tsx</code>,{' '}

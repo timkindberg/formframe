@@ -2,8 +2,9 @@
 //
 // Core names the `Validator` shape; `ajvValidator.recipe.ts` implements it;
 // `useNativeValidator` (nativeValidation.recipe.tsx) runs it on
-// submit. Thin demo of the same stack `Recipe_NativeForm_JSONSchema` uses,
-// trimmed to one schema and no cross-field rule.
+// submit. Thin demo of the same stack `Recipe_NativeForm_JSONSchema` uses
+// (`useFormTree({ defaults: nativeFieldDefaults })`), trimmed to one schema
+// and no cross-field rule.
 import { useState } from 'react'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
@@ -72,11 +73,10 @@ function App() {
         <code>required</code>/<code>pattern</code> attrs, ADR 012).
       </p>
       <p>
-        Errors inject through{' '}
-        <code>&lt;Default of={'{field}'} errors=&#123;…&#125; /&gt;</code> — the
-        same seam every recipe in this app uses; fields automatically receive{' '}
-        <code>aria-invalid</code> and <code>aria-describedby</code> when they
-        have errors.
+        Errors inject through <code>nativeFieldDefaults</code> (
+        <code>injectFieldErrors</code> on the field root); fields automatically
+        receive <code>aria-invalid</code> and <code>aria-describedby</code> when
+        they have errors.
       </p>
 
       <form noValidate onSubmit={submit(handleValid)}>

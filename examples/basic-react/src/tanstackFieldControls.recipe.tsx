@@ -8,7 +8,8 @@
 //   Recipe_TanStackForm_JSONSchema (JSON Schema) / Recipe_TanStackForm_Zod (Zod)      ← per schema front-end
 //
 // Everything here is about TanStack Form and nothing else. Mapping field
-// `meta.errors` → `ValidationError[]` for FormFrame's error inject. Field
+// `meta.errors` → `ValidationError[]`, injected on `defaults.field.root` via
+// `injectFieldErrors` (controlled binds on `defaults.field.control`). Field
 // chrome + error-state a11y come from the library (merged into `attrs` for
 // input/select; choicegroup spreads error a11y on the wrapper). Typed against
 // FormFrame's neutral control seam (no schema generics), so ONE copy serves
@@ -136,8 +137,8 @@ function toValidationErrors(
 
 /**
  * Flatten TanStack `form.store` `fieldMeta` into the `ValidationError[]`
- * `ValidationSummary` expects. Field-level inject stays per-control;
- * this is only for the form-level list.
+ * `ValidationSummary` expects. Per-field errors are injected on
+ * `defaults.field.root`; this is only for the form-level list.
  */
 export function tanstackFieldMetaToErrors(
   fieldMeta: Record<string, { errors?: ReadonlyArray<{ message: string }> }>

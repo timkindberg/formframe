@@ -3,7 +3,8 @@
 // Wire `revalidate` from `useNativeValidator` (nativeValidation.recipe.tsx) to
 // the consumer-owned `<form onInput>` (per keystroke) or `onChange` (blur for
 // text fields); it reads native FormData, runs the side-loaded validator, and
-// updates the same `errors` state — inputs stay uncontrolled.
+// updates the same `errors` state — inputs stay uncontrolled. Field errors
+// render via `useFormTree({ defaults: nativeFieldDefaults })`.
 import { useState } from 'react'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
