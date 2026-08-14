@@ -68,10 +68,10 @@ function RhfParityFieldRoot({
 
 function RhfParityFieldControl(control: FieldControl): ReactNode {
   const { register } = useFormContext()
-  const path = control.attrs.name
   const errorA11y = errorA11yProps(useContext(FieldA11yContext))
   switch (control.kind) {
-    case 'input':
+    case 'input': {
+      const path = control.attrs.name
       return (
         <input
           {...control.attrs}
@@ -79,6 +79,7 @@ function RhfParityFieldControl(control: FieldControl): ReactNode {
           {...errorA11y}
         />
       )
+    }
   }
   return nativeDefaults.field.control(control)
 }
