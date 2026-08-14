@@ -10,7 +10,7 @@
 // makes a *fresh component type every render*, so any real re-render remounts the
 // subtree and discards uncontrolled DOM (typed values). Calling instead yields
 // markup composed only of module-level component types (`NodeRenderer`,
-// `ArrayRoot`, `PartHost`, the intrinsic elements), which reconcile in place. The
+// `ArrayStateProvider`, `PartHost`, the intrinsic elements), which reconcile in place. The
 // engine threads the active resolver as a parameter and each handle closes over
 // it, so a called `node.Default()` still sees the right (possibly scoped)
 // resolver with no Context — the vanilla probe (ADR 008) proved Context was
@@ -376,7 +376,7 @@ function DefaultArrayLabel({ text }: { text: string }): ReactNode {
 }
 
 /**
- * Per-array action handlers, supplied by the stateful `ArrayRoot` to the add /
+ * Per-array action handlers, supplied by `ArrayStateProvider` to the add /
  * remove button parts through Context. Interactivity is per-adapter, *not* part
  * of the markup contract (ADR 008/013) — the string oracle has no Context and
  * renders the same buttons inert. Routing behavior through Context (rather than
@@ -421,7 +421,7 @@ function DefaultRemoveButton({
 
 /**
  * Per-item Context boundary. Memoizing `actions` on `[remove, id]` — both stable
- * — keeps the value referentially constant across `ArrayRoot` re-renders, so a
+ * — keeps the value referentially constant across `ArrayStateProvider` re-renders, so a
  * sibling add/remove can never re-render this item's Remove button (a Context
  * consumer) even though it sits below a memo-bailed `NodeRenderer`.
  */
@@ -467,9 +467,18 @@ interface ArraySlot {
  * Ids are never reused and are the React key only (identity); the item's path is
  * its dense position, re-minted on shift. This realizes ADR 016's lifted
  * constraint and reverses ADR 015 §6's stable-sparse paths (ADR 018).
+ *
+ * Lifted above the replaceable `array.root` template (ADR 051 §3): `createRenderer`
+ * always wraps the merged template in this provider so add/remove state survives
+ * custom layout. The template receives live slot children via the render prop.
  */
-function ArrayRoot({ node }: { node: EArray }): ReactNode {
-  const { label, description, addButton } = node.parts
+function ArrayStateProvider({
+  node,
+  children,
+}: {
+  node: EArray
+  children: (items: ReactNode) => ReactNode
+}): ReactNode {
   const seedCount = Object.keys(node.children).length
   // Monotonic id source — the React *key* only, never a path index. Seeded past
   // the initial items and advanced only in handlers (event-time, not in render).
@@ -510,32 +519,36 @@ function ArrayRoot({ node }: { node: EArray }): ReactNode {
   )
   const addActions = useMemo<ArrayActions>(() => ({ add }), [add])
 
+  const items = slots.map((slot) => (
+    <ArrayItemActions key={slot.id} id={slot.id} remove={removeById}>
+      {node.renderItem(slot.core)}
+    </ArrayItemActions>
+  ))
+
   return (
-    <fieldset className="jsf-array">
-      {label && label.Default()}
-      {description && description.Default()}
-      <div className="jsf-array-items">
-        {slots.map((slot) => (
-          <ArrayItemActions key={slot.id} id={slot.id} remove={removeById}>
-            {node.renderItem(slot.core)}
-          </ArrayItemActions>
-        ))}
-      </div>
-      <ArrayActionsContext.Provider value={addActions}>
-        {addButton.Default()}
-      </ArrayActionsContext.Provider>
-    </fieldset>
+    <ArrayActionsContext.Provider value={addActions}>
+      {children(items)}
+    </ArrayActionsContext.Provider>
   )
 }
 
-/** Compose an array: delegate to the stateful `ArrayRoot` (manages its items). */
+/** Compose an array from its parts and live slot children (like `DefaultGroupRoot`). */
 function DefaultArrayRoot({
   node,
+  children,
 }: {
   node: EArray
   children: ReactNode
 }): ReactNode {
-  return <ArrayRoot node={node} />
+  const { label, description, addButton } = node.parts
+  return (
+    <fieldset className="jsf-array">
+      {label && label.Default()}
+      {description && description.Default()}
+      <div className="jsf-array-items">{children}</div>
+      {addButton.Default()}
+    </fieldset>
+  )
 }
 
 /** Compose one array item: its content + the remove control. */
@@ -956,6 +969,17 @@ declare const process: { env: { NODE_ENV?: string } } | undefined
  */
 export function createRenderer(defaults: ReactPartialDefaults) {
   const merged = mergeDefaults(diagnosticDefaults, defaults)
+  const rendererDefaults: ReactDefaults = {
+    ...merged,
+    array: {
+      ...merged.array,
+      root: (props) => (
+        <ArrayStateProvider node={props.node}>
+          {(items) => merged.array.root({ ...props, children: items })}
+        </ArrayStateProvider>
+      ),
+    },
+  }
 
   // Tie the knot: the engine renders each child through `renderChild`, which
   // emits this memoized per-node component; the component calls back into the
@@ -976,7 +1000,7 @@ export function createRenderer(defaults: ReactPartialDefaults) {
   const NodeRenderer = memo(NodeRendererImpl)
 
   const engine: Continuation<ReactNode> = createContinuation<ReactNode>(
-    merged,
+    rendererDefaults,
     {
       renderChild: (core, resolver) => (
         <NodeRenderer core={core} resolver={resolver} />
