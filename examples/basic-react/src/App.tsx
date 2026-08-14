@@ -32,7 +32,11 @@ const examples = [
   { id: '06', name: 'React + useFormTree Hook', component: App06 },
   { id: '06B', name: 'React + SchemaFields (ADR 010)', component: App06B },
   { id: '07', name: 'React + Array Support', component: App07 },
-  { id: '08', name: 'React + Overrides (ADR 010)', component: App08 },
+  {
+    id: '08',
+    name: 'React + intercept function floor (ADR 051)',
+    component: App08,
+  },
   { id: '09', name: 'React + Validation (recipe-owned)', component: App09 },
   { id: '10', name: 'React + Schema $ref/$defs', component: App10 },
   {
@@ -67,12 +71,12 @@ const examples = [
   },
   {
     id: '16',
-    name: 'React + interceptRules (ADR 047)',
+    name: 'React + defaults then intercept map (ADR 051)',
     component: App16,
   },
   {
     id: '17',
-    name: 'React + interceptRules over Zod (ADR 047 / ADR 008)',
+    name: 'React + defaults then intercept map · Zod (ADR 051)',
     component: App17,
   },
   {
@@ -104,7 +108,7 @@ function galleryLabel(example: { id: string; name: string }): string {
     : example.name
 }
 
-/** Landing example — the headline interceptRules demo (ADR 047/048). */
+/** Landing example — the headline defaults-then-intercept demo (ADR 051). */
 const DEFAULT_EXAMPLE_ID = '16'
 
 function App() {

@@ -122,18 +122,12 @@ function useTeamFormTree<S>(tree: GroupNode<S>, options?: UseFormTreeOptions<S>)
 }
 ```
 
-Path intercepts still use `useRenderNodeRules` (sugar over `intercept`): each
-`if` in an intercept mega-switch becomes one registrar call, and
-**specificity replaces order**.
+Path intercepts are the exception layer — pass them to `SchemaFields`:
 
 ```tsx
 import { z } from 'zod'
-import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
-import {
-  useFormTree,
-  useRenderNodeRules,
-  type TypedRuleRegistrar,
-} from '@formframe/renderer-react'
+import { zodToTree } from '@formframe/input-zod'
+import { type InterceptMap } from '@formframe/renderer-react'
 
 const schema = z.object({
   email: z.string().email().meta({ title: 'Email' }),
@@ -145,11 +139,12 @@ const schema = z.object({
     .meta({ title: 'Address' }),
 })
 
-type Shape = FormShapeOf<typeof schema>
 const tree = zodToTree(schema)
 
-const rules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.field('email', ({ parts }) => (
+// Hoist handlers that call hooks. String keys + annotated handler props are fine
+// until a FormShape-typed map lands (#87).
+const customizeIntercept = {
+  email: ({ parts }) => (
     <>
       <span>
         <parts.Label />
@@ -158,50 +153,48 @@ const rules = (r: TypedRuleRegistrar<Shape>): void => {
       <parts.Control />
       <parts.Errors />
     </>
-  ))
-  r.group('address', ({ parts, children }) => (
+  ),
+  address: ({ parts, children }) => (
     <section className="address-grid">
       <parts.Label />
       {children}
     </section>
-  ))
-}
+  ),
+} satisfies InterceptMap
 
 export function ProfileForm() {
-  const { form, SchemaFields, submit } = useFormTree(tree)
-  const intercept = useRenderNodeRules(form, rules)
+  const { SchemaFields, submit } = useTeamFormTree(tree)
 
   return (
     <form onSubmit={submit((data) => console.log(data))}>
-      <SchemaFields intercept={intercept} />
+      <SchemaFields intercept={customizeIntercept} />
       <button type="submit">Save profile</button>
     </form>
   )
 }
 ```
 
-**From a mega-switch:** `if (node.isField && node.path === 'email')` becomes
-`r.field('email', …)`; `if (node.isGroup && node.path === 'address')` becomes
-`r.group('address', …)`. Unmatched nodes keep the default, so there is no
-fallback branch. Register in any order. One winning rule per node, most
-specific first: exact path, then `where`, then `control(kind)`, then
-`allFields` / `allGroups` / `allArrays`, then `default`. Recipes use the same
-registrar for a blanket widget swap (`r.control('input', InputControl)`).
+Use a **path map** (`{ email: Handler, 'address.street': Handler }`) or a
+**bag** (`{ paths: { … }, where: [[pred, Handler], …] }`) for path-specific
+customization. A hand-written **function**
+`(node, { Default, Children }) => …` is the floor — the map and bag lower to
+it. One winning handler per node; **specificity replaces order**: exact path,
+then `where`, then defaults. Unmatched nodes keep the team defaults.
 
 Handlers place parts (`<parts.Label />`, `<parts.Control />`, `{children}` for
-a group's descendants) or re-enter the whole node with `<Default />`. Type the
-hook off `form` from `useFormTree`, not the input tree. JSON Schema literals
-need `as const` for path types. Hoist handlers that call hooks.
+a group's descendants) or re-enter the whole node with `<Default />`. Hoist
+handlers that call hooks. Recipes pass **defaults** (error inject, form-lib
+wiring) through `useFormTree({ defaults })` — not a winning intercept.
 
-`intercept` is still the floor (`<Default of={node} />` / `<Children of={node} />`).
 The numbered gallery in [`examples/basic-react`](./examples/basic-react) walks
-up to that floor on purpose (App_08 is the mega-switch). Copy a recipe, or
+up to the function floor on purpose ([App_08](./examples/basic-react/src/App_08_React+Overrides.tsx)
+is the hand-written intercept). Copy a recipe, or
 [App_16](./examples/basic-react/src/App_16_React+Customize.tsx) /
 [App_17](./examples/basic-react/src/App_17_React+CustomizeZod.tsx), for the
-rules path.
+path-map / bag path.
 
 `Default` and `Children` are also exported from
-`@formframe/renderer-react` for authored layouts outside a rule handler.
+`@formframe/renderer-react` for authored layouts outside an intercept handler.
 
 ## Choose a schema input
 

@@ -2,14 +2,11 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import {
   useFormTree,
-  useInterceptRules,
   type FieldProps,
   type GroupProps,
-  type TypedRuleRegistrar,
-  type RulesBuild,
-  type RuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
+import { nativeFieldDefaults } from './nativeFieldControls.recipe'
 import {
   NativeValidationProvider,
   useFieldValidationErrors,
@@ -17,15 +14,10 @@ import {
 } from './nativeValidation.recipe'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// The render-node rules layer (ADR 047/048), on the SHIPPED API.
-//
-// No recipe file: `jsonSchemaToTree(schema)` brands the tree with its resolved
-// `FormShapeOf<S>`, and React's `useInterceptRules(tree, rules)` reads that brand
-// to type the registrar — React imports NO front-end. The APP side is: define a
-// schema (`as const`), write `type Shape = FormShapeOf<typeof schema>` for hoisted
-// handler annotations, then author handlers with fully narrowed path/value/
-// control/parts. (The `renderNode` prop can do all of this by hand — the hook is
-// just typed, memo-safe sugar over it.)
+// Defaults then intercept (ADR 051) — team-wide recipe defaults first,
+// path intercept as the exception. No `useRenderNodeRules` in the teaching path:
+// bind `nativeFieldDefaults` on `useFormTree`, then pass a path map to
+// `<SchemaFields intercept={…} />`.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const schema = {
@@ -55,17 +47,13 @@ const schema = {
   required: ['name'],
 } as const
 
-// The resolved FormShape — what the typed binding reads (ADR 048). Hoisted
-// handlers annotate `FieldProps<Shape, 'name'>` / `GroupProps<Shape, 'address'>`;
-// a module-scope builder is `(r: TypedRuleRegistrar<Shape>) => void`. Inline
-// handlers inside `useInterceptRules` need no annotation.
 type Shape = FormShapeOf<typeof schema>
 
-// ── Handlers (hoisted → stable identity → safe hooks + memo bail, §1) ─────────
+// ── Handlers (hoisted → stable identity → safe hooks) ───────────────────────
 
 // `name` HAS a description in the schema, so `parts.Description` exists here.
-// `parts.Control`/`parts.Errors` take recipe-injected errors (ADR 050) —
-// FormFrame renders them; the recipe produces them.
+// Recipe errors inject on `defaults.field.root`; custom handlers that compose
+// parts directly still read gated errors from the recipe hook.
 function RowName({ path, parts }: FieldProps<Shape, 'name'>) {
   const [hint, setHint] = useState(false)
   const errors = useFieldValidationErrors(path)
@@ -85,7 +73,7 @@ function RowName({ path, parts }: FieldProps<Shape, 'name'>) {
         {hint && (
           <small style={{ color: '#666' }}>
             <code>useState</code> in a customize handler — legal because the
-            handler is a mounted component (ADR 047 §1).
+            handler is a mounted component.
           </small>
         )}
         <parts.Errors errors={errors} />
@@ -94,7 +82,6 @@ function RowName({ path, parts }: FieldProps<Shape, 'name'>) {
   )
 }
 
-// Group label via the TYPED render prop: `l` is `{ text }`.
 function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
   return (
     <fieldset
@@ -106,11 +93,7 @@ function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
   )
 }
 
-// FULL control hijack via the TYPED render prop: `c` is narrowed to the input
-// member (`ControlAt<'address.street'>`), so `c.attrs` is the input attrs with no
-// guard. Spread keeps FormData wiring (ADR 047 §5); we add attrs and drop `type`.
 function StreetInput({ path, parts }: FieldProps<Shape, 'address.street'>) {
-  // presence narrowing: street has no description in the schema.
   // @ts-expect-error 'address.street' has no description part
   void parts.Description
   const errors = useFieldValidationErrors(path)
@@ -150,49 +133,25 @@ function CityNote({ Default }: FieldProps<Shape, 'address.city'>) {
   )
 }
 
-const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.field('name', RowName)
-  r.group('address', CardGroup)
-  r.field('address.street', StreetInput)
-  r.field('address.city', CityNote)
-
-  // INLINE handler → props inferred as FieldProps<Shape, 'plan'> (no annotation),
-  // because `r` is annotated `TypedRuleRegistrar<Shape>` on this builder above.
-  r.field('plan', ({ value, Default }) => {
-    // Hover `value`: 'free' | 'pro' | 'enterprise' | undefined — the schema enum,
-    // plus `undefined` because live values await a form-state adapter (ADR 047 §7).
-    void value
-    return <Default />
-  })
-
-  // ── Guardrails: each is a COMPILE ERROR. ───────────────────────────────────
-  // @ts-expect-error 'nope' is not a field path
-  r.field('nope', () => null)
-  // @ts-expect-error 'address' is a GROUP, not a field — the error NAMES the fix
-  // ("use r.group(), not r.field()"), not just "not assignable to a union" (bd q8v).
-  r.field('address', () => null)
-  // @ts-expect-error 'address.city' is a FIELD, not a group — hints "use r.field()"
-  r.group('address.city', () => null)
+const customizeIntercept = {
+  name: RowName,
+  address: CardGroup,
+  'address.street': StreetInput,
+  'address.city': CityNote,
 }
 
 function LiveCustomizedForm() {
   const tree = useMemo(() => jsonSchemaToTree(schema), [])
   const validator = useMemo(() => createAjvValidator(schema), [])
-  const { form, SchemaFields: Fields } = useFormTree(tree)
-  // Type off `form` — the tree that ACTUALLY renders — not the pre-present input
-  // (bd bh7.8). With no `overrideWidgets` here the two brands are identical, but
-  // typing off `form` is the desync-proof habit: if you later add
-  // `resolvePresentation: overrideWidgets(map)`, the narrowed control re-narrows to
-  // match the override with no other change. `useInterceptRules` reads that brand
-  // to type the rules and bakes in the stable-resolver memo (ADR 048).
-  const intercept = useInterceptRules(form, customizeRules)
-  // Recipe-owned validation: produce errors here, inject via the provider.
+  const { form, SchemaFields: Fields } = useFormTree(tree, {
+    defaults: nativeFieldDefaults,
+  })
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (
     <form noValidate onSubmit={submit((d) => setData(d))} onInput={revalidate}>
       <NativeValidationProvider {...validation} showErrorsWhen="always">
-        <Fields intercept={intercept} />
+        <Fields intercept={customizeIntercept} />
       </NativeValidationProvider>
       <button type="submit" style={{ marginTop: 12 }}>
         Submit
@@ -215,34 +174,20 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-// A plain neutral registrar (no schema types) still works — the source-agnostic
-// floor. Here: a blanket rule via the shared `RuleRegistrar` type.
-const _neutralExample: RulesBuild = (r: RuleRegistrar) => {
-  r.allGroups(({ parts, children }) => (
-    <fieldset>
-      <parts.Label />
-      {children}
-    </fieldset>
-  ))
-}
-void _neutralExample
-
 export default function App() {
   return (
     <div>
-      <h1>
-        interceptRules — path-narrowed props &amp; arrangeable parts (ADR 047)
-      </h1>
+      <h1>Defaults then intercept — path map (ADR 051)</h1>
       <p>
-        In-editor: <code>{`r.field('…')`}</code>/<code>{`r.group('…')`}</code>{' '}
-        narrow to real paths; <code>value</code> and <code>control</code> narrow
-        to the schema; <code>parts</code> is derived per path (
-        <code>parts.Description</code> exists on <code>name</code> but not{' '}
-        <code>street</code>); every part takes a typed <code>render</code> prop;
-        and <code>Default</code> re-enters the whole node. Type into the orange
-        Street box and Submit.
+        Team recipe defaults on <code>useFormTree</code> (
+        <code>nativeFieldDefaults</code> injects gated errors), then a path map
+        on <code>intercept</code> for the exceptions. Handlers are hoisted
+        components with <code>FieldProps</code>/<code>GroupProps</code>{' '}
+        annotations; <code>plan</code> is unmatched and keeps the defaults. Type
+        into the orange Street box and Submit. See example 08 for the
+        hand-written intercept function this map lowers to.
       </p>
-      <Section title="interceptRules — narrowed props/parts, typed render-props, Default prop, live errors">
+      <Section title="Path intercept map — custom handlers, live errors">
         <LiveCustomizedForm />
       </Section>
     </div>

@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { useFormTree } from '@formframe/renderer-react'
+import {
+  mergeDefaults,
+  nativeDefaults,
+  useFormTree,
+  type ReactPartialDefaults,
+} from '@formframe/renderer-react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 
@@ -11,6 +16,10 @@ import type { JSONSchema } from '@formframe/input-jsonschema'
 // AND paths stay dense (ADR 018) — remove the first of two and the survivor
 // re-paths from `…1` to `…0` in place, so submission is a contiguous array, never
 // a sparse one with a leading hole.
+//
+// ADR 051: arrays arrange like groups — a custom `defaults.array.root` places
+// Label + `{children}` + AddButton (item chrome via `defaults.arrayItem`) without
+// wrapping `<Default />`. Add/remove state is lifted; the template composes parts.
 
 const schema: JSONSchema = {
   type: 'object',
@@ -20,7 +29,6 @@ const schema: JSONSchema = {
       title: 'Full Name',
       description: 'Enter your full name',
     },
-    // Multiselect — primitive array with enum → <select multiple>
     skills: {
       type: 'array',
       title: 'Skills',
@@ -32,14 +40,12 @@ const schema: JSONSchema = {
         enum: ['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Go'],
       },
     },
-    // Dynamic array of strings → a text input per item, with add/remove
     hobbies: {
       type: 'array',
       title: 'Hobbies',
       description: 'Add and remove hobbies; type into one, then add another',
       items: { type: 'string', title: 'Hobby' },
     },
-    // Dynamic array of objects → a sub-form per item, with add/remove
     addresses: {
       type: 'array',
       title: 'Addresses',
@@ -68,8 +74,58 @@ const schema: JSONSchema = {
 }
 const tree = jsonSchemaToRuntimeTree(schema)
 
+const galleryArrayDefaults: ReactPartialDefaults = {
+  array: {
+    ...nativeDefaults.array,
+    root: ({ node, children }) => (
+      <section
+        style={{
+          border: '1px solid #ccc',
+          borderRadius: 8,
+          padding: 12,
+          marginBottom: 16,
+        }}
+      >
+        {node.parts.label?.Default()}
+        {node.parts.description?.Default()}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            margin: '8px 0',
+          }}
+        >
+          {children}
+        </div>
+        {node.parts.addButton.Default()}
+      </section>
+    ),
+  },
+  arrayItem: {
+    ...nativeDefaults.arrayItem,
+    root: ({ node, children }) => (
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          alignItems: 'flex-start',
+          padding: 8,
+          background: '#fafafa',
+          borderRadius: 4,
+        }}
+      >
+        <div style={{ flex: 1 }}>{children}</div>
+        {node.parts.removeButton.Default()}
+      </div>
+    ),
+  },
+}
+
 function App() {
-  const { form, SchemaFields } = useFormTree(tree)
+  const { form, SchemaFields } = useFormTree(tree, {
+    defaults: mergeDefaults(nativeDefaults, galleryArrayDefaults),
+  })
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
     null
   )
@@ -78,13 +134,15 @@ function App() {
     <div>
       <h1>Dynamic arrays (ADR 015)</h1>
       <p style={{ color: '#555' }}>
-        Add/remove items folded by the continuation engine. The trick: each item
-        has a <strong>stable React key</strong> (its identity) decoupled from
-        its <strong>path</strong> (its position), so adding or removing a
-        sibling updates the list <em>in place</em> — every other item keeps its
-        typed value with no remount, while paths stay <em>dense</em>. Type into
-        a few fields, remove the first item, then submit: the survivors re-path
-        to a contiguous array — no holes.
+        Add/remove items folded by the continuation engine. Each item has a{' '}
+        <strong>stable React key</strong> (its identity) decoupled from its{' '}
+        <strong>path</strong> (its position), so adding or removing a sibling
+        updates the list <em>in place</em> — every other item keeps its typed
+        value with no remount, while paths stay <em>dense</em>. A custom{' '}
+        <code>defaults.array.root</code> arranges label, items, and add button
+        like a group — no <code>&lt;Default /&gt;</code> wrapper. Type into a
+        few fields, remove the first item, then submit: the survivors re-path to
+        a contiguous array — no holes.
       </p>
 
       <form onSubmit={form.submit(setSubmitted)}>

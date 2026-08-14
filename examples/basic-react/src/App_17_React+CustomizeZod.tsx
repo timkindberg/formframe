@@ -3,14 +3,11 @@ import { z } from 'zod'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   useFormTree,
-  useInterceptRules,
   type FieldProps,
   type GroupProps,
-  type TypedRuleRegistrar,
-  type RulesBuild,
-  type RuleRegistrar,
 } from '@formframe/renderer-react'
 import { fromStandardSchema } from '@formframe/core'
+import { nativeFieldDefaults } from './nativeFieldControls.recipe'
 import {
   NativeValidationProvider,
   useFieldValidationErrors,
@@ -18,25 +15,15 @@ import {
 } from './nativeValidation.recipe'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// The render-node rules layer (ADR 047/048) over a ZOD schema — the SECOND
-// front-end (ADR 008), mirroring App_16 field-for-field (bd jsonschema-form-bh7).
+// Defaults then intercept (ADR 051) over a ZOD schema — the SECOND front-end
+// (ADR 008), mirroring App_16 field-for-field (bd jsonschema-form-bh7).
 //
-// The whole point: this file is IDENTICAL to App_16 except the front-end import
-// (`@formframe/input-zod` vs `@formframe/input-jsonschema`) and the schema DSL.
-// There is NO per-front-end recipe — `zodToTree(schema)` brands the tree with its
-// resolved `FormShapeOf<S>`, and the SAME `useInterceptRules` from React binds
-// off that brand (ADR 048). The one real divergence that still surfaces:
-//   • `name` has a `.meta({ description })`, but Zod keeps descriptions in a
-//     runtime registry invisible to the type. So `parts.Description` is an
-//     OPTIONAL slot here (`PartComponent<…> | undefined` → guard before placing)
-//     rather than the statically-present slot App_16 gets from the JSON literal.
-//     The runtime still has the data, so the guarded render shows it. Enum arity,
-//     by contrast, DOES narrow at the type level (plan → radio), same as App_16.
+// Identical to App_16 except the front-end import and schema DSL. One real
+// divergence: Zod descriptions live in a runtime registry, so `parts.Description`
+// is optional here — guard before placing it.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const schema = z.object({
-  // Zod carries labels/descriptions in `.meta()` (title → label). The
-  // `description` is still runtime-registry-only — invisible to the type.
   name: z
     .string()
     .min(3)
@@ -50,22 +37,11 @@ const schema = z.object({
     .meta({ title: 'Address' }),
 })
 
-// The resolved FormShape (ADR 048). A Zod VALUE already carries its precise type,
-// so there's no `as const` step (unlike the JSON Schema literal in App_16).
 type Shape = FormShapeOf<typeof schema>
 
-// ── Handlers (hoisted → stable identity → safe hooks + memo bail, §1) ─────────
-
-// `parts.Control`/`parts.Errors` take recipe-injected errors (ADR 050) —
-// FormFrame renders them; the recipe produces them.
 function RowName({ path, parts }: FieldProps<Shape, 'name'>) {
   const [hint, setHint] = useState(false)
   const errors = useFieldValidationErrors(path)
-  // Zod DIVERGENCE: `name` has a `.meta({ description })` at runtime, but Zod
-  // stores it in `z.globalRegistry` — invisible to the static type. So unlike
-  // App_16 (present slot from the literal), `parts.Description` is OPTIONAL:
-  // `PartComponent<TextData> | undefined`. Guard it, then place it — the runtime
-  // still holds the data, so this actually renders "As it appears on your ID."
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <parts.Control errors={errors} />
@@ -82,7 +58,7 @@ function RowName({ path, parts }: FieldProps<Shape, 'name'>) {
         {hint && (
           <small style={{ color: '#666' }}>
             <code>useState</code> in a customize handler — legal because the
-            handler is a mounted component (ADR 047 §1).
+            handler is a mounted component.
           </small>
         )}
         <parts.Errors errors={errors} />
@@ -91,7 +67,6 @@ function RowName({ path, parts }: FieldProps<Shape, 'name'>) {
   )
 }
 
-// Group label via the TYPED render prop: `l` is `{ text }`.
 function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
   return (
     <fieldset
@@ -103,9 +78,6 @@ function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
   )
 }
 
-// FULL control hijack via the TYPED render prop: `c` is narrowed to the input
-// member (`ControlAt<'address.street'>`), so `c.attrs` is the input attrs with no
-// guard. Spread keeps FormData wiring (ADR 047 §5); we add attrs and drop `type`.
 function StreetInput({ path, parts }: FieldProps<Shape, 'address.street'>) {
   const errors = useFieldValidationErrors(path)
   return (
@@ -144,48 +116,25 @@ function CityNote({ Default }: FieldProps<Shape, 'address.city'>) {
   )
 }
 
-const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
-  r.field('name', RowName)
-  r.group('address', CardGroup)
-  r.field('address.street', StreetInput)
-  r.field('address.city', CityNote)
-
-  // INLINE handler → props inferred as FieldProps<Shape, 'plan'> (no annotation),
-  // because `r` is annotated `TypedRuleRegistrar<Shape>` on this builder above.
-  r.field('plan', ({ value, Default }) => {
-    // Hover `value`: 'free' | 'pro' | 'enterprise' | undefined — the Zod enum plus
-    // `undefined` (live values await a form-state adapter, ADR 047 §7). Arity ≤5
-    // also picks the radio control (choicegroup), same as JSON Schema.
-    void value
-    return <Default />
-  })
-
-  // ── Guardrails: each is a COMPILE ERROR. ───────────────────────────────────
-  // @ts-expect-error 'nope' is not a field path
-  r.field('nope', () => null)
-  // @ts-expect-error 'address' is a GROUP, not a field — the error NAMES the fix
-  // ("use r.group(), not r.field()"), not just "not assignable to a union" (bd q8v).
-  r.field('address', () => null)
-  // @ts-expect-error 'address.city' is a FIELD, not a group — hints "use r.field()"
-  r.group('address.city', () => null)
+const customizeIntercept = {
+  name: RowName,
+  address: CardGroup,
+  'address.street': StreetInput,
+  'address.city': CityNote,
 }
 
 function LiveCustomizedForm() {
   const tree = useMemo(() => zodToTree(schema), [])
   const validator = useMemo(() => fromStandardSchema(schema), [])
-  const { form, SchemaFields: Fields } = useFormTree(tree)
-  // Type off `form` — the rendered tree — not the pre-present input (bd bh7.8), the
-  // desync-proof habit that lets a later `overrideWidgets` re-narrow the control for
-  // free. `useInterceptRules` reads that brand — the SAME React hook App_16 uses,
-  // no per-front-end binding (ADR 048).
-  const intercept = useInterceptRules(form, customizeRules)
-  // Recipe-owned validation: produce errors here, inject via the provider.
+  const { form, SchemaFields: Fields } = useFormTree(tree, {
+    defaults: nativeFieldDefaults,
+  })
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   return (
     <form noValidate onSubmit={submit((d) => setData(d))} onInput={revalidate}>
       <NativeValidationProvider {...validation} showErrorsWhen="always">
-        <Fields intercept={intercept} />
+        <Fields intercept={customizeIntercept} />
       </NativeValidationProvider>
       <button type="submit" style={{ marginTop: 12 }}>
         Submit
@@ -208,39 +157,20 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-// The same source-agnostic neutral floor as App_16 — proof the runtime doesn't
-// care which front-end produced the tree.
-const _neutralExample: RulesBuild = (r: RuleRegistrar) => {
-  r.allGroups(({ parts, children }) => (
-    <fieldset>
-      <parts.Label />
-      {children}
-    </fieldset>
-  ))
-}
-void _neutralExample
-
 export default function App() {
   return (
     <div>
-      <h1>
-        interceptRules over Zod — the second front-end (ADR 048 / ADR 008)
-      </h1>
+      <h1>Defaults then intercept over Zod (ADR 051 / ADR 008)</h1>
       <p>
         Field-for-field the same as example 16, but the schema is a{' '}
         <code>z.object(…)</code> and the front-end import is{' '}
-        <code>@formframe/input-zod</code>. There is no per-front-end recipe:{' '}
-        <code>zodToTree(schema)</code> brands the tree with its{' '}
-        <code>FormShapeOf&lt;S&gt;</code>, and the SAME{' '}
-        <code>useInterceptRules</code> hook binds off that brand (ADR 048) — so
-        this file is identical to App_16 except the front-end import + schema
-        DSL. The one real divergence: <code>parts.Description</code> is an{' '}
-        <em>optional</em> slot for Zod (descriptions live in a runtime registry,
-        so the type can only say &ldquo;maybe&rdquo; — guard it), whereas App_16
-        gets a statically-present slot from the JSON literal. Enum arity still
-        narrows <code>plan</code> to a radio.
+        <code>@formframe/input-zod</code>. Recipe defaults on{' '}
+        <code>useFormTree</code>, path map on <code>intercept</code>. The one
+        real divergence: <code>parts.Description</code> is optional for Zod
+        (descriptions live in a runtime registry — guard it), whereas App_16
+        gets a statically-present slot from the JSON literal.
       </p>
-      <Section title="interceptRules over Zod — narrowed props/parts, typed render-props, live errors">
+      <Section title="Path intercept map over Zod — custom handlers, live errors">
         <LiveCustomizedForm />
       </Section>
     </div>
