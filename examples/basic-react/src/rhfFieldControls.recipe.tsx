@@ -110,10 +110,10 @@ function RhfRecipeFieldRoot({
 
 function RhfRecipeFieldControl(control: FieldControl): ReactNode {
   const { register } = useFormContext()
-  const path = control.attrs.name
   const errorA11y = errorA11yProps(useContext(FieldA11yContext))
   switch (control.kind) {
-    case 'input':
+    case 'input': {
+      const path = control.attrs.name
       return (
         <input
           {...control.attrs}
@@ -121,8 +121,10 @@ function RhfRecipeFieldControl(control: FieldControl): ReactNode {
           {...errorA11y}
         />
       )
+    }
     case 'select': {
       const { attrs, options } = control
+      const path = attrs.name
       return (
         <select
           {...attrs}
@@ -138,7 +140,8 @@ function RhfRecipeFieldControl(control: FieldControl): ReactNode {
         </select>
       )
     }
-    case 'choicegroup':
+    case 'choicegroup': {
+      const path = control.options[0].attrs.name
       return (
         <div
           className="jsf-choicegroup"
@@ -154,6 +157,7 @@ function RhfRecipeFieldControl(control: FieldControl): ReactNode {
           ))}
         </div>
       )
+    }
     default:
       return nativeDefaults.field.control(control)
   }
