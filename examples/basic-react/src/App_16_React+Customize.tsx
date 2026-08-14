@@ -5,6 +5,8 @@ import {
   useRenderNodeRules,
   type FieldProps,
   type GroupProps,
+  type ArrayProps,
+  type NodeHandlerProps,
   type TypedRuleRegistrar,
   type RulesBuild,
   type RuleRegistrar,
@@ -50,6 +52,17 @@ const schema = {
         city: { type: 'string', title: 'City' },
       },
       required: ['street'],
+    },
+    contacts: {
+      type: 'array',
+      title: 'Contacts',
+      minItems: 1,
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', title: 'Contact name' },
+        },
+      },
     },
   },
   required: ['name'],
@@ -150,11 +163,60 @@ function CityNote({ Default }: FieldProps<Shape, 'address.city'>) {
   )
 }
 
+// Array add/remove lives in ArrayRoot. Placing only Label + {children} drops the
+// Add button — re-enter <Default /> for chrome you do not own. Item fields use
+// `where` (a single r.field('contacts.0.name') misses index 1+).
+function ContactsArray({ Default }: ArrayProps<Shape, 'contacts'>) {
+  return (
+    <div
+      style={{
+        border: '2px dashed rebeccapurple',
+        borderRadius: 8,
+        padding: 12,
+      }}
+    >
+      <Default />
+    </div>
+  )
+}
+
+function ContactName({ parts }: NodeHandlerProps) {
+  return (
+    <div>
+      <parts.Label />
+      <parts.Control
+        render={(c) => {
+          if (c.kind !== 'input') return null
+          const { type: _t, ...attrs } = c.attrs
+          return (
+            <input
+              {...attrs}
+              placeholder="Alice"
+              style={{
+                display: 'block',
+                border: '2px solid rebeccapurple',
+                borderRadius: 6,
+                padding: 6,
+              }}
+            />
+          )
+        }}
+      />
+    </div>
+  )
+}
+
 const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
   r.field('name', RowName)
   r.group('address', CardGroup)
   r.field('address.street', StreetInput)
   r.field('address.city', CityNote)
+  r.array('contacts', ContactsArray)
+  r.where(
+    (n) =>
+      n.isField && n.path.startsWith('contacts.') && n.path.endsWith('.name'),
+    ContactName
+  )
 
   // INLINE handler → props inferred as FieldProps<Shape, 'plan'> (no annotation),
   // because `r` is annotated `TypedRuleRegistrar<Shape>` on this builder above.
@@ -173,6 +235,8 @@ const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
   r.field('address', () => null)
   // @ts-expect-error 'address.city' is a FIELD, not a group — hints "use r.field()"
   r.group('address.city', () => null)
+  // @ts-expect-error 'contacts' is an ARRAY, not a field — hints "use r.array()"
+  r.field('contacts', () => null)
 }
 
 function LiveCustomizedForm() {
@@ -234,13 +298,15 @@ export default function App() {
         renderNodeRules — path-narrowed props &amp; arrangeable parts (ADR 047)
       </h1>
       <p>
-        In-editor: <code>{`r.field('…')`}</code>/<code>{`r.group('…')`}</code>{' '}
-        narrow to real paths; <code>value</code> and <code>control</code> narrow
-        to the schema; <code>parts</code> is derived per path (
-        <code>parts.Description</code> exists on <code>name</code> but not{' '}
-        <code>street</code>); every part takes a typed <code>render</code> prop;
-        and <code>Default</code> re-enters the whole node. Type into the orange
-        Street box and Submit.
+        In-editor: <code>{`r.field('…')`}</code>/<code>{`r.group('…')`}</code>/
+        <code>{`r.array('…')`}</code> narrow to real paths; <code>value</code>{' '}
+        and <code>control</code> narrow to the schema; <code>parts</code> is
+        derived per path (<code>parts.Description</code> exists on{' '}
+        <code>name</code> but not <code>street</code>); every part takes a typed{' '}
+        <code>render</code> prop; and <code>Default</code> re-enters the whole
+        node. The purple Contacts array wraps <code>{'<Default />'}</code> so
+        Add/Remove stay wired; item fields use a path-prefix <code>where</code>.
+        Type into the orange Street box and Submit.
       </p>
       <Section title="renderNodeRules — narrowed props/parts, typed render-props, Default prop, live errors">
         <LiveCustomizedForm />

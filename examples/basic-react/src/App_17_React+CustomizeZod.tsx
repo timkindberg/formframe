@@ -6,6 +6,8 @@ import {
   useRenderNodeRules,
   type FieldProps,
   type GroupProps,
+  type ArrayProps,
+  type NodeHandlerProps,
   type TypedRuleRegistrar,
   type RulesBuild,
   type RuleRegistrar,
@@ -48,6 +50,14 @@ const schema = z.object({
       city: z.string().meta({ title: 'City' }).optional(),
     })
     .meta({ title: 'Address' }),
+  contacts: z
+    .array(
+      z.object({
+        name: z.string().meta({ title: 'Contact name' }),
+      })
+    )
+    .min(1)
+    .meta({ title: 'Contacts' }),
 })
 
 // The resolved FormShape (ADR 048). A Zod VALUE already carries its precise type,
@@ -144,11 +154,60 @@ function CityNote({ Default }: FieldProps<Shape, 'address.city'>) {
   )
 }
 
+// Array add/remove lives in ArrayRoot. Placing only Label + {children} drops the
+// Add button — re-enter <Default /> for chrome you do not own. Item fields use
+// `where` (a single r.field('contacts.0.name') misses index 1+).
+function ContactsArray({ Default }: ArrayProps<Shape, 'contacts'>) {
+  return (
+    <div
+      style={{
+        border: '2px dashed rebeccapurple',
+        borderRadius: 8,
+        padding: 12,
+      }}
+    >
+      <Default />
+    </div>
+  )
+}
+
+function ContactName({ parts }: NodeHandlerProps) {
+  return (
+    <div>
+      <parts.Label />
+      <parts.Control
+        render={(c) => {
+          if (c.kind !== 'input') return null
+          const { type: _t, ...attrs } = c.attrs
+          return (
+            <input
+              {...attrs}
+              placeholder="Alice"
+              style={{
+                display: 'block',
+                border: '2px solid rebeccapurple',
+                borderRadius: 6,
+                padding: 6,
+              }}
+            />
+          )
+        }}
+      />
+    </div>
+  )
+}
+
 const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
   r.field('name', RowName)
   r.group('address', CardGroup)
   r.field('address.street', StreetInput)
   r.field('address.city', CityNote)
+  r.array('contacts', ContactsArray)
+  r.where(
+    (n) =>
+      n.isField && n.path.startsWith('contacts.') && n.path.endsWith('.name'),
+    ContactName
+  )
 
   // INLINE handler → props inferred as FieldProps<Shape, 'plan'> (no annotation),
   // because `r` is annotated `TypedRuleRegistrar<Shape>` on this builder above.
@@ -168,6 +227,8 @@ const customizeRules = (r: TypedRuleRegistrar<Shape>): void => {
   r.field('address', () => null)
   // @ts-expect-error 'address.city' is a FIELD, not a group — hints "use r.field()"
   r.group('address.city', () => null)
+  // @ts-expect-error 'contacts' is an ARRAY, not a field — hints "use r.array()"
+  r.field('contacts', () => null)
 }
 
 function LiveCustomizedForm() {
@@ -238,7 +299,9 @@ export default function App() {
         <em>optional</em> slot for Zod (descriptions live in a runtime registry,
         so the type can only say &ldquo;maybe&rdquo; — guard it), whereas App_16
         gets a statically-present slot from the JSON literal. Enum arity still
-        narrows <code>plan</code> to a radio.
+        narrows <code>plan</code> to a radio. The purple Contacts array is the
+        same <code>r.array</code> + path-prefix <code>where</code> pattern as
+        App_16.
       </p>
       <Section title="renderNodeRules over Zod — narrowed props/parts, typed render-props, live errors">
         <LiveCustomizedForm />

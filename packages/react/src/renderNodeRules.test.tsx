@@ -13,7 +13,12 @@ import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import { SchemaFields, fieldControlId, fieldErrorId } from './renderer'
 import { renderNodeRules } from './renderNodeRules'
-import type { FieldHandlerProps, GroupHandlerProps } from './renderNodeRules'
+import type {
+  ArrayHandlerProps,
+  FieldHandlerProps,
+  GroupHandlerProps,
+  NodeHandlerProps,
+} from './renderNodeRules'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -230,5 +235,94 @@ describe('renderNodeRules — Errors promoted to a movable part keeps a11y (ADR 
     expect(errorList).not.toBeNull()
     expect(errorList?.closest('aside')).not.toBeNull()
     expect(errorList?.textContent).toContain('Name is too short')
+  })
+})
+
+// Array add/remove state lives in ArrayRoot (renderer.tsx). A handler that only
+// places Label + {children} skips that root and drops the Add button. Re-enter
+// <Default /> for chrome you do not own; customize items via `where` (dynamic
+// indices cannot share one exact r.field('contacts.0.name') rule).
+const arraySchema: JSONSchema = {
+  type: 'object',
+  properties: {
+    contacts: {
+      type: 'array',
+      title: 'Contacts',
+      minItems: 1,
+      items: {
+        type: 'object',
+        properties: { name: { type: 'string', title: 'Contact name' } },
+      },
+    },
+  },
+}
+
+describe('renderNodeRules — r.array handler layout (add/remove)', () => {
+  const ContactsArray = ({ Default }: ArrayHandlerProps) => (
+    <div data-testid="custom-array">
+      <Default />
+    </div>
+  )
+  const ContactName = ({ parts }: NodeHandlerProps) => (
+    <div data-testid="custom-item-field">
+      <parts.Label />
+      <parts.Control />
+    </div>
+  )
+  const rn = renderNodeRules((r) => {
+    r.array('contacts', ContactsArray)
+    r.where(
+      (n) =>
+        n.isField && n.path.startsWith('contacts.') && n.path.endsWith('.name'),
+      ContactName
+    )
+  })
+
+  it('customizes array layout and item fields; Add preserves existing values', async () => {
+    const form = jsonSchemaToRuntimeTree(arraySchema)
+    const screen = await render(<SchemaFields form={form} renderNode={rn} />)
+
+    await expect.element(screen.getByTestId('custom-array')).toBeInTheDocument()
+    await expect
+      .element(screen.getByTestId('custom-item-field'))
+      .toBeInTheDocument()
+    await expect
+      .element(screen.getByRole('button', { name: /add/i }))
+      .toBeInTheDocument()
+
+    const first = screen.getByRole('textbox', { name: 'Contact name' })
+    await first.fill('Alice')
+    await expect.element(first).toHaveValue('Alice')
+
+    await screen.getByRole('button', { name: /add/i }).click()
+
+    const inputs = () =>
+      document.querySelectorAll<HTMLInputElement>('input[name$=".name"]')
+    await expect.poll(() => inputs().length).toBe(2)
+    expect(inputs()[0].value).toBe('Alice')
+    expect(inputs()[1].value).toBe('')
+    expect(
+      document.querySelectorAll('[data-testid="custom-item-field"]').length
+    ).toBe(2)
+  })
+
+  it('Remove preserves the survivor’s value and re-paths it densely', async () => {
+    const form = jsonSchemaToRuntimeTree(arraySchema)
+    const screen = await render(<SchemaFields form={form} renderNode={rn} />)
+
+    await screen.getByRole('button', { name: /add/i }).click()
+    const inputs = () =>
+      document.querySelectorAll<HTMLInputElement>('input[name$=".name"]')
+    await expect.poll(() => inputs().length).toBe(2)
+
+    const name = screen.getByRole('textbox', { name: 'Contact name' })
+    await name.nth(0).fill('Alice')
+    await name.nth(1).fill('Bob')
+
+    await screen.getByRole('button', { name: 'Remove' }).nth(0).click()
+
+    await expect.poll(() => inputs().length).toBe(1)
+    expect(inputs()[0].value).toBe('Bob')
+    expect(inputs()[0].name).toBe('contacts.0.name')
   })
 })
