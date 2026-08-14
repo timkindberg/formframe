@@ -3,9 +3,10 @@ import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import { SchemaFields } from '@formframe/renderer-react'
 
-// The real continuation engine (ADR 010) — the typed successor to the spike.
-// One primitive (`renderNode`), two granularities (node / part), three moves
-// (hijack, swap-parts, place-yourself) — all the way down, fully typed.
+// The intercept function floor (ADR 010 / ADR 051) — hand-written
+// `(node, { Default, Children }) => …`. Path maps and `{ paths, where }` bags
+// (examples 16–17) lower to this shape. Two granularities (node / part), three
+// moves (hijack, swap-parts, place-yourself) — all the way down, fully typed.
 // Each branch narrows on `node.isField`/`isGroup`/`widget` before reaching
 // variant-specific members (ADR 012); no `any`.
 
@@ -88,8 +89,12 @@ export default function App() {
 
   return (
     <div>
-      <h1>Recursive continuation renderer (ADR 010)</h1>
-      <p>One primitive, two granularities, three moves — all the way down.</p>
+      <h1>Intercept function floor (ADR 010 / ADR 051)</h1>
+      <p>
+        One hand-written <code>intercept</code> function, two granularities,
+        three moves — all the way down. Examples 16–17 pass a path map or bag;
+        those lower to this function shape.
+      </p>
 
       <Section title="1. Default whole form">
         <SchemaFields form={form} />
@@ -201,7 +206,7 @@ export default function App() {
         </form>
       </Section>
 
-      <Section title="4. Recursion within recursion — root layout + a scoped renderNode subtree">
+      <Section title="4. Recursion within recursion — root layout + a scoped intercept subtree">
         <form>
           <SchemaFields form={form}>
             {(root, { Default }) => {
@@ -212,7 +217,7 @@ export default function App() {
                   <p style={{ color: '#666' }}>
                     Hand-authored root; <code>theme</code> rendered dynamically
                     by name; the <code>address</code> subtree carries its own
-                    scoped <code>renderNode</code>.
+                    scoped <code>intercept</code>.
                   </p>
 
                   {/* static keyed children */}
@@ -222,7 +227,7 @@ export default function App() {
                   {/* dynamic child by relative path */}
                   <Default of={theme} />
 
-                  {/* render address default, but inject a renderNode scoped to ITS subtree */}
+                  {/* render address default, but inject an intercept scoped to ITS subtree */}
                   {address.isGroup && (
                     <Default
                       of={address}
