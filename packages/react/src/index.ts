@@ -32,8 +32,16 @@ export {
   errorA11yProps,
 } from './renderer'
 export type {
-  SchemaFieldsProps,
   Intercept,
+  InterceptFn,
+  InterceptMap,
+  InterceptBag,
+  InterceptHandler,
+  InterceptWhereRule,
+} from './intercept'
+export { resolveIntercept, interceptStabilityDeps } from './intercept'
+export type {
+  SchemaFieldsProps,
   RenderHelpers,
   ReactDefaults,
   ReactPartialDefaults,
