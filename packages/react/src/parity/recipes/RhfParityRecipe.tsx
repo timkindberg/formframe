@@ -23,7 +23,7 @@ import { zodToTree } from '@formframe/input-zod'
 import {
   Default,
   SchemaFields,
-  useRenderNodeRules,
+  useInterceptRules,
   type ControlProps,
 } from '../../index'
 import {
@@ -145,7 +145,7 @@ export function RhfParityRecipe({
 
   const methods = useForm({ resolver })
   const { isValidating } = useFormState({ control: methods.control })
-  const intercept = useRenderNodeRules(
+  const intercept = useInterceptRules(
     tree as TypedTree<FormShape, unknown>,
     (r) => {
       r.control('input', InputControl)

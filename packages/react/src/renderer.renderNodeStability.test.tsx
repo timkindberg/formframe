@@ -1,7 +1,7 @@
 // Dev-warning contract for an unstable `renderNode` prop passed straight to
-// `SchemaFields` (bd jsonschema-form-108). `useRenderNodeRules` already warns
+// `SchemaFields` (bd jsonschema-form-108). `useInterceptRules` already warns
 // when its `build` argument changes identity, but nothing warned when a
-// consumer skips the hook and calls the low-level `renderNodeRules(build)`
+// consumer skips the hook and calls the low-level `interceptRules(build)`
 // sugar directly inside a render body — that call has no `useRef` of its own,
 // so it returns a BRAND NEW `Intercept` every render regardless of whether
 // `build` itself is stable, silently remounting every matched field. This test
@@ -14,8 +14,8 @@ import { useState } from 'react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import { SchemaFields } from './renderer'
-import { renderNodeRules } from './renderNodeRules'
-import type { FieldHandlerProps } from './renderNodeRules'
+import { interceptRules } from './interceptRules'
+import type { FieldHandlerProps } from './interceptRules'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -37,7 +37,7 @@ afterAll(() => {
 })
 
 describe('SchemaFields renderNode-stability warning (bd jsonschema-form-108)', () => {
-  it('warns when `renderNode` is built inline (renderNodeRules called directly, no hook)', async () => {
+  it('warns when `renderNode` is built inline (interceptRules called directly, no hook)', async () => {
     const form = jsonSchemaToRuntimeTree(schema)
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
@@ -46,7 +46,7 @@ describe('SchemaFields renderNode-stability warning (bd jsonschema-form-108)', (
       // The footgun: calling the low-level sugar directly in the render body.
       // Every render produces a fresh `Intercept` closure, even though the
       // builder below reads no outer state.
-      const intercept = renderNodeRules((r) => {
+      const intercept = interceptRules((r) => {
         r.field('name', ({ Default }: FieldHandlerProps) => Default())
       })
       return (
@@ -62,7 +62,7 @@ describe('SchemaFields renderNode-stability warning (bd jsonschema-form-108)', (
     const screen = await render(<Parent />)
     // Two clicks: the guard only flags PERSISTENT churn (two consecutive
     // identity changes) so a one-off deliberate swap (e.g. the `deps` escape
-    // hatch on `useRenderNodeRules`) never false-positives.
+    // hatch on `useInterceptRules`) never false-positives.
     await screen.getByRole('button', { name: /bump/ }).click()
     await screen.getByRole('button', { name: /bump/ }).click()
 
@@ -73,7 +73,7 @@ describe('SchemaFields renderNode-stability warning (bd jsonschema-form-108)', (
   it('stays silent when `renderNode` keeps a stable identity across renders', async () => {
     const form = jsonSchemaToRuntimeTree(schema)
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const rn = renderNodeRules((r) => {
+    const rn = interceptRules((r) => {
       r.field('name', ({ Default }: FieldHandlerProps) => Default())
     })
 

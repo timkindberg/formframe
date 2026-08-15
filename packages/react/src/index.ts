@@ -38,6 +38,7 @@ export type {
   InterceptBag,
   InterceptHandler,
   InterceptWhereRule,
+  InterceptParts,
 } from './intercept'
 export { resolveIntercept, interceptStabilityDeps } from './intercept'
 export type {
@@ -54,11 +55,11 @@ export type {
   FieldA11yState,
 } from './renderer'
 
-// The render-node rules layer (ADR 047/048) — a form-scope selector registry
+// The intercept-rules layer (ADR 047/048) — a form-scope selector registry
 // lowering to an ordinary `Intercept` (no engine seam); handlers are mounted
 // components receiving arrangeable parts. Source-agnostic runtime. Kind-wide
 // look belongs on defaults (ADR 051), not on registrar blankets.
-export { renderNodeRules } from './renderNodeRules'
+export { interceptRules } from './interceptRules'
 export type {
   RuleRegistrar,
   RulesBuild,
@@ -74,18 +75,18 @@ export type {
   GroupHandlerProps,
   ArrayHandlerProps,
   NodeHandlerProps,
-} from './renderNodeRules'
+} from './interceptRules'
 
 // The typed binding (ADR 048) — reads the `FormShape` a front-end brands onto the
-// tree and re-types the registrar off it. `useRenderNodeRules(tree, rules)` is the
+// tree and re-types the registrar off it. `useInterceptRules(tree, rules)` is the
 // typed + memoized front door; `FieldProps`/`GroupProps`/`ArrayProps`/`ControlProps`
 // annotate hoisted handlers (keyed on `type Shape = FormShapeOf<typeof schema>`
 // from the front-end).
-export { useRenderNodeRules } from './useRenderNodeRules'
+export { useInterceptRules } from './useInterceptRules'
 export type {
   FieldProps,
   GroupProps,
   ArrayProps,
   ControlProps,
   TypedRuleRegistrar,
-} from './useRenderNodeRules'
+} from './useInterceptRules'

@@ -48,7 +48,7 @@ function presented(
   resolver?: PresentationResolver
 ): GroupNode<JSONSchemaObject> {
   // re-presenting returns a plain (unbranded) tree — the ADR-042 brand rides the
-  // original `jsonSchemaToRuntimeTree` result that `useRenderNodeRules` consumes; here we
+  // original `jsonSchemaToRuntimeTree` result that `useInterceptRules` consumes; here we
   // only fold to DOM, so an unbranded `GroupNode` is exactly right.
   return present<JSONSchemaObject>(
     jsonSchemaToRuntimeTree(schema),

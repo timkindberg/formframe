@@ -20,7 +20,7 @@ import { zodToTree } from '@formframe/input-zod'
 import {
   Default,
   SchemaFields,
-  useRenderNodeRules,
+  useInterceptRules,
   type ControlProps,
 } from '../../index'
 import {
@@ -206,7 +206,7 @@ export function TanStackParityRecipe({
     return out
   }, [fieldMeta])
 
-  const intercept = useRenderNodeRules(
+  const intercept = useInterceptRules(
     tree as TypedTree<FormShape, unknown>,
     (r) => {
       r.control('input', InputControl)

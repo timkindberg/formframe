@@ -88,7 +88,7 @@ export interface UseFormTreeResult<F, Output> {
 /**
  * Bind React behavior to a **branded** tree (`jsonSchemaToTree`/`zodToTree`): the
  * returned `form` carries the tree's `FormShape` re-narrowed by any widget overrides
- * `resolvePresentation` supplies (bd bh7.8). Type `useRenderNodeRules(form, …)` off
+ * `resolvePresentation` supplies (bd bh7.8). Type `useInterceptRules(form, …)` off
  * this `form`, not the pre-override input tree, and the typed control cannot desync
  * from what actually renders.
  */

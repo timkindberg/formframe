@@ -1,4 +1,4 @@
-// The `deps` escape hatch on `useRenderNodeRules` (bd jsonschema-form-108) — the
+// The `deps` escape hatch on `useInterceptRules` (bd jsonschema-form-108) — the
 // documented, non-silent alternative to a `useCallback(build, [dep])` whose
 // deps list is incomplete (stable identity, stale closure, no warning possible).
 // Passing an explicit `deps` array makes the rebuild INTENTIONAL: the resolver
@@ -11,9 +11,9 @@ import { useState } from 'react'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import { SchemaFields } from './renderer'
 import {
-  useRenderNodeRules,
+  useInterceptRules,
   type TypedRuleRegistrar,
-} from './useRenderNodeRules'
+} from './useInterceptRules'
 
 const schema = {
   type: 'object',
@@ -33,7 +33,7 @@ afterAll(() => {
   else delete g.process
 })
 
-describe('useRenderNodeRules `deps` escape hatch (bd jsonschema-form-108)', () => {
+describe('useInterceptRules `deps` escape hatch (bd jsonschema-form-108)', () => {
   it('rebuilds the resolver when a listed dep changes, with no dev warning', async () => {
     const tree = jsonSchemaToTree(schema)
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -49,7 +49,7 @@ describe('useRenderNodeRules `deps` escape hatch (bd jsonschema-form-108)', () =
           </div>
         ))
       }
-      const intercept = useRenderNodeRules(tree, rules, [label])
+      const intercept = useInterceptRules(tree, rules, [label])
       seen.push(intercept)
       return (
         <div>
@@ -77,7 +77,7 @@ describe('useRenderNodeRules `deps` escape hatch (bd jsonschema-form-108)', () =
     // …but that is the documented contract of `deps`, not the identity-change
     // footgun, so no dev warning fires.
     expect(spy).not.toHaveBeenCalledWith(
-      expect.stringContaining('useRenderNodeRules')
+      expect.stringContaining('useInterceptRules')
     )
     spy.mockRestore()
   })
@@ -88,7 +88,7 @@ describe('useRenderNodeRules `deps` escape hatch (bd jsonschema-form-108)', () =
 
     function Parent() {
       const [n, setN] = useState(0)
-      const intercept = useRenderNodeRules(tree, (r) => {
+      const intercept = useInterceptRules(tree, (r) => {
         r.field('name', ({ Default }) => Default())
       })
       return (
@@ -105,7 +105,7 @@ describe('useRenderNodeRules `deps` escape hatch (bd jsonschema-form-108)', () =
     await screen.getByRole('button', { name: /bump/ }).click()
 
     expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('useRenderNodeRules')
+      expect.stringContaining('useInterceptRules')
     )
     spy.mockRestore()
   })

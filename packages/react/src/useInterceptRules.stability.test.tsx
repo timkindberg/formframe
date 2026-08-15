@@ -1,4 +1,4 @@
-// Resolver-stability contract for `useRenderNodeRules` (bd jsonschema-form-bh7.5).
+// Resolver-stability contract for `useInterceptRules` (bd jsonschema-form-bh7.5).
 //
 // The footgun this locks down: rules are STRUCTURAL (ADR 047 §1/§7), but nothing
 // stops a consumer from passing an inline `(r) => { r.field('x', ({…}) => …) }`
@@ -19,9 +19,9 @@ import { useState } from 'react'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import { SchemaFields } from './renderer'
 import {
-  useRenderNodeRules,
+  useInterceptRules,
   type TypedRuleRegistrar,
-} from './useRenderNodeRules'
+} from './useInterceptRules'
 
 const schema = {
   type: 'object',
@@ -44,7 +44,7 @@ afterAll(() => {
   else delete g.process
 })
 
-describe('useRenderNodeRules resolver stability (bd bh7.5)', () => {
+describe('useInterceptRules resolver stability (bd bh7.5)', () => {
   it('an inline builder + inline handler does not remount fields (value survives) and warns in dev', async () => {
     const tree = jsonSchemaToTree(schema)
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -53,7 +53,7 @@ describe('useRenderNodeRules resolver stability (bd bh7.5)', () => {
       const [n, setN] = useState(0)
       // The footgun: a brand-new builder closure AND a brand-new inline handler
       // on every render. The hook must capture them once regardless.
-      const intercept = useRenderNodeRules(tree, (r) => {
+      const intercept = useInterceptRules(tree, (r) => {
         r.field('name', ({ Default }) => Default())
       })
       return (
@@ -80,7 +80,7 @@ describe('useRenderNodeRules resolver stability (bd bh7.5)', () => {
 
     // …and the unstable builder is called out loudly in dev
     expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('useRenderNodeRules')
+      expect.stringContaining('useInterceptRules')
     )
     spy.mockRestore()
   })
@@ -95,7 +95,7 @@ describe('useRenderNodeRules resolver stability (bd bh7.5)', () => {
 
     function Parent() {
       const [n, setN] = useState(0)
-      const intercept = useRenderNodeRules(tree, rules)
+      const intercept = useInterceptRules(tree, rules)
       seen.push(intercept)
       return (
         <div>
@@ -113,7 +113,7 @@ describe('useRenderNodeRules resolver stability (bd bh7.5)', () => {
     expect(seen.length).toBeGreaterThanOrEqual(2)
     expect(seen[0]).toBe(seen[seen.length - 1])
     expect(spy).not.toHaveBeenCalledWith(
-      expect.stringContaining('useRenderNodeRules')
+      expect.stringContaining('useInterceptRules')
     )
     spy.mockRestore()
   })
