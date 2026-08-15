@@ -49,6 +49,7 @@ export type {
   ReactDefaults,
   ReactPartialDefaults,
   DefaultParts,
+  ControlOverride,
   ENode,
   EField,
   EGroup,
