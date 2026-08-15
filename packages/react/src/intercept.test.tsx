@@ -365,7 +365,8 @@ describe('intercept map types', () => {
       'address.street': typeof StreetHint
     }>().toMatchTypeOf<InterceptProp>()
     expectTypeOf<{
-      email: { control: typeof EmailControl }
+      email: typeof EmailHint
+      'address.street': { control: typeof EmailControl }
     }>().toMatchTypeOf<InterceptMap>()
     expectTypeOf<{
       email: { root: typeof EmailHint }
