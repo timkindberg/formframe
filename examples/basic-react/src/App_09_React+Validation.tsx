@@ -74,7 +74,7 @@ function App() {
       </p>
       <p>
         Errors inject through <code>nativeFieldDefaults</code> (
-        <code>injectFieldErrors</code> on the field root); fields automatically
+        <code>&lt;InjectFieldErrors&gt;</code> on the field root); fields automatically
         receive <code>aria-invalid</code> and <code>aria-describedby</code> when
         they have errors.
       </p>

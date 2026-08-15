@@ -18,7 +18,7 @@
 // not here — these defaults inject whatever the provider says is displayable.
 import type { ReactNode } from 'react'
 import {
-  injectFieldErrors,
+  InjectFieldErrors,
   nativeDefaults,
   type ReactPartialDefaults,
 } from '@formframe/renderer-react'
@@ -30,7 +30,11 @@ function NativeRecipeFieldRoot({
 }: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
   const errors = useFieldValidationErrors(node.path)
   const Root = nativeDefaults.field.root
-  return injectFieldErrors(errors, <Root node={node} overrides={overrides} />)
+  return (
+    <InjectFieldErrors errors={errors}>
+      <Root node={node} overrides={overrides} />
+    </InjectFieldErrors>
+  )
 }
 
 /** Kind-wide native recipe defaults — pass to `useFormTree({ defaults })`. */

@@ -21,7 +21,7 @@
 //   schema ─→ createAjvValidator(schema) → useNativeValidator(form, validator)
 //             owns submit / revalidate / errors / submitted
 //   errors ─→ NativeValidationProvider ─→ `nativeFieldDefaults` inject via
-//             `injectFieldErrors` on `defaults.field.root` (ADR 051)
+//             `<InjectFieldErrors>` on `defaults.field.root` (ADR 051)
 //
 // Worth knowing before you adapt it:
 //
@@ -133,7 +133,7 @@ export default function App() {
         submit and (after the first attempt) live via <code>onInput</code>.
         Errors inject through{' '}
         <code>nativeFieldDefaults</code> (
-        <code>injectFieldErrors</code> on the field root) — the same defaults
+        <code>&lt;InjectFieldErrors&gt;</code> on the field root) — the same defaults
         pattern the RHF and TanStack recipes use. Default display timing:
         quiet until you press Submit, then errors reveal and clear live as you
         fix them. Copy-paste recipe — four files, this one plus{' '}

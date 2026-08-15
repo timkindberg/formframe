@@ -28,7 +28,7 @@ import {
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import { zodToTree } from '@formframe/input-zod'
 import {
-  injectFieldErrors,
+  InjectFieldErrors,
   nativeDefaults,
   useFormTree,
   type ReactPartialDefaults,
@@ -103,7 +103,11 @@ function NativeParityFieldRoot({
 }: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
   const errors = useFieldValidationErrors(node.path)
   const Root = nativeDefaults.field.root
-  return injectFieldErrors(errors, <Root node={node} overrides={overrides} />)
+  return (
+    <InjectFieldErrors errors={errors}>
+      <Root node={node} overrides={overrides} />
+    </InjectFieldErrors>
+  )
 }
 
 const nativeParityDefaults: ReactPartialDefaults = {

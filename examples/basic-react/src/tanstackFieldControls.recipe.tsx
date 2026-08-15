@@ -9,7 +9,7 @@
 //
 // Everything here is about TanStack Form and nothing else. Mapping field
 // `meta.errors` → `ValidationError[]`, injected on `defaults.field.root` via
-// `injectFieldErrors` (controlled binds on `defaults.field.control`). Field
+// `<InjectFieldErrors>` (controlled binds on `defaults.field.control`). Field
 // chrome + error-state a11y come from the library (merged into `attrs` for
 // input/select; choicegroup spreads error a11y on the wrapper). Typed against
 // FormFrame's neutral control seam (no schema generics), so ONE copy serves
@@ -31,7 +31,7 @@ import type { FieldControl, ValidationError } from '@formframe/core'
 import {
   errorA11yProps,
   FieldA11yContext,
-  injectFieldErrors,
+  InjectFieldErrors,
   nativeDefaults,
   type ReactPartialDefaults,
 } from '@formframe/renderer-react'
@@ -233,10 +233,11 @@ function TanStackRecipeFieldRoot({
     <form.Field name={path}>
       {(field) => (
         <TanStackFieldBindingContext.Provider value={field}>
-          {injectFieldErrors(
-            toValidationErrors(path, field.state.meta.errors),
+          <InjectFieldErrors
+            errors={toValidationErrors(path, field.state.meta.errors)}
+          >
             <Root node={node} overrides={overrides} />
-          )}
+          </InjectFieldErrors>
         </TanStackFieldBindingContext.Provider>
       )}
     </form.Field>

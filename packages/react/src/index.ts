@@ -30,7 +30,7 @@ export {
   fieldControlId,
   fieldErrorId,
   errorA11yProps,
-  injectFieldErrors,
+  InjectFieldErrors,
   FieldA11yContext,
 } from './renderer'
 export type {
