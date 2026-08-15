@@ -125,11 +125,12 @@ Supplying your own JSX for a node or part instead of the current defaults — at
 _Avoid_: widget override; using template for an intercept; `renderNode` in new public API.
 
 **`intercept`**:
-The per-node function the renderer calls while walking the tree — the floor. Return custom JSX to intercept a node, or `<Default of={node} />` to keep the current defaults. React sugar on the same prop: a dotted-path map of handlers (`{ email, 'address.street' }`), or a bag `{ paths, where }` (`where` is predicate + handler pairs, not the function floor). Exact path beats `where`. Unmatched nodes keep defaults. Nested-object maps are not the path language (`FieldPath` is dotted).
-_Avoid_: `renderNode` as the adoption name; a registrar `allFields` / `control` as a second defaults table.
+The per-node function the renderer calls while walking the tree — the floor. Return custom JSX to intercept a node, or `<Default of={node} />` to keep the current defaults. React sugar on the same prop: a dotted-path map (`{ email, 'address.street' }`), or a bag `{ paths, where }` (`where` is predicate + handler pairs, not the function floor). A map value is a handler, or a **parts object** (`{ email: { control, label, … } }`) — the same `parts={{…}}` map `<Default>` already takes, keyed by path. `{ root: Handler }` is the long form of passing a node handler (Default *is* root, so `root` is not a Default `parts` key). Exact path beats `where`. Unmatched nodes keep defaults. Nested-object maps are not the path language (`FieldPath` is dotted).
+_Avoid_: `renderNode` as the adoption name; a registrar `allFields` / `control` as a second defaults table; treating a parts object as a path-scoped defaults patch.
 
-**`useRenderNodeRules` / `renderNodeRules`**:
-The previous intercept sugar (ADR 047/048 registrar). Replaced by the `intercept` prop’s path map / `{ paths, where }` bag. Do not use `allFields` / `allGroups` / `allArrays` / `control` as stylesheets — those jobs are **defaults**.
+**`interceptRules` / `useInterceptRules`**:
+The previous intercept sugar (ADR 047/048 registrar; historically `renderNodeRules` / `useRenderNodeRules`). Replaced as the adoption path by the `intercept` prop’s path map / `{ paths, where }` bag. Do not use `allFields` / `allGroups` / `allArrays` / `control` as stylesheets — those jobs are **defaults**.
+_Avoid_: `renderNodeRules`, `useRenderNodeRules` in new public API.
 
 **`Default`**:
 The component that renders the **current merged renderer set** for the thing it hangs off — `node.Default` (that kind's template + parts) or `part.Default` (one part). It does not mean the previous layer's template; wrapping a previous template is calling that root in userland. Re-enters the engine, so descendants still pass through intercepts.
@@ -138,7 +139,7 @@ The component that renders the **current merged renderer set** for the thing it 
 `node.Children` renders a node's child *nodes* through the resolver — the inter-node continuation that lets you take the reins on a node's layout while the library renders below.
 
 **`parts={{…}}`**:
-The part-scope intercept on `node.Default`: override individual parts (each override receives the part object, which carries both its data and its own `.Default`) while the rest render default.
+The part-scope intercept on `node.Default`: override individual parts (each override receives the part object, which carries both its data and its own `.Default`) while the rest render default. The intercept path-map parts object is this same map (`{ email: { control: X } }` is literally `<Default of={email} parts={{ control: X }} />`). `{ root: Handler }` is the long form of a node handler — `root` is not a Default `parts` key.
 
 ## Working method
 

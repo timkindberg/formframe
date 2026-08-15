@@ -66,6 +66,7 @@ import {
   type Intercept,
   type InterceptFn,
 } from './intercept'
+import type { PartsBag } from './interceptRules'
 
 // ---------------------------------------------------------------------------
 // Public types — React instantiates the generic engine at R = ReactNode.
@@ -762,6 +763,34 @@ type WidenParts<H, P> = P extends object
     }
   : P
 
+/**
+ * Field-complete `<Default parts>` map (plus listed array keys). Path-map
+ * intercept parts objects use this same shape — `{ control: X }` is literally
+ * `<Default of={node} parts={{ control: X }} />`. `root` is not a key here
+ * (Default *is* root).
+ */
+export type DefaultParts = {
+  label?: (part: EField['parts']['label']) => ReactNode
+  description?: (part: NonNullable<EField['parts']['description']>) => ReactNode
+  control?: (part: FieldControl & { errorA11y: ErrorA11yProps }) => ReactNode
+  errors?: (errors: ValidationError[]) => ReactNode
+  addButton?: (part: EArray['parts']['addButton']) => ReactNode
+  removeButton?: (part: EArrayItem['parts']['removeButton']) => ReactNode
+}
+
+function isHandlerPartsBag(parts: object): parts is PartsBag {
+  return Object.prototype.hasOwnProperty.call(parts, 'Control')
+}
+
+function handlerBagToOverrides(bag: PartsBag): PartOverrideMap<ReactNode> {
+  return {
+    label: () => <bag.Label />,
+    description: () => <bag.Description />,
+    control: () => <bag.Control />,
+    errors: (errs) => <bag.Errors errors={errs as ValidationError[]} />,
+  }
+}
+
 type DefaultExtra<H> =
   DefaultOptsOf<H> extends {
     parts?: infer P
@@ -778,6 +807,9 @@ type DefaultExtra<H> =
  * field nodes — recipe-pre-gated (present == show); omit for no errors (the
  * library does not produce/store them itself — ADR 050). Stable module-level
  * type → reconciles in place.
+ *
+ * `parts` is the camelCase Default map (`{ control: X }`) or the handler
+ * placeable bag (`{ Control, Label, … }`) for intercept pass-through.
  */
 export function Default<
   H extends { Default(opts?: NodeDefaultOpts): ReactNode },
@@ -786,13 +818,41 @@ export function Default<
     of: H | null | undefined
     errors?: ValidationError[]
   } & DefaultExtra<H>
-): ReactNode {
+): ReactNode
+export function Default<
+  H extends { Default(opts?: NodeDefaultOpts): ReactNode },
+>(props: {
+  of: H | null | undefined
+  errors?: ValidationError[]
+  parts: PartsBag
+  intercept?: Intercept
+}): ReactNode
+export function Default<
+  H extends { Default(opts?: NodeDefaultOpts): ReactNode },
+>(props: {
+  of: H | null | undefined
+  errors?: ValidationError[]
+  parts: DefaultParts
+  intercept?: Intercept
+}): ReactNode
+export function Default<
+  H extends { Default(opts?: NodeDefaultOpts): ReactNode },
+>(props: {
+  of: H | null | undefined
+  errors?: ValidationError[]
+  parts?: unknown
+  intercept?: Intercept
+}): ReactNode {
   const { of, errors } = props
   if (of == null) return null
-  const { parts, intercept } = props as {
-    parts?: PartOverrideMap<ReactNode>
+  const { parts: rawParts, intercept } = props as {
+    parts?: PartOverrideMap<ReactNode> | PartsBag
     intercept?: Intercept
   }
+  const parts =
+    rawParts && isHandlerPartsBag(rawParts)
+      ? handlerBagToOverrides(rawParts)
+      : rawParts
   const render = (): ReactNode =>
     !parts && !intercept
       ? of.Default()
