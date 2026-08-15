@@ -24,7 +24,7 @@ import { zodToTree } from '@formframe/input-zod'
 import {
   errorA11yProps,
   FieldA11yContext,
-  injectFieldErrors,
+  InjectFieldErrors,
   nativeDefaults,
   useFormTree,
   type ReactPartialDefaults,
@@ -63,7 +63,11 @@ function RhfParityFieldRoot({
 }: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
   const errors = useFieldValidationErrors(node.path)
   const Root = nativeDefaults.field.root
-  return injectFieldErrors(errors, <Root node={node} overrides={overrides} />)
+  return (
+    <InjectFieldErrors errors={errors}>
+      <Root node={node} overrides={overrides} />
+    </InjectFieldErrors>
+  )
 }
 
 function RhfParityFieldControl(control: FieldControl): ReactNode {

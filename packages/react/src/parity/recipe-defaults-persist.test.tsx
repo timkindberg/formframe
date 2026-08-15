@@ -19,7 +19,7 @@ import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
   fieldControlId,
   fieldErrorId,
-  injectFieldErrors,
+  InjectFieldErrors,
   nativeDefaults,
   useFormTree,
   type ReactPartialDefaults,
@@ -56,7 +56,11 @@ function RecipeFieldRoot({
 }: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
   const errors = useRecipeErrors(node.path)
   const Root = nativeDefaults.field.root
-  return injectFieldErrors(errors, <Root node={node} overrides={overrides} />)
+  return (
+    <InjectFieldErrors errors={errors}>
+      <Root node={node} overrides={overrides} />
+    </InjectFieldErrors>
+  )
 }
 
 const recipeDefaults: ReactPartialDefaults = {

@@ -8,7 +8,7 @@
 //
 // Everything here is about RHF and nothing else: `register()` bindings and
 // mapping RHF errors → `ValidationError[]`, injected on `defaults.field.root`
-// via `injectFieldErrors` (form-lib wiring on `defaults.field.control`).
+// via `<InjectFieldErrors>` (form-lib wiring on `defaults.field.control`).
 // Field chrome + error-state a11y come from the library (merged into `attrs`
 // for input/select; choicegroup spreads error a11y on the wrapper). Typed
 // against FormFrame's neutral control seam (no schema generics), so ONE copy
@@ -26,7 +26,7 @@ import type { FieldControl, ValidationError } from '@formframe/core'
 import {
   errorA11yProps,
   FieldA11yContext,
-  injectFieldErrors,
+  InjectFieldErrors,
   nativeDefaults,
   type ReactPartialDefaults,
 } from '@formframe/renderer-react'
@@ -105,7 +105,11 @@ function RhfRecipeFieldRoot({
 }: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
   const errors = useFieldValidationErrors(node.path)
   const Root = nativeDefaults.field.root
-  return injectFieldErrors(errors, <Root node={node} overrides={overrides} />)
+  return (
+    <InjectFieldErrors errors={errors}>
+      <Root node={node} overrides={overrides} />
+    </InjectFieldErrors>
+  )
 }
 
 function RhfRecipeFieldControl(control: FieldControl): ReactNode {

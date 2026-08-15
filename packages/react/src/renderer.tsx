@@ -889,12 +889,23 @@ function InjectedErrorsGate({
  * without calling `<Default of={field} errors={…} />` from a custom
  * `defaults.field.root` (that would mean the current merged defaults and
  * infinite-loop). Call the previous root, then wrap its result:
- * `injectFieldErrors(errors, nativeDefaults.field.root(props))`.
+ *
+ * ```tsx
+ * <InjectFieldErrors errors={errors}>
+ *   <Root node={node} overrides={overrides} />
+ * </InjectFieldErrors>
+ * ```
+ *
+ * where `Root` is `nativeDefaults.field.root` (or the previous merged root),
+ * not `<Default of={node} />`.
  */
-export function injectFieldErrors(
-  errors: ValidationError[],
+export function InjectFieldErrors({
+  errors,
+  children,
+}: {
+  errors: ValidationError[]
   children: ReactNode
-): ReactNode {
+}): ReactNode {
   return (
     <InjectedFieldErrorsContext.Provider value={errors}>
       {children}

@@ -21,7 +21,7 @@ import { zodToTree } from '@formframe/input-zod'
 import {
   errorA11yProps,
   FieldA11yContext,
-  injectFieldErrors,
+  InjectFieldErrors,
   nativeDefaults,
   useFormTree,
   type ReactPartialDefaults,
@@ -129,13 +129,14 @@ function TanStackParityFieldRoot({
     <form.Field name={tanstackName}>
       {(field) => (
         <TanStackFieldBindingContext.Provider value={field}>
-          {injectFieldErrors(
-            field.state.meta.errors.map((e) => ({
+          <InjectFieldErrors
+            errors={field.state.meta.errors.map((e) => ({
               path: bracketPathToDot(dotPath),
               message: e.message,
-            })),
+            }))}
+          >
             <Root node={node} overrides={overrides} />
-          )}
+          </InjectFieldErrors>
         </TanStackFieldBindingContext.Provider>
       )}
     </form.Field>
