@@ -174,7 +174,7 @@ export function ProfileForm() {
 }
 ```
 
-Use a **path map** (`{ email: Handler, 'address.street': Handler }`) or a
+Use a **path map** (`{ email: Handler, 'address.street': { control: X } }`) or a
 **bag** (`{ paths: { … }, where: [[pred, Handler], …] }`) for path-specific
 customization. A hand-written **function**
 `(node, { Default, Children }) => …` is the floor — the map and bag lower to
@@ -182,9 +182,12 @@ it. One winning handler per node; **specificity replaces order**: exact path,
 then `where`, then defaults. Unmatched nodes keep the team defaults.
 
 Handlers place parts (`<parts.Label />`, `<parts.Control />`, `{children}` for
-a group's descendants) or re-enter the whole node with `<Default />`. Hoist
-handlers that call hooks. Recipes pass **defaults** (error inject, form-lib
-wiring) through `useFormTree({ defaults })` — not a winning intercept.
+a group's descendants) or re-enter the whole node with `<Default />`. If the
+exception is one part, a parts object is the same move as
+`<Default parts>` — `{ 'address.street': { control: StreetControl } }` — not a
+handler that re-places Label/Errors. Hoist handlers that call hooks. Recipes
+pass **defaults** (error inject, form-lib wiring) through
+`useFormTree({ defaults })` — not a winning intercept.
 
 The numbered gallery in [`examples/basic-react`](./examples/basic-react) walks
 up to the function floor on purpose ([App_08](./examples/basic-react/src/App_08_React+Overrides.tsx)

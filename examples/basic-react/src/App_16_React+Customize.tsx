@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import {
   useFormTree,
+  type DefaultParts,
   type FieldProps,
   type GroupProps,
 } from '@formframe/renderer-react'
@@ -93,34 +94,24 @@ function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
   )
 }
 
-function StreetInput({ path, parts }: FieldProps<Shape, 'address.street'>) {
-  // @ts-expect-error 'address.street' has no description part
-  void parts.Description
-  const errors = useFieldValidationErrors(path)
+// Street is only restyling the input — a parts object is `<Default parts>`,
+// so label / errors / recipe error-inject stay. Not a handler that re-places
+// them. (RowName / CardGroup / CityNote still place themselves.)
+const StreetControl: NonNullable<DefaultParts['control']> = (c) => {
+  if (c.kind !== 'input') return null
+  const { type: _t, ...attrs } = c.attrs
   return (
-    <div>
-      <parts.Label />
-      <parts.Control
-        errors={errors}
-        render={(c) => {
-          const { type: _t, ...attrs } = c.attrs
-          return (
-            <input
-              {...attrs}
-              placeholder="123 Main St"
-              autoComplete="street-address"
-              style={{
-                display: 'block',
-                border: '2px solid darkorange',
-                borderRadius: 6,
-                padding: 6,
-              }}
-            />
-          )
-        }}
-      />
-      <parts.Errors errors={errors} />
-    </div>
+    <input
+      {...attrs}
+      placeholder="123 Main St"
+      autoComplete="street-address"
+      style={{
+        display: 'block',
+        border: '2px solid darkorange',
+        borderRadius: 6,
+        padding: 6,
+      }}
+    />
   )
 }
 
@@ -136,7 +127,7 @@ function CityNote({ Default }: FieldProps<Shape, 'address.city'>) {
 const customizeIntercept = {
   name: RowName,
   address: CardGroup,
-  'address.street': StreetInput,
+  'address.street': { control: StreetControl },
   'address.city': CityNote,
 }
 
@@ -181,13 +172,16 @@ export default function App() {
       <p>
         Team recipe defaults on <code>useFormTree</code> (
         <code>nativeFieldDefaults</code> injects gated errors), then a path map
-        on <code>intercept</code> for the exceptions. Handlers are hoisted
-        components with <code>FieldProps</code>/<code>GroupProps</code>{' '}
-        annotations; <code>plan</code> is unmatched and keeps the defaults. Type
-        into the orange Street box and Submit. See example 08 for the
-        hand-written intercept function this map lowers to.
+        on <code>intercept</code> for the exceptions. Name, address, and city
+        are hoisted handlers (<code>FieldProps</code>/<code>GroupProps</code>)
+        because they place themselves; street is{' '}
+        <code>{'{ control: StreetControl }'}</code> — the same move as{' '}
+        <code>{'<Default parts={{ control }} />'}</code> — because only the
+        input chrome changes. <code>plan</code> is unmatched and keeps the
+        defaults. Type into the orange Street box and Submit. See example 08 for
+        the hand-written intercept function this map lowers to.
       </p>
-      <Section title="Path intercept map — custom handlers, live errors">
+      <Section title="Path intercept map — handlers, one parts overlay, live errors">
         <LiveCustomizedForm />
       </Section>
     </div>

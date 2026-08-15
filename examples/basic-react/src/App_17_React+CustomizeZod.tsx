@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   useFormTree,
+  type DefaultParts,
   type FieldProps,
   type GroupProps,
 } from '@formframe/renderer-react'
@@ -78,32 +79,24 @@ function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
   )
 }
 
-function StreetInput({ path, parts }: FieldProps<Shape, 'address.street'>) {
-  const errors = useFieldValidationErrors(path)
+// Street is only restyling the input — a parts object is `<Default parts>`,
+// so label / errors / recipe error-inject stay. Not a handler that re-places
+// them. (RowName / CardGroup / CityNote still place themselves.)
+const StreetControl: NonNullable<DefaultParts['control']> = (c) => {
+  if (c.kind !== 'input') return null
+  const { type: _t, ...attrs } = c.attrs
   return (
-    <div>
-      <parts.Label />
-      <parts.Control
-        errors={errors}
-        render={(c) => {
-          const { type: _t, ...attrs } = c.attrs
-          return (
-            <input
-              {...attrs}
-              placeholder="123 Main St"
-              autoComplete="street-address"
-              style={{
-                display: 'block',
-                border: '2px solid darkorange',
-                borderRadius: 6,
-                padding: 6,
-              }}
-            />
-          )
-        }}
-      />
-      <parts.Errors errors={errors} />
-    </div>
+    <input
+      {...attrs}
+      placeholder="123 Main St"
+      autoComplete="street-address"
+      style={{
+        display: 'block',
+        border: '2px solid darkorange',
+        borderRadius: 6,
+        padding: 6,
+      }}
+    />
   )
 }
 
@@ -119,7 +112,7 @@ function CityNote({ Default }: FieldProps<Shape, 'address.city'>) {
 const customizeIntercept = {
   name: RowName,
   address: CardGroup,
-  'address.street': StreetInput,
+  'address.street': { control: StreetControl },
   'address.city': CityNote,
 }
 
@@ -170,7 +163,7 @@ export default function App() {
         (descriptions live in a runtime registry — guard it), whereas App_16
         gets a statically-present slot from the JSON literal.
       </p>
-      <Section title="Path intercept map over Zod — custom handlers, live errors">
+      <Section title="Path intercept map over Zod — handlers, one parts overlay, live errors">
         <LiveCustomizedForm />
       </Section>
     </div>
