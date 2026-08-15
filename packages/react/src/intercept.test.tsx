@@ -374,14 +374,14 @@ describe('intercept map types', () => {
     expectTypeOf<typeof EmailControl>().toMatchTypeOf<
       NonNullable<InterceptParts['control']>
     >()
-    const InputOnlyControl: ControlOverride<'input'> = (c) => (
+    const _InputOnlyControl: ControlOverride<'input'> = (c) => (
       <input {...c.attrs} />
     )
-    expectTypeOf<typeof InputOnlyControl>().toMatchTypeOf<
+    expectTypeOf<typeof _InputOnlyControl>().toMatchTypeOf<
       NonNullable<InterceptParts['control']>
     >()
     expectTypeOf<{
-      email: { control: typeof InputOnlyControl }
+      email: { control: typeof _InputOnlyControl }
     }>().toMatchTypeOf<InterceptMap>()
     expectTypeOf<{ where: typeof EmailHint }>().toMatchTypeOf<InterceptMap>()
     expectTypeOf<{ paths: typeof EmailHint }>().toMatchTypeOf<InterceptMap>()
