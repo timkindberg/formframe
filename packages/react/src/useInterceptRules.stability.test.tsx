@@ -18,10 +18,7 @@ import { render } from 'vitest-browser-react'
 import { useState } from 'react'
 import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import { SchemaFields } from './renderer'
-import {
-  useInterceptRules,
-  type TypedRuleRegistrar,
-} from './useInterceptRules'
+import { useInterceptRules, type TypedRuleRegistrar } from './useInterceptRules'
 
 const schema = {
   type: 'object',
