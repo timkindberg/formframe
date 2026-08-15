@@ -8,11 +8,7 @@ import type { DefaultParts, ENode, RenderHelpers } from './renderer'
 import {
   interceptRules,
   partsInterceptHandler,
-  type ArrayHandlerProps,
-  type FieldHandlerProps,
-  type GroupHandlerProps,
   type NodeHandler,
-  type NodeHandlerProps,
   type RuleRegistrar,
 } from './interceptRules'
 
@@ -20,19 +16,15 @@ import {
 export type InterceptFn = (node: ENode, helpers: RenderHelpers) => ReactNode
 
 /**
- * Mounted handler for a path-map / bag value. Method-parameter bivariance
- * (`strictFunctionTypes` does not apply to methods) so a field/group/array
- * handler is a legal map value without `satisfies` / `as` — `FieldHandler`
- * props are not assignable to `NodeHandler` under function contravariance.
+ * Mounted handler for a path-map / bag value. Parameter is `never` so any
+ * field/group/array handler is assignable — `FieldProps<Shape, P>` / `GroupProps`
+ * are not subtypes of the floor union (`parts` bags differ), so a union of
+ * `FieldHandlerProps | GroupHandlerProps | …` is not enough under
+ * `strictFunctionTypes`. Same “accept the handler you wrote” goal as the
+ * method-bivariance trick.
  */
 export type InterceptHandler = {
-  bivarianceHack(
-    props:
-      | FieldHandlerProps
-      | GroupHandlerProps
-      | ArrayHandlerProps
-      | NodeHandlerProps
-  ): ReactNode
+  bivarianceHack(props: never): ReactNode
 }['bivarianceHack']
 
 /** Known part keys — discriminate a parts object from a nested path map (ADR 051). */

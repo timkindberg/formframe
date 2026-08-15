@@ -375,6 +375,22 @@ describe('intercept map types', () => {
     >()
     expectTypeOf<{ where: typeof EmailHint }>().toMatchTypeOf<InterceptMap>()
     expectTypeOf<{ paths: typeof EmailHint }>().toMatchTypeOf<InterceptMap>()
+    // Path-literal props (what `FieldProps<Shape, 'email'>` looks like) — not a
+    // subtype of `FieldHandlerProps`, so the floor union is not enough.
+    const PathTyped = ({
+      path,
+      parts,
+    }: {
+      path: 'email'
+      parts: FieldHandlerProps['parts']
+    }) => (
+      <div>
+        {path}
+        <parts.Label />
+      </div>
+    )
+    expectTypeOf<{ email: typeof PathTyped }>().toMatchTypeOf<InterceptMap>()
+    expectTypeOf<{ email: typeof PathTyped }>().toMatchTypeOf<InterceptProp>()
   })
 
   it('rejects nested path maps and node handlers as part renderers', () => {
