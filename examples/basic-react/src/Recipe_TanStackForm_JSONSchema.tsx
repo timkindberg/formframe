@@ -42,7 +42,7 @@ import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
 import {
   SchemaFields,
-  useRenderNodeRules,
+  useInterceptRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
@@ -149,7 +149,7 @@ export default function App() {
       setSubmitted(result.data ?? value)
     },
   })
-  const intercept = useRenderNodeRules(tree, tanStackRules)
+  const intercept = useInterceptRules(tree, tanStackRules)
   const fieldMeta = useStore(form.store, (s) => s.fieldMeta)
 
   return (

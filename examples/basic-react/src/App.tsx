@@ -67,12 +67,12 @@ const examples = [
   },
   {
     id: '16',
-    name: 'React + renderNodeRules (ADR 047)',
+    name: 'React + interceptRules (ADR 047)',
     component: App16,
   },
   {
     id: '17',
-    name: 'React + renderNodeRules over Zod (ADR 047 / ADR 008)',
+    name: 'React + interceptRules over Zod (ADR 047 / ADR 008)',
     component: App17,
   },
   {
@@ -104,7 +104,7 @@ function galleryLabel(example: { id: string; name: string }): string {
     : example.name
 }
 
-/** Landing example — the headline renderNodeRules demo (ADR 047/048). */
+/** Landing example — the headline interceptRules demo (ADR 047/048). */
 const DEFAULT_EXAMPLE_ID = '16'
 
 function App() {

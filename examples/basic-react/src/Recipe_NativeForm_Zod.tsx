@@ -23,7 +23,7 @@ import { fromStandardSchema } from '@formframe/core'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   useFormTree,
-  useRenderNodeRules,
+  useInterceptRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import {
@@ -92,7 +92,7 @@ const validator = withMissingGroups(fromStandardSchema(schema), ['address'])
 export default function App() {
   const { form, SchemaFields } = useFormTree(tree)
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
-  const intercept = useRenderNodeRules(form, nativeRules)
+  const intercept = useInterceptRules(form, nativeRules)
   const [submitted, setSubmitted] = useState<Data | null>(null)
 
   return (

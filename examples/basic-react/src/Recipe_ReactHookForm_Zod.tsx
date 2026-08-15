@@ -33,7 +33,7 @@ import { z } from 'zod'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   SchemaFields,
-  useRenderNodeRules,
+  useInterceptRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { ValidationSummary } from './fieldPresentation.recipe'
@@ -107,7 +107,7 @@ export default function App() {
   // RHF's default mode: validate at first submit, revalidate on change after.
   const methods = useForm({ resolver })
   const { errors } = methods.formState
-  const intercept = useRenderNodeRules(tree, rhfRules)
+  const intercept = useInterceptRules(tree, rhfRules)
   // Typed by the schema: `z.output` flows through the resolver into
   // `handleSubmit`, so `data.age` is `number`, `data.contactMethod` is
   // 'email' | 'phone' — no annotations needed.

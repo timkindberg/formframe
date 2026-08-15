@@ -18,7 +18,7 @@ import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
   useFormTree,
-  useRenderNodeRules,
+  useInterceptRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
@@ -63,7 +63,7 @@ function App() {
     form,
     validator
   )
-  const intercept = useRenderNodeRules(form, nativeRules)
+  const intercept = useInterceptRules(form, nativeRules)
   const [mode, setMode] = useState<ShowErrorsWhen>('touched')
   const [submittedData, setSubmittedData] = useState<Record<
     string,

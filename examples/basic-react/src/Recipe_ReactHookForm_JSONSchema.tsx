@@ -53,7 +53,7 @@ import { jsonSchemaToTree, type FormShapeOf } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
 import {
   SchemaFields,
-  useRenderNodeRules,
+  useInterceptRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
@@ -147,7 +147,7 @@ export default function App() {
   // RHF's default mode: validate at first submit, revalidate on change after.
   const methods = useForm({ resolver })
   const { errors } = methods.formState
-  const intercept = useRenderNodeRules(tree, rhfRules)
+  const intercept = useInterceptRules(tree, rhfRules)
   // Typed by the schema: `data.age` is `number`, `data.contactMethod` is
   // 'email' | 'phone' — inference flows from the schema literal through
   // `InferData` and the resolver's output type into `handleSubmit`.
@@ -196,7 +196,7 @@ export default function App() {
 //   Display-policy unification + parity proof: `packages/react/src/parity/` (#125).
 // • ADR trail: 050 (recipes produce, library renders) / 024 (recipes not
 //   packages) / 025 (validator purity — the coerceTypes corruption story) /
-//   026 (toStandardSchema) / 047-048 (renderNodeRules + typed registrar).
+//   026 (toStandardSchema) / 047-048 (interceptRules + typed registrar).
 // • Async option sets for `plan`-style enums: not modelled by Core yet
 //   (ADR 029 §5, bd cm7) — a fetched option list is a consumer resolver's
 //   job today (pin `{ widget: 'select' }` so a count change can't re-pick
