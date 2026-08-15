@@ -15,7 +15,7 @@ import {
   fieldControlId,
   fieldErrorId,
   useFormTree,
-  useRenderNodeRules,
+  useInterceptRules,
 } from '@formframe/renderer-react'
 import { InputControl } from './nativeFieldControls.recipe'
 import {
@@ -188,7 +188,7 @@ function RecipeHarness({
     form,
     validator
   )
-  const intercept = useRenderNodeRules(form, (r) => {
+  const intercept = useInterceptRules(form, (r) => {
     r.control('input', InputControl)
   })
   return (

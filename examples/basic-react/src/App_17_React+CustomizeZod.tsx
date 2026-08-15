@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   useFormTree,
-  useRenderNodeRules,
+  useInterceptRules,
   type FieldProps,
   type GroupProps,
   type TypedRuleRegistrar,
@@ -24,7 +24,7 @@ import {
 // The whole point: this file is IDENTICAL to App_16 except the front-end import
 // (`@formframe/input-zod` vs `@formframe/input-jsonschema`) and the schema DSL.
 // There is NO per-front-end recipe — `zodToTree(schema)` brands the tree with its
-// resolved `FormShapeOf<S>`, and the SAME `useRenderNodeRules` from React binds
+// resolved `FormShapeOf<S>`, and the SAME `useInterceptRules` from React binds
 // off that brand (ADR 048). The one real divergence that still surfaces:
 //   • `name` has a `.meta({ description })`, but Zod keeps descriptions in a
 //     runtime registry invisible to the type. So `parts.Description` is an
@@ -176,9 +176,9 @@ function LiveCustomizedForm() {
   const { form, SchemaFields: Fields } = useFormTree(tree)
   // Type off `form` — the rendered tree — not the pre-present input (bd bh7.8), the
   // desync-proof habit that lets a later `overrideWidgets` re-narrow the control for
-  // free. `useRenderNodeRules` reads that brand — the SAME React hook App_16 uses,
+  // free. `useInterceptRules` reads that brand — the SAME React hook App_16 uses,
   // no per-front-end binding (ADR 048).
-  const intercept = useRenderNodeRules(form, customizeRules)
+  const intercept = useInterceptRules(form, customizeRules)
   // Recipe-owned validation: produce errors here, inject via the provider.
   const { validation, submit, revalidate } = useNativeValidator(form, validator)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
@@ -224,7 +224,7 @@ export default function App() {
   return (
     <div>
       <h1>
-        renderNodeRules over Zod — the second front-end (ADR 048 / ADR 008)
+        interceptRules over Zod — the second front-end (ADR 048 / ADR 008)
       </h1>
       <p>
         Field-for-field the same as example 16, but the schema is a{' '}
@@ -232,7 +232,7 @@ export default function App() {
         <code>@formframe/input-zod</code>. There is no per-front-end recipe:{' '}
         <code>zodToTree(schema)</code> brands the tree with its{' '}
         <code>FormShapeOf&lt;S&gt;</code>, and the SAME{' '}
-        <code>useRenderNodeRules</code> hook binds off that brand (ADR 048) — so
+        <code>useInterceptRules</code> hook binds off that brand (ADR 048) — so
         this file is identical to App_16 except the front-end import + schema
         DSL. The one real divergence: <code>parts.Description</code> is an{' '}
         <em>optional</em> slot for Zod (descriptions live in a runtime registry,
@@ -240,7 +240,7 @@ export default function App() {
         gets a statically-present slot from the JSON literal. Enum arity still
         narrows <code>plan</code> to a radio.
       </p>
-      <Section title="renderNodeRules over Zod — narrowed props/parts, typed render-props, live errors">
+      <Section title="interceptRules over Zod — narrowed props/parts, typed render-props, live errors">
         <LiveCustomizedForm />
       </Section>
     </div>

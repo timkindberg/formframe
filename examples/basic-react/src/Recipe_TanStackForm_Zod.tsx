@@ -42,7 +42,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   SchemaFields,
-  useRenderNodeRules,
+  useInterceptRules,
   type TypedRuleRegistrar,
 } from '@formframe/renderer-react'
 import { ValidationSummary } from './fieldPresentation.recipe'
@@ -125,7 +125,7 @@ export default function App() {
       setSubmitted(parsed.success ? parsed.data : value)
     },
   })
-  const intercept = useRenderNodeRules(tree, tanStackRules)
+  const intercept = useInterceptRules(tree, tanStackRules)
   const fieldMeta = useStore(form.store, (s) => s.fieldMeta)
 
   return (
