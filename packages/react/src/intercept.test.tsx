@@ -1,15 +1,16 @@
 // Intercept sugar (ADR 051) — path maps and `{ paths, where }` bags on the
-// `intercept` prop lower to the function floor via `renderNodeRules`.
+// `intercept` prop lower to the function floor via `interceptRules`.
 
 import { useState } from 'react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, expectTypeOf, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import { SchemaFields } from './renderer'
-import type { FieldHandlerProps, GroupHandlerProps } from './renderNodeRules'
+import type { SchemaFieldsProps } from './renderer'
+import type { FieldHandlerProps, GroupHandlerProps } from './interceptRules'
 import type { ENode } from './renderer'
-import type { InterceptMap } from './intercept'
+import type { Intercept, InterceptMap } from './intercept'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -49,12 +50,10 @@ describe('intercept path-map sugar', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        intercept={
-          {
-            email: EmailHint,
-            'address.street': StreetHint,
-          } satisfies InterceptMap
-        }
+        intercept={{
+          email: EmailHint,
+          'address.street': StreetHint,
+        }}
       />
     )
     await expect.element(screen.getByTestId('email-hint')).toBeInTheDocument()
@@ -155,10 +154,7 @@ describe('intercept path-map vs bag discrimination', () => {
     const WhereField = () => <div data-testid="where-field">where field</div>
     const form = jsonSchemaToRuntimeTree(reservedKeysSchema)
     const screen = await render(
-      <SchemaFields
-        form={form}
-        intercept={{ where: WhereField } satisfies InterceptMap}
-      />
+      <SchemaFields form={form} intercept={{ where: WhereField }} />
     )
     await expect.element(screen.getByTestId('where-field')).toBeInTheDocument()
   })
@@ -167,10 +163,7 @@ describe('intercept path-map vs bag discrimination', () => {
     const PathsField = () => <div data-testid="paths-field">paths field</div>
     const form = jsonSchemaToRuntimeTree(reservedKeysSchema)
     const screen = await render(
-      <SchemaFields
-        form={form}
-        intercept={{ paths: PathsField } satisfies InterceptMap}
-      />
+      <SchemaFields form={form} intercept={{ paths: PathsField }} />
     )
     await expect.element(screen.getByTestId('paths-field')).toBeInTheDocument()
   })
@@ -189,12 +182,10 @@ describe('intercept map stability', () => {
           </button>
           <SchemaFields
             form={form}
-            intercept={
-              {
-                email: EmailHint,
-                'address.street': StreetHint,
-              } satisfies InterceptMap
-            }
+            intercept={{
+              email: EmailHint,
+              'address.street': StreetHint,
+            }}
           />
         </div>
       )
@@ -211,5 +202,87 @@ describe('intercept map stability', () => {
     await expect.element(street).toHaveValue('Main St')
     const after = document.querySelector('input[name="address.street"]')
     expect(after).toBe(before)
+  })
+})
+
+const EmailControl = () => <input data-testid="email-control" name="email" />
+
+describe('intercept parts-object values', () => {
+  it('overrides only the named parts; unmatched parts stay defaults', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{ email: { control: EmailControl } }}
+      />
+    )
+    await expect
+      .element(screen.getByTestId('email-control'))
+      .toBeInTheDocument()
+    await expect.element(screen.getByText('Email')).toBeInTheDocument()
+    await expect
+      .element(screen.getByRole('textbox', { name: 'Street' }))
+      .toBeInTheDocument()
+  })
+
+  it('{ root: Handler } is the long form of passing Handler directly', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields form={form} intercept={{ email: { root: EmailHint } }} />
+    )
+    await expect.element(screen.getByTestId('email-hint')).toBeInTheDocument()
+    await expect
+      .element(screen.getByText('Check your inbox'))
+      .toBeInTheDocument()
+  })
+
+  it('accepts parts objects on bag `paths`', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{ paths: { email: { control: EmailControl } } }}
+      />
+    )
+    await expect
+      .element(screen.getByTestId('email-control'))
+      .toBeInTheDocument()
+    await expect.element(screen.getByText('Email')).toBeInTheDocument()
+  })
+
+  it('does not treat nested { address: { street } } as a path map (ADR 051)', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const nested = {
+      address: { street: StreetHint },
+    } as unknown as Intercept
+    const screen = await render(<SchemaFields form={form} intercept={nested} />)
+    expect(
+      document.querySelectorAll('[data-testid="street-hint"]').length
+    ).toBe(0)
+    await expect
+      .element(screen.getByRole('textbox', { name: 'Street' }))
+      .toBeInTheDocument()
+    spy.mockRestore()
+  })
+})
+
+describe('intercept map types', () => {
+  it('accepts field handlers and parts objects without satisfies', () => {
+    type InterceptProp = NonNullable<SchemaFieldsProps['intercept']>
+    expectTypeOf<{
+      email: typeof EmailHint
+      'address.street': typeof StreetHint
+    }>().toMatchTypeOf<InterceptMap>()
+    expectTypeOf<{
+      email: typeof EmailHint
+      'address.street': typeof StreetHint
+    }>().toMatchTypeOf<InterceptProp>()
+    expectTypeOf<{
+      email: { control: typeof EmailControl }
+    }>().toMatchTypeOf<InterceptMap>()
+    expectTypeOf<{
+      email: { root: typeof EmailHint }
+    }>().toMatchTypeOf<InterceptMap>()
   })
 })

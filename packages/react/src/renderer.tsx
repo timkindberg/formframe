@@ -904,13 +904,13 @@ export function createRenderer(defaults: ReactPartialDefaults) {
     // Dev-only remount guard (bd jsonschema-form-108): `intercept` changing
     // identity between renders defeats the `memo` bail below no matter WHY it
     // changed — a hand-rolled unstable resolver, or the low-level
-    // `renderNodeRules(build)` called fresh inline (that sugar has no `useRef`
-    // of its own to hold an identity across renders; only `useRenderNodeRules`
-    // does). `useRenderNodeRules` already warns on an unstable *builder*; this
+    // `interceptRules(build)` called fresh inline (that sugar has no `useRef`
+    // of its own to hold an identity across renders; only `useInterceptRules`
+    // does). `useInterceptRules` already warns on an unstable *builder*; this
     // mirrors that warning one layer down, at the prop `SchemaFields` actually
     // consumes, so the footgun is loud even when a consumer bypasses the hook.
     //
-    // A DELIBERATE rebuild (e.g. `useRenderNodeRules(tree, build, [dep])` after
+    // A DELIBERATE rebuild (e.g. `useInterceptRules(tree, build, [dep])` after
     // `dep` changes) also changes this prop's identity ONCE, then stabilizes —
     // that is the documented, non-silent contract of `deps` and must NOT warn.
     // An unmemoized inline call instead changes it on EVERY render, forever, so
@@ -937,9 +937,9 @@ export function createRenderer(defaults: ReactPartialDefaults) {
         '[formframe] SchemaFields: the `intercept` prop changed identity on ' +
           'consecutive renders, which remounts every matched field (losing ' +
           'focus and uncontrolled DOM state). Memoize it — hoist a ' +
-          '`renderNodeRules(…)` call to module scope, or bind it with ' +
-          '`useRenderNodeRules`, which holds a stable identity for you. ' +
-          'Calling `renderNodeRules(…)` inline in the render body (without the ' +
+          '`interceptRules(…)` call to module scope, or bind it with ' +
+          '`useInterceptRules`, which holds a stable identity for you. ' +
+          'Calling `interceptRules(…)` inline in the render body (without the ' +
           'hook) rebuilds it fresh every render.'
       )
     }

@@ -30,7 +30,7 @@ import { zodToTree } from '@formframe/input-zod'
 import {
   Default,
   useFormTree,
-  useRenderNodeRules,
+  useInterceptRules,
   type ControlProps,
 } from '../../index'
 import {
@@ -141,7 +141,7 @@ export function NativeParityRecipe({
   const { form, SchemaFields } = useFormTree(
     tree as TypedTree<FormShape, unknown>
   )
-  const intercept = useRenderNodeRules(form, (r) => {
+  const intercept = useInterceptRules(form, (r) => {
     r.control('input', InputControl)
   })
 

@@ -7,7 +7,7 @@
 // `FormShapeOf` drifts from reality, everything still compiles and the binding
 // silently lies. This is the root-of-trust for the whole typed binding (ADR 048).
 //
-// This test closes that gap. Unlike `useRenderNodeRules.test.tsx` (which drives
+// This test closes that gap. Unlike `useInterceptRules.test.tsx` (which drives
 // off a HAND-WRITTEN synthetic `FormShape`) and `infer.control.test.ts` (which
 // probes the raw `infer.ts` helpers), it starts from a real
 // `jsonSchemaToTree(schema)` / `zodToTree(schema)`, extracts the branded shape
@@ -54,16 +54,16 @@ import type {
   FieldPaths as ZodFieldPaths,
   GroupPaths as ZodGroupPaths,
 } from '@formframe/input-zod'
-import { useRenderNodeRules } from './useRenderNodeRules'
+import { useInterceptRules } from './useInterceptRules'
 import type {
   FieldProps,
   GroupProps,
   TypedRuleRegistrar,
-} from './useRenderNodeRules'
+} from './useInterceptRules'
 
 // The control archetype a `FieldProps` Control part hands its render prop — the
 // exact narrowing a customize handler sees off the branded tree (mirrors the
-// extraction in useRenderNodeRules.test.tsx).
+// extraction in useInterceptRules.test.tsx).
 type ControlArg<
   TS extends FormShape,
   P extends keyof TS['fields'] & string,
@@ -212,7 +212,7 @@ describe('FormShape oracle: jsonSchemaToTree brand ↔ FieldProps (bd bh7.4)', (
   })
 
   it('the registrar rejects cross-kind paths with a hint, not just "not assignable" (bd q8v)', () => {
-    // Declared, never called — a type-level probe only (see useRenderNodeRules.test.tsx).
+    // Declared, never called — a type-level probe only (see useInterceptRules.test.tsx).
     const probe = (r: TypedRuleRegistrar<JShape>): void => {
       r.field('name', () => null)
       r.group('address', () => null)
@@ -332,7 +332,7 @@ describe('FormShape oracle: zodToTree brand ↔ FieldProps (bd bh7.4)', () => {
   })
 
   it('the registrar rejects cross-kind paths with a hint, not just "not assignable" (bd q8v)', () => {
-    // Declared, never called — a type-level probe only (see useRenderNodeRules.test.tsx).
+    // Declared, never called — a type-level probe only (see useInterceptRules.test.tsx).
     const probe = (r: TypedRuleRegistrar<ZShape>): void => {
       r.field('name', () => null)
       r.group('address', () => null)
@@ -371,7 +371,7 @@ describe('the brand is load-bearing: an unbranded tree is rejected (review #1 / 
     // Type-only assertion — the hook is never invoked (so it stays hooks-lint-clean).
     // (The positive direction — branded trees ARE accepted — is covered by the rest
     // of this file and by App_16/App_17, which call the hook on the branded tree.)
-    type HookInput = Parameters<typeof useRenderNodeRules>[0]
+    type HookInput = Parameters<typeof useInterceptRules>[0]
     expectTypeOf<GroupNode>().not.toExtend<HookInput>()
   })
 })

@@ -1,4 +1,4 @@
-// The renderNodeRules layer (ADR 047 §1–§3) — selector cascade + arrangeable parts.
+// The interceptRules layer (ADR 047 §1–§3) — selector cascade + arrangeable parts.
 //
 // Covers: mounted component handlers (safe hooks), the specificity cascade
 // (exact path > predicate > control kind > kind > default), arrangeable parts
@@ -12,8 +12,8 @@ import type { ValidationError } from '@formframe/core'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import { SchemaFields, fieldControlId, fieldErrorId } from './renderer'
-import { renderNodeRules } from './renderNodeRules'
-import type { FieldHandlerProps, GroupHandlerProps } from './renderNodeRules'
+import { interceptRules } from './interceptRules'
+import type { FieldHandlerProps, GroupHandlerProps } from './interceptRules'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -38,7 +38,7 @@ const schema: JSONSchema = {
   required: ['name'],
 }
 
-describe('renderNodeRules — selector cascade (ADR 047 §3)', () => {
+describe('interceptRules — selector cascade (ADR 047 §3)', () => {
   it('exact path beats a blanket kind rule (specificity)', async () => {
     const NameHandler = ({ parts }: FieldHandlerProps) => (
       <div data-testid="exact">
@@ -49,7 +49,7 @@ describe('renderNodeRules — selector cascade (ADR 047 §3)', () => {
     const AllFields = ({ Default }: FieldHandlerProps) => (
       <div data-testid="blanket">{Default()}</div>
     )
-    const rn = renderNodeRules((r) => {
+    const rn = interceptRules((r) => {
       r.allFields(AllFields)
       r.field('name', NameHandler)
     })
@@ -64,7 +64,7 @@ describe('renderNodeRules — selector cascade (ADR 047 §3)', () => {
   })
 
   it('control(kind) selects by render archetype', async () => {
-    const rn = renderNodeRules((r) => {
+    const rn = interceptRules((r) => {
       r.control('input', ({ parts }: FieldHandlerProps) => (
         <div data-jsf-role="input-control">
           <parts.Label />
@@ -87,7 +87,7 @@ describe('renderNodeRules — selector cascade (ADR 047 §3)', () => {
   })
 
   it('unmatched nodes fall through to the engine default', async () => {
-    const rn = renderNodeRules((r) => {
+    const rn = interceptRules((r) => {
       r.field('name', ({ Default }: FieldHandlerProps) => <>{Default()}</>)
     })
     const form = jsonSchemaToRuntimeTree(schema)
@@ -98,7 +98,7 @@ describe('renderNodeRules — selector cascade (ADR 047 §3)', () => {
   })
 })
 
-describe('renderNodeRules — arrangeable parts (ADR 047 §2)', () => {
+describe('interceptRules — arrangeable parts (ADR 047 §2)', () => {
   it('places parts in a custom order and hijacks a group label via render prop', async () => {
     const Card = ({ parts, children }: GroupHandlerProps) => (
       <fieldset data-testid="card">
@@ -108,7 +108,7 @@ describe('renderNodeRules — arrangeable parts (ADR 047 §2)', () => {
         {children}
       </fieldset>
     )
-    const rn = renderNodeRules((r) => {
+    const rn = interceptRules((r) => {
       r.group('address', Card)
     })
     const form = jsonSchemaToRuntimeTree(schema)
@@ -135,7 +135,7 @@ describe('renderNodeRules — arrangeable parts (ADR 047 §2)', () => {
         </div>
       )
     }
-    const rn = renderNodeRules((r) => r.field('name', Stateful))
+    const rn = interceptRules((r) => r.field('name', Stateful))
     const form = jsonSchemaToRuntimeTree(schema)
     const screen = await render(<SchemaFields form={form} intercept={rn} />)
     await expect
@@ -148,18 +148,18 @@ describe('renderNodeRules — arrangeable parts (ADR 047 §2)', () => {
   })
 })
 
-describe('renderNodeRules — one registrar, cascading scopes (ADR 047 §6)', () => {
+describe('interceptRules — one registrar, cascading scopes (ADR 047 §6)', () => {
   it('form scope overrides app scope at equal specificity', async () => {
-    const app = (r: import('./renderNodeRules').RuleRegistrar) =>
+    const app = (r: import('./interceptRules').RuleRegistrar) =>
       r.field('name', ({ Default }: FieldHandlerProps) => (
         <div data-testid="app-name">{Default()}</div>
       ))
-    const form = (r: import('./renderNodeRules').RuleRegistrar) =>
+    const form = (r: import('./interceptRules').RuleRegistrar) =>
       r.field('name', ({ Default }: FieldHandlerProps) => (
         <div data-testid="form-name">{Default()}</div>
       ))
     // Composed app-first, form-last: form wins the tie on `name` (CSS cascade).
-    const rn = renderNodeRules(app, form)
+    const rn = interceptRules(app, form)
     const f = jsonSchemaToRuntimeTree(schema)
     const screen = await render(<SchemaFields form={f} intercept={rn} />)
     await expect.element(screen.getByTestId('form-name')).toBeInTheDocument()
@@ -167,9 +167,9 @@ describe('renderNodeRules — one registrar, cascading scopes (ADR 047 §6)', ()
   })
 
   it('inline part render prop overrides the default part (adapter < rules < inline)', async () => {
-    // The renderNodeRules handler places `parts.Label`; the INLINE render prop hand-
+    // The interceptRules handler places `parts.Label`; the INLINE render prop hand-
     // authors it, which must win over the adapter's default <label> markup.
-    const rn = renderNodeRules((r) => {
+    const rn = interceptRules((r) => {
       r.field('name', ({ parts }: FieldHandlerProps) => (
         <div>
           <parts.Label
@@ -189,7 +189,7 @@ describe('renderNodeRules — one registrar, cascading scopes (ADR 047 §6)', ()
   })
 })
 
-describe('renderNodeRules — Errors promoted to a movable part keeps a11y (ADR 047 §2)', () => {
+describe('interceptRules — Errors promoted to a movable part keeps a11y (ADR 047 §2)', () => {
   const issues: ValidationError[] = [
     { path: 'name', message: 'Name is too short' },
   ]
@@ -202,7 +202,7 @@ describe('renderNodeRules — Errors promoted to a movable part keeps a11y (ADR 
     // in explicitly (as a validation adapter/recipe would).
     const rn = useMemo(
       () =>
-        renderNodeRules((r) => {
+        interceptRules((r) => {
           r.field('name', ({ parts }: FieldHandlerProps) => (
             <div>
               <div className="control-slot">

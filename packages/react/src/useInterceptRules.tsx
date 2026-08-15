@@ -1,4 +1,4 @@
-// The typed binding for `renderNodeRules` (ADR 048) — the former per-front-end
+// The typed binding for `interceptRules` (ADR 048) — the former per-front-end
 // "recipe", now generic and living in React. It reads the resolved `FormShape` a
 // front-end brands onto its tree (`jsonSchemaToTree` / `zodToTree`) and re-types
 // the neutral rule registrar off it. React imports NO front-end: the brand is the
@@ -7,7 +7,7 @@
 // This is pure sugar over the low-level `intercept` prop — it grants nothing a
 // hand-written resolver can't do. What it adds: (1) tree-typed authoring, (2)
 // baked memoization, (3) the selector cascade. Layering: `intercept` (floor) ‹
-// `renderNodeRules()` (rule sugar) ‹ `useRenderNodeRules()` (typed + memoized).
+// `interceptRules()` (rule sugar) ‹ `useInterceptRules()` (typed + memoized).
 import { useMemo, useRef, type ReactNode } from 'react'
 import type {
   ControlKind,
@@ -21,11 +21,11 @@ import type {
 } from '@formframe/core'
 import type { EArray, EField, EGroup, Intercept } from './renderer'
 import {
-  renderNodeRules,
+  interceptRules,
   type PartComponent,
   type RuleRegistrar,
   type RulesBuild,
-} from './renderNodeRules'
+} from './interceptRules'
 
 // Minimal ambient so the dev-only guard below typechecks without pulling in
 // `@types/node`; consumer bundlers (webpack/vite/esbuild) statically replace
@@ -60,7 +60,7 @@ type SlotsOf<D> = Pretty<{
  * path `P`: `value`/`parts` narrow off the tree's brand; `Default` re-enters the
  * node. Annotate a hoisted handler as `FieldProps<Shape, 'name'>` where
  * `type Shape = FormShapeOf<typeof schema>` (from the front-end); inline handlers
- * inside `useRenderNodeRules` need no annotation.
+ * inside `useInterceptRules` need no annotation.
  */
 export type FieldProps<
   TS extends FormShape,
@@ -207,7 +207,7 @@ type ArrayPathArg<TS extends FormShape, P extends string> =
  * (bd bh7.6).
  *
  * Annotate a module-scope (stable) builder as `(r: TypedRuleRegistrar<Shape>) =>
- * void`, or pass the builder inline to `useRenderNodeRules` where `TS` is inferred
+ * void`, or pass the builder inline to `useInterceptRules` where `TS` is inferred
  * from the tree.
  *
  * TYPE TOUR — re-typing SOME methods of an interface: `Omit` the ones you want to
@@ -270,7 +270,7 @@ export type TypedRuleRegistrar<TS extends FormShape> = Omit<
  * deliberately remount) whenever a listed dep changes:
  *
  * ```ts
- * const intercept = useRenderNodeRules(tree, (r) => { … uses locale … }, [locale])
+ * const intercept = useInterceptRules(tree, (r) => { … uses locale … }, [locale])
  * ```
  *
  * Don't reach for `useCallback(build, [locale])` instead: `useCallback` gives the
@@ -292,11 +292,11 @@ export type TypedRuleRegistrar<TS extends FormShape> = Omit<
  * ```ts
  * const tree = useMemo(() => jsonSchemaToTree(schema), [])
  * const { form } = useFormTree(tree, { resolvePresentation: overrideWidgets(MAP) })
- * const intercept = useRenderNodeRules(form, rules)  // types track the overrides
+ * const intercept = useInterceptRules(form, rules)  // types track the overrides
  * return <Fields intercept={intercept} />
  * ```
  */
-export function useRenderNodeRules<TS extends FormShape, Origin>(
+export function useInterceptRules<TS extends FormShape, Origin>(
   tree: TypedTree<TS, Origin>,
   build: (r: TypedRuleRegistrar<TS>) => void,
   deps?: readonly unknown[]
@@ -315,7 +315,7 @@ export function useRenderNodeRules<TS extends FormShape, Origin>(
   // this a guarantee even when the caller passes an inline `(r) => …`.
   const firstBuild = useRef(build)
   const resolverRef = useRef<Intercept>()
-  const onceResolver = (resolverRef.current ??= renderNodeRules(
+  const onceResolver = (resolverRef.current ??= interceptRules(
     firstBuild.current as unknown as RulesBuild
   ))
 
@@ -334,7 +334,7 @@ export function useRenderNodeRules<TS extends FormShape, Origin>(
   ) {
     warned.current = true
     console.error(
-      '[formframe] useRenderNodeRules: the `build` function changed identity ' +
+      '[formframe] useInterceptRules: the `build` function changed identity ' +
         'between renders, so it is being ignored — rules are captured once (like ' +
         'a stylesheet). An inline `(r) => …` also defeats memoization and would ' +
         'remount fields (losing focus). Hoist the builder to a module-scope const, ' +
@@ -357,7 +357,7 @@ export function useRenderNodeRules<TS extends FormShape, Origin>(
   const depsOrOnce = deps ?? [onceResolver]
   return useMemo(
     () =>
-      deps ? renderNodeRules(build as unknown as RulesBuild) : onceResolver,
+      deps ? interceptRules(build as unknown as RulesBuild) : onceResolver,
     depsOrOnce // eslint-disable-line react-hooks/exhaustive-deps -- `depsOrOnce` IS the full, caller-declared dependency contract
   )
 }

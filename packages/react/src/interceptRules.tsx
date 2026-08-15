@@ -1,8 +1,9 @@
-// The render-node rules layer (ADR 047/048) — a form-scope selector registry
+// The intercept-rules layer (ADR 047/048) — a form-scope selector registry
 // whose handlers are **mounted components** receiving **arrangeable parts** as
-// props. `renderNodeRules` (formerly `customize`) is sugar over `renderNode`.
+// props. `interceptRules` (formerly `customize` / `renderNodeRules`) is sugar
+// over the `intercept` floor.
 //
-// This rides entirely on the ADR 010/016/017 engine: `renderNodeRules(build)`
+// This rides entirely on the ADR 010/016/017 engine: `interceptRules(build)`
 // returns an ordinary `Intercept` (the low-level continuation primitive), so
 // there is NO Core change and no new engine seam. Everything here is React sugar:
 //
@@ -26,10 +27,15 @@
 //    independent across axes.
 //
 // This is the SOURCE-AGNOSTIC runtime (operates on the Core tree). Path/value/
-// control/parts narrowing is layered generically by `useRenderNodeRules`, which
+// control/parts narrowing is layered generically by `useInterceptRules`, which
 // reads the resolved `FormShape` a front-end brands onto the tree (ADR 048) — it
 // re-types this surface, it does not re-implement it.
-import { createContext, useContext, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  type ComponentType,
+  type ReactNode,
+} from 'react'
 import type {
   ControlKind,
   FieldControl,
@@ -44,7 +50,7 @@ import {
   type ENode,
   type RenderHelpers,
 } from './renderer'
-import type { InterceptFn } from './intercept'
+import type { InterceptFn, InterceptHandler, InterceptParts } from './intercept'
 
 // ---------------------------------------------------------------------------
 // The active-node handle the parts read (the current node + the engine helpers).
@@ -296,6 +302,65 @@ interface RuntimeProps {
   children?: ReactNode
 }
 
+function overlayPart<D>(
+  C: InterceptHandler | undefined,
+  fallback: PartComponent<D>
+): PartComponent<D> {
+  if (!C) return fallback
+  const Comp = C as ComponentType<object>
+  function OverriddenPart(p: {
+    render?: (data: D) => ReactNode
+    errors?: ValidationError[]
+  }): ReactNode {
+    return <Comp {...p} />
+  }
+  return OverriddenPart
+}
+
+function overlayPartsBag(base: PartsBag, overrides: InterceptParts): PartsBag {
+  return {
+    Label: overlayPart(overrides.label, base.Label),
+    Description: overlayPart(overrides.description, base.Description),
+    Control: overlayPart(overrides.control, base.Control),
+    Errors: overlayPart(overrides.errors, base.Errors),
+  }
+}
+
+/**
+ * Lower a parts-object map value to a mounted handler (ADR 047 §1–§2).
+ * `{ root: H }` is `H`; other keys overlay the arrangeable parts bag (when a
+ * root is also present) or `<Default of={node} parts={…} />` (parts-only).
+ */
+export function partsInterceptHandler(overrides: InterceptParts): NodeHandler {
+  const Root = overrides.root
+  const partEntries = Object.entries(overrides).filter(([k]) => k !== 'root')
+  if (Root && partEntries.length === 0) {
+    return Root as NodeHandler
+  }
+
+  return function InterceptPartsHandler(props: RuntimeProps): ReactNode {
+    const h = useContext(HandleCtx)
+    if (Root) {
+      const Handler = Root as (p: RuntimeProps) => ReactNode
+      return (
+        <Handler {...props} parts={overlayPartsBag(props.parts, overrides)} />
+      )
+    }
+    if (!h) return null
+    const engineParts: Record<string, (part: unknown) => ReactNode> = {}
+    for (const [key, C] of partEntries) {
+      if (!C) continue
+      const Comp = C as ComponentType<object>
+      engineParts[key] = (part: unknown) => {
+        const data =
+          part !== null && typeof part === 'object' ? (part as object) : {}
+        return <Comp {...data} />
+      }
+    }
+    return <h.helpers.Default of={h.node} parts={engineParts} />
+  }
+}
+
 interface Rule {
   specificity: number
   match: (node: ENode) => boolean
@@ -308,18 +373,18 @@ export type RulesBuild = (r: RuleRegistrar) => void
 /**
  * Build an `Intercept` from selector rules (ADR 047/048) — sugar over the
  * low-level `intercept` prop, granting no capability a hand-written resolver lacks.
- * Memoize the result in the consumer (`useMemo`, or use `useRenderNodeRules`
+ * Memoize the result in the consumer (`useMemo`, or use `useInterceptRules`
  * which bakes it in) so the resolver identity is stable — an inline call rebuilds
  * it every render and defeats the `NodeRenderer` memo bail.
  *
  * Accepts multiple builders that **compose as ordinary functions** (ADR 047 §6):
- * `renderNodeRules(appRules, formRules)` layers a lower-precedence app scope under
+ * `interceptRules(appRules, formRules)` layers a lower-precedence app scope under
  * a higher-precedence form scope. The cascade is `app-scope < form-scope`, and one
  * scope's rules already sit `adapter < rules < inline` relative to the engine
  * defaults and inline `<Default parts={…}/>`. At EQUAL specificity the later
  * (higher-scope) rule wins, exactly like the CSS cascade.
  */
-export function renderNodeRules(...builds: RulesBuild[]): InterceptFn {
+export function interceptRules(...builds: RulesBuild[]): InterceptFn {
   const rules: Rule[] = []
   const add = (
     specificity: number,
@@ -358,7 +423,7 @@ export function renderNodeRules(...builds: RulesBuild[]): InterceptFn {
   // registered rules carry higher indices and win ties (§6 cascade).
   for (const build of builds) build(r)
   // Sort by specificity desc; at EQUAL specificity the LATER-registered rule wins
-  // (higher index first) — CSS-cascade / spread semantics for `renderNodeRules(app, form)`.
+  // (higher index first) — CSS-cascade / spread semantics for `interceptRules(app, form)`.
   const sorted = rules
     .map((rule, i) => ({ rule, i }))
     .sort((a, b) => b.rule.specificity - a.rule.specificity || b.i - a.i)

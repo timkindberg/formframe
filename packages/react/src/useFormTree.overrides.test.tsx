@@ -1,6 +1,6 @@
 // bd bh7.8 — the `overrideWidgets` desync fix, end-to-end.
 //
-// Before this fix, `useRenderNodeRules(tree, …)` typed off the PRE-override tree
+// Before this fix, `useInterceptRules(tree, …)` typed off the PRE-override tree
 // while `<Fields>` rendered `useFormTree`'s re-presented `form`, so a mapped path
 // could narrow to `choicegroup` in the handler while the DOM rendered `<textarea>`.
 // The fix threads the SAME `overrideWidgets(map)` `const` through both halves: the
@@ -26,7 +26,7 @@ import type {
 } from '@formframe/core'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import { useFormTree } from './useFormTree'
-import type { FieldProps } from './useRenderNodeRules'
+import type { FieldProps } from './useInterceptRules'
 
 const matrix = {
   type: 'object',

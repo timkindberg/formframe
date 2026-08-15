@@ -12,7 +12,7 @@ import type {
   FieldProps,
   GroupProps,
   TypedRuleRegistrar,
-} from './useRenderNodeRules'
+} from './useInterceptRules'
 
 // A synthetic resolved surface — the shape a front-end would brand onto a tree.
 type TS = {
@@ -33,7 +33,7 @@ type Input = Extract<FieldControl, { kind: 'input' }>
 type Choicegroup = Extract<FieldControl, { kind: 'choicegroup' }>
 type Textarea = Extract<FieldControl, { kind: 'textarea' }>
 
-describe('useRenderNodeRules binds off a FormShape generically (ADR 048)', () => {
+describe('useInterceptRules binds off a FormShape generically (ADR 048)', () => {
   it('value narrows off the shape (but is | undefined until form-state lands, bd bh7.7)', () => {
     // The schema type is preserved AND `| undefined` is added, so a handler must
     // guard rather than trust a value the uncontrolled runtime does not yet pass.
