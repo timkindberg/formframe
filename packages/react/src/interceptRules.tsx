@@ -30,12 +30,7 @@
 // control/parts narrowing is layered generically by `useInterceptRules`, which
 // reads the resolved `FormShape` a front-end brands onto the tree (ADR 048) — it
 // re-types this surface, it does not re-implement it.
-import {
-  createContext,
-  useContext,
-  type ComponentType,
-  type ReactNode,
-} from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
 import type {
   ControlKind,
   FieldControl,
@@ -44,13 +39,14 @@ import type {
 import {
   FieldA11yContext,
   fieldErrorId,
+  type DefaultParts,
   type EArray,
   type EField,
   type EGroup,
   type ENode,
   type RenderHelpers,
 } from './renderer'
-import type { InterceptFn, InterceptHandler, InterceptParts } from './intercept'
+import type { InterceptFn, InterceptParts } from './intercept'
 
 // ---------------------------------------------------------------------------
 // The active-node handle the parts read (the current node + the engine helpers).
@@ -209,11 +205,23 @@ export interface PartsBag {
 }
 const partsBag: PartsBag = { Label, Description, Control, Errors }
 
+/** Optional `parts` on handler `Default` — omit for native (no overlay);
+ * pass the placeable bag or the Default-shaped map to swap sub-pieces. */
+export type HandlerDefaultProps = {
+  parts?: PartsBag | DefaultParts
+}
+
 /** Whole-node re-entry (the top-level `Default` prop, §2): re-enters the engine
- * for the current node. Exclusive with hand-arranging the parts. */
-const DefaultSlot = (): ReactNode => {
+ * for the current node. Exclusive with hand-arranging the parts unless `parts`
+ * is passed through to `<Default of={node} parts={…} />`. */
+const DefaultSlot = ({ parts }: HandlerDefaultProps = {}): ReactNode => {
   const h = useContext(HandleCtx)
-  return h ? <h.helpers.Default of={h.node} /> : null
+  if (!h) return null
+  if (!parts) return <h.helpers.Default of={h.node} />
+  if (Object.prototype.hasOwnProperty.call(parts, 'Control')) {
+    return <h.helpers.Default of={h.node} parts={parts as PartsBag} />
+  }
+  return <h.helpers.Default of={h.node} parts={parts as DefaultParts} />
 }
 
 // ---------------------------------------------------------------------------
@@ -227,21 +235,22 @@ export interface FieldHandlerProps {
   /** Typed to the schema facts at this path by the front-end; `unknown` here.
    * Type-only until a reactive form-state adapter lands (ADR 047 §7). */
   value: unknown
-  /** Re-enter the engine for the whole node (exclusive with the parts). */
-  Default: () => ReactNode
+  /** Re-enter the engine for the whole node (exclusive with the parts).
+   * `<Default />` is native; `<Default parts={parts} />` pass-through uses overlays. */
+  Default: (props?: HandlerDefaultProps) => ReactNode
   parts: PartsBag
 }
 export interface GroupHandlerProps {
   node: EGroup
   path: string
-  Default: () => ReactNode
+  Default: (props?: HandlerDefaultProps) => ReactNode
   parts: PartsBag
   children: ReactNode
 }
 export interface ArrayHandlerProps {
   node: EArray
   path: string
-  Default: () => ReactNode
+  Default: (props?: HandlerDefaultProps) => ReactNode
   parts: PartsBag
   children: ReactNode
 }
@@ -249,7 +258,7 @@ export interface NodeHandlerProps {
   node: ENode
   path: string
   value: unknown
-  Default: () => ReactNode
+  Default: (props?: HandlerDefaultProps) => ReactNode
   parts: PartsBag
   children: ReactNode
 }
@@ -297,44 +306,69 @@ interface RuntimeProps {
   node: ENode
   path: string
   value: unknown
-  Default: () => ReactNode
+  Default: (props?: HandlerDefaultProps) => ReactNode
   parts: PartsBag
   children?: ReactNode
 }
 
-function overlayPart<D>(
-  C: InterceptHandler | undefined,
-  fallback: PartComponent<D>
+type PartOverrideFn = (part: never) => ReactNode
+
+function overlayCallback<D>(
+  override: PartOverrideFn | undefined,
+  fallback: PartComponent<D>,
+  getData: (h: Handle, injected?: ValidationError[]) => unknown
 ): PartComponent<D> {
-  if (!C) return fallback
-  const Comp = C as ComponentType<object>
+  if (!override) return fallback
+  const renderOverride = override as (part: unknown) => ReactNode
   function OverriddenPart(p: {
     render?: (data: D) => ReactNode
     errors?: ValidationError[]
   }): ReactNode {
-    return <Comp {...p} />
+    const h = useContext(HandleCtx)
+    if (!h) return fallback(p)
+    const data = getData(h, p.errors)
+    if (data == null) return null
+    if (p.render) return p.render(data as D)
+    return renderOverride(data)
   }
   return OverriddenPart
 }
 
-function overlayPartsBag(base: PartsBag, overrides: InterceptParts): PartsBag {
+function overlayPartsBag(
+  base: PartsBag,
+  overrides: Omit<InterceptParts, 'root'>
+): PartsBag {
   return {
-    Label: overlayPart(overrides.label, base.Label),
-    Description: overlayPart(overrides.description, base.Description),
-    Control: overlayPart(overrides.control, base.Control),
-    Errors: overlayPart(overrides.errors, base.Errors),
+    Label: overlayCallback(overrides.label, base.Label, (h) =>
+      'label' in h.node.parts ? h.node.parts.label : undefined
+    ),
+    Description: overlayCallback(
+      overrides.description,
+      base.Description,
+      (h) =>
+        'description' in h.node.parts ? h.node.parts.description : undefined
+    ),
+    Control: overlayCallback(overrides.control, base.Control, (h) =>
+      h.node.isField ? h.node.parts.control : undefined
+    ),
+    Errors: overlayCallback(
+      overrides.errors,
+      base.Errors,
+      (_h, injected) => injected ?? []
+    ),
   }
 }
 
 /**
  * Lower a parts-object map value to a mounted handler (ADR 047 §1–§2).
- * `{ root: H }` is `H`; other keys overlay the arrangeable parts bag (when a
- * root is also present) or `<Default of={node} parts={…} />` (parts-only).
+ * Parts-only is identity `<Default of={node} parts={thatObject} />`.
+ * `{ root: H }` is `H`. `{ root: H, control: X }` overlays the placeable bag
+ * (`<parts.Control />` is X); handler `<Default />` stays native.
  */
 export function partsInterceptHandler(overrides: InterceptParts): NodeHandler {
-  const Root = overrides.root
-  const partEntries = Object.entries(overrides).filter(([k]) => k !== 'root')
-  if (Root && partEntries.length === 0) {
+  const { root: Root, ...partOverrides } = overrides
+  const hasParts = Object.values(partOverrides).some((v) => v != null)
+  if (Root && !hasParts) {
     return Root as NodeHandler
   }
 
@@ -343,21 +377,14 @@ export function partsInterceptHandler(overrides: InterceptParts): NodeHandler {
     if (Root) {
       const Handler = Root as (p: RuntimeProps) => ReactNode
       return (
-        <Handler {...props} parts={overlayPartsBag(props.parts, overrides)} />
+        <Handler
+          {...props}
+          parts={overlayPartsBag(props.parts, partOverrides)}
+        />
       )
     }
     if (!h) return null
-    const engineParts: Record<string, (part: unknown) => ReactNode> = {}
-    for (const [key, C] of partEntries) {
-      if (!C) continue
-      const Comp = C as ComponentType<object>
-      engineParts[key] = (part: unknown) => {
-        const data =
-          part !== null && typeof part === 'object' ? (part as object) : {}
-        return <Comp {...data} />
-      }
-    }
-    return <h.helpers.Default of={h.node} parts={engineParts} />
+    return <h.helpers.Default of={h.node} parts={partOverrides} />
   }
 }
 

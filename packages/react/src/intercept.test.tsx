@@ -6,11 +6,12 @@ import { describe, it, expect, expectTypeOf, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import { SchemaFields } from './renderer'
+import { SchemaFields, Default } from './renderer'
 import type { SchemaFieldsProps } from './renderer'
 import type { FieldHandlerProps, GroupHandlerProps } from './interceptRules'
 import type { ENode } from './renderer'
-import type { Intercept, InterceptMap } from './intercept'
+import type { Intercept, InterceptMap, InterceptParts } from './intercept'
+import type { FieldControl } from '@formframe/core'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -205,7 +206,10 @@ describe('intercept map stability', () => {
   })
 })
 
-const EmailControl = () => <input data-testid="email-control" name="email" />
+const EmailControl = (c: FieldControl) =>
+  c.kind === 'input' ? (
+    <input {...c.attrs} data-testid="email-control" name="email" />
+  ) : null
 
 describe('intercept parts-object values', () => {
   it('overrides only the named parts; unmatched parts stay defaults', async () => {
@@ -213,7 +217,14 @@ describe('intercept parts-object values', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        intercept={{ email: { control: EmailControl } }}
+        intercept={{
+          email: {
+            control: (c) =>
+              c.kind === 'input' ? (
+                <input {...c.attrs} data-testid="email-control" name="email" />
+              ) : null,
+          },
+        }}
       />
     )
     await expect
@@ -234,6 +245,81 @@ describe('intercept parts-object values', () => {
     await expect
       .element(screen.getByText('Check your inbox'))
       .toBeInTheDocument()
+  })
+
+  it('{ root: H, control: X }: H’s parts.Control is X', async () => {
+    const RootH = ({ parts }: FieldHandlerProps) => (
+      <div data-testid="root-h">
+        <parts.Control />
+      </div>
+    )
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{ email: { root: RootH, control: EmailControl } }}
+      />
+    )
+    await expect.element(screen.getByTestId('root-h')).toBeInTheDocument()
+    await expect
+      .element(screen.getByTestId('email-control'))
+      .toBeInTheDocument()
+  })
+
+  it('{ root: H, control: X }: <Default /> without parts is native', async () => {
+    const RootH = ({ Default }: FieldHandlerProps) => (
+      <div data-testid="native-wrap">
+        <Default />
+      </div>
+    )
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{ email: { root: RootH, control: EmailControl } }}
+      />
+    )
+    await expect.element(screen.getByTestId('native-wrap')).toBeInTheDocument()
+    await expect
+      .element(screen.getByRole('textbox', { name: 'Email' }))
+      .toBeInTheDocument()
+    expect(
+      document.querySelectorAll('[data-testid="email-control"]').length
+    ).toBe(0)
+  })
+
+  it('{ root: H, control: X }: pass-through <Default parts> uses X', async () => {
+    const ViaEngine = ({ node, parts }: FieldHandlerProps) => (
+      <Default of={node} parts={parts} />
+    )
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{ email: { root: ViaEngine, control: EmailControl } }}
+      />
+    )
+    await expect
+      .element(screen.getByTestId('email-control'))
+      .toBeInTheDocument()
+    await expect.element(screen.getByText('Email')).toBeInTheDocument()
+  })
+
+  it('{ root: H, control: X }: handler <Default parts={parts} /> uses X', async () => {
+    const ViaSlot = ({ Default, parts }: FieldHandlerProps) => (
+      <Default parts={parts} />
+    )
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{ email: { root: ViaSlot, control: EmailControl } }}
+      />
+    )
+    await expect
+      .element(screen.getByTestId('email-control'))
+      .toBeInTheDocument()
+    await expect.element(screen.getByText('Email')).toBeInTheDocument()
   })
 
   it('accepts parts objects on bag `paths`', async () => {
@@ -268,7 +354,7 @@ describe('intercept parts-object values', () => {
 })
 
 describe('intercept map types', () => {
-  it('accepts field handlers and parts objects without satisfies', () => {
+  it('accepts field handlers and Default-shaped parts without satisfies', () => {
     type InterceptProp = NonNullable<SchemaFieldsProps['intercept']>
     expectTypeOf<{
       email: typeof EmailHint
@@ -284,5 +370,19 @@ describe('intercept map types', () => {
     expectTypeOf<{
       email: { root: typeof EmailHint }
     }>().toMatchTypeOf<InterceptMap>()
+    expectTypeOf<typeof EmailControl>().toMatchTypeOf<
+      NonNullable<InterceptParts['control']>
+    >()
+    expectTypeOf<{ where: typeof EmailHint }>().toMatchTypeOf<InterceptMap>()
+    expectTypeOf<{ paths: typeof EmailHint }>().toMatchTypeOf<InterceptMap>()
+  })
+
+  it('rejects nested path maps and node handlers as part renderers', () => {
+    // @ts-expect-error — nested objects are not dotted paths (ADR 051)
+    const _nested: InterceptMap = { address: { street: StreetHint } }
+    // @ts-expect-error — control is a part renderer, not a node handler
+    const _handlerAsPart: InterceptMap = { email: { control: EmailHint } }
+    void _nested
+    void _handlerAsPart
   })
 })

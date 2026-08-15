@@ -46,6 +46,7 @@ export type {
   RenderHelpers,
   ReactDefaults,
   ReactPartialDefaults,
+  DefaultParts,
   ENode,
   EField,
   EGroup,

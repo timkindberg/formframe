@@ -4,7 +4,7 @@
 // hoisted map (new object each render, same Handler references) does not remount.
 
 import type { ReactNode } from 'react'
-import type { ENode, RenderHelpers } from './renderer'
+import type { DefaultParts, ENode, RenderHelpers } from './renderer'
 import {
   interceptRules,
   partsInterceptHandler,
@@ -51,11 +51,13 @@ export type InterceptPartKey = (typeof INTERCEPT_PART_KEYS)[number]
 const INTERCEPT_PART_KEY_SET: ReadonlySet<string> = new Set(INTERCEPT_PART_KEYS)
 
 /**
- * Parts-object map value: `{ root: Handler }` is the long form of passing
- * Handler directly; `{ control, label, … }` overrides only those parts.
+ * Parts-object map value. Non-root keys are the same type `<Default parts>`
+ * already takes (part renderers: part data → ReactNode). `{ root: Handler }`
+ * is the long form of passing Handler directly — `root` is the template slot,
+ * not a Default `parts` key.
  */
-export type InterceptParts = {
-  [K in InterceptPartKey]?: InterceptHandler
+export type InterceptParts = DefaultParts & {
+  root?: InterceptHandler
 }
 
 /** Path-map / bag `paths` value: a node handler or a parts object. */
