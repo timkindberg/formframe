@@ -7,7 +7,7 @@ import { render } from 'vitest-browser-react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import { SchemaFields, Default } from './renderer'
-import type { SchemaFieldsProps } from './renderer'
+import type { SchemaFieldsProps, ControlOverride } from './renderer'
 import type { FieldHandlerProps, GroupHandlerProps } from './interceptRules'
 import type { ENode } from './renderer'
 import type { Intercept, InterceptMap, InterceptParts } from './intercept'
@@ -374,6 +374,15 @@ describe('intercept map types', () => {
     expectTypeOf<typeof EmailControl>().toMatchTypeOf<
       NonNullable<InterceptParts['control']>
     >()
+    const InputOnlyControl: ControlOverride<'input'> = (c) => (
+      <input {...c.attrs} />
+    )
+    expectTypeOf<typeof InputOnlyControl>().toMatchTypeOf<
+      NonNullable<InterceptParts['control']>
+    >()
+    expectTypeOf<{
+      email: { control: typeof InputOnlyControl }
+    }>().toMatchTypeOf<InterceptMap>()
     expectTypeOf<{ where: typeof EmailHint }>().toMatchTypeOf<InterceptMap>()
     expectTypeOf<{ paths: typeof EmailHint }>().toMatchTypeOf<InterceptMap>()
     // Path-literal props (what `FieldProps<Shape, 'email'>` looks like) — not a

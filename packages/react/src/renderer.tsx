@@ -58,6 +58,7 @@ import {
   type AnyGroupNode,
   type AnyTreeNode,
   type FieldControl,
+  type ControlKind,
   type ValidationError,
 } from '@formframe/core'
 import {
@@ -777,15 +778,26 @@ type WidenParts<H, P> = P extends object
   : P
 
 /**
- * Field-complete `<Default parts>` map (plus listed array keys). Path-map
+ * `<Default parts={{ control }}>` / intercept `{ control: X }` renderer.
+ * Pass `K` to skip the `c.kind` guard — `ControlOverride<'input'>` sees
+ * `c.attrs` as `HtmlInputAttrs`. Bivariant like `InterceptHandler` so a
+ * kind-narrowed renderer is a legal `DefaultParts['control']`. Path-generic
+ * intercept maps (#87) will infer `K` from the key.
+ */
+export type ControlOverride<K extends ControlKind = ControlKind> = {
+  bivarianceHack(
+    part: Extract<FieldControl, { kind: K }> & { errorA11y: ErrorA11yProps }
+  ): ReactNode
+}['bivarianceHack']
+
+/** Field-complete `<Default parts>` map (plus listed array keys). Path-map
  * intercept parts objects use this same shape — `{ control: X }` is literally
  * `<Default of={node} parts={{ control: X }} />`. `root` is not a key here
- * (Default *is* root).
- */
+ * (Default *is* root). */
 export type DefaultParts = {
   label?: (part: EField['parts']['label']) => ReactNode
   description?: (part: NonNullable<EField['parts']['description']>) => ReactNode
-  control?: (part: FieldControl & { errorA11y: ErrorA11yProps }) => ReactNode
+  control?: ControlOverride
   errors?: (errors: ValidationError[]) => ReactNode
   addButton?: (part: EArray['parts']['addButton']) => ReactNode
   removeButton?: (part: EArrayItem['parts']['removeButton']) => ReactNode

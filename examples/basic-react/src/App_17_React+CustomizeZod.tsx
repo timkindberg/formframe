@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { zodToTree, type FormShapeOf } from '@formframe/input-zod'
 import {
   useFormTree,
-  type DefaultParts,
+  type ControlOverride,
   type FieldProps,
   type GroupProps,
 } from '@formframe/renderer-react'
@@ -80,10 +80,9 @@ function CardGroup({ parts, children }: GroupProps<Shape, 'address'>) {
 }
 
 // Street is only restyling the input — a parts object is `<Default parts>`,
-// so label / errors / recipe error-inject stay. Not a handler that re-places
-// them. (RowName / CardGroup / CityNote still place themselves.)
-const StreetControl: NonNullable<DefaultParts['control']> = (c) => {
-  if (c.kind !== 'input') return null
+// so label / errors / recipe error-inject stay. `ControlOverride<'input'>`
+// is the kind-narrowed parts renderer (no `c.kind` guard).
+const StreetControl: ControlOverride<'input'> = (c) => {
   const { type: _t, ...attrs } = c.attrs
   return (
     <input
