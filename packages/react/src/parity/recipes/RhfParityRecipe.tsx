@@ -167,10 +167,9 @@ export function RhfParityRecipe({
 
   const methods = useForm({ resolver })
   const { isValidating } = useFormState({ control: methods.control })
-  const { SchemaFields } = useFormTree(
-    tree as TypedTree<FormShape, unknown>,
-    { defaults: rhfParityDefaults }
-  )
+  const { SchemaFields } = useFormTree(tree as TypedTree<FormShape, unknown>, {
+    defaults: rhfParityDefaults,
+  })
 
   return (
     <FormProvider {...methods}>

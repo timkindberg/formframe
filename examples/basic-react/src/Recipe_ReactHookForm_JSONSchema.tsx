@@ -51,15 +51,10 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { toStandardSchema } from '@formframe/core'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
-import {
-  useFormTree,
-} from '@formframe/renderer-react'
+import { useFormTree } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
 import { ValidationSummary, withMatchRule } from './fieldPresentation.recipe'
-import {
-  rhfFieldDefaults,
-  rhfErrorsToList,
-} from './rhfFieldControls.recipe'
+import { rhfFieldDefaults, rhfErrorsToList } from './rhfFieldControls.recipe'
 
 const schema = {
   type: 'object',
