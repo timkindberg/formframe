@@ -40,9 +40,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { toStandardSchema } from '@formframe/core'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
-import {
-  useFormTree,
-} from '@formframe/renderer-react'
+import { useFormTree } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
 import { ValidationSummary, withMatchRule } from './fieldPresentation.recipe'
 import {
@@ -138,7 +136,9 @@ export default function App() {
       setSubmitted(result.data ?? value)
     },
   })
-  const { SchemaFields } = useFormTree(tree, { defaults: tanstackFieldDefaults })
+  const { SchemaFields } = useFormTree(tree, {
+    defaults: tanstackFieldDefaults,
+  })
   const fieldMeta = useStore(form.store, (s) => s.fieldMeta)
 
   return (

@@ -40,9 +40,7 @@
 import { useState } from 'react'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
-import {
-  useFormTree,
-} from '@formframe/renderer-react'
+import { useFormTree } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
 import {
   ValidationSummary,
@@ -53,9 +51,7 @@ import {
   NativeValidationProvider,
   useNativeValidator,
 } from './nativeValidation.recipe'
-import {
-  nativeFieldDefaults,
-} from './nativeFieldControls.recipe'
+import { nativeFieldDefaults } from './nativeFieldControls.recipe'
 
 const schema = {
   type: 'object',
@@ -131,12 +127,11 @@ export default function App() {
         Native <code>&lt;form&gt;</code> + FormData owns submit; FormFrame
         renders the fields from the JSON Schema; one AJV validator runs at
         submit and (after the first attempt) live via <code>onInput</code>.
-        Errors inject through{' '}
-        <code>nativeFieldDefaults</code> (
-        <code>&lt;InjectFieldErrors&gt;</code> on the field root) — the same defaults
-        pattern the RHF and TanStack recipes use. Default display timing:
-        quiet until you press Submit, then errors reveal and clear live as you
-        fix them. Copy-paste recipe — four files, this one plus{' '}
+        Errors inject through <code>nativeFieldDefaults</code> (
+        <code>&lt;InjectFieldErrors&gt;</code> on the field root) — the same
+        defaults pattern the RHF and TanStack recipes use. Default display
+        timing: quiet until you press Submit, then errors reveal and clear live
+        as you fix them. Copy-paste recipe — four files, this one plus{' '}
         <code>nativeFieldControls.recipe.tsx</code>,{' '}
         <code>nativeValidation.recipe.tsx</code>, and{' '}
         <code>fieldPresentation.recipe.tsx</code>.

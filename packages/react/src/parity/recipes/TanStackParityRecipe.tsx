@@ -106,9 +106,7 @@ function TanStackParityControlInner({
           {...control.attrs}
           {...errorA11y}
           value={String(field.state.value ?? '')}
-          onChange={(e) =>
-            field.handleChange(blankToUndefined(e.target.value))
-          }
+          onChange={(e) => field.handleChange(blankToUndefined(e.target.value))}
           onBlur={field.handleBlur}
         />
       )
@@ -230,10 +228,9 @@ export function TanStackParityRecipe({
     return out
   }, [fieldMeta])
 
-  const { SchemaFields } = useFormTree(
-    tree as TypedTree<FormShape, unknown>,
-    { defaults: tanstackParityDefaults }
-  )
+  const { SchemaFields } = useFormTree(tree as TypedTree<FormShape, unknown>, {
+    defaults: tanstackParityDefaults,
+  })
 
   return (
     <TanStackFormProvider form={form}>

@@ -40,9 +40,7 @@ import { useForm, revalidateLogic, useStore } from '@tanstack/react-form'
 import { z } from 'zod'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { zodToTree } from '@formframe/input-zod'
-import {
-  useFormTree,
-} from '@formframe/renderer-react'
+import { useFormTree } from '@formframe/renderer-react'
 import { ValidationSummary } from './fieldPresentation.recipe'
 import {
   TanStackFormProvider,
@@ -114,7 +112,9 @@ export default function App() {
       setSubmitted(parsed.success ? parsed.data : value)
     },
   })
-  const { SchemaFields } = useFormTree(tree, { defaults: tanstackFieldDefaults })
+  const { SchemaFields } = useFormTree(tree, {
+    defaults: tanstackFieldDefaults,
+  })
   const fieldMeta = useStore(form.store, (s) => s.fieldMeta)
 
   return (

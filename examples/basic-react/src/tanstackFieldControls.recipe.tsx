@@ -167,9 +167,7 @@ function TanStackControlInner({
           {...control.attrs}
           {...errorA11y}
           value={String(field.state.value ?? '')}
-          onChange={(e) =>
-            field.handleChange(blankToUndefined(e.target.value))
-          }
+          onChange={(e) => field.handleChange(blankToUndefined(e.target.value))}
           onBlur={field.handleBlur}
         />
       )
@@ -180,9 +178,7 @@ function TanStackControlInner({
           {...attrs}
           {...errorA11y}
           value={String(field.state.value ?? '')}
-          onChange={(e) =>
-            field.handleChange(blankToUndefined(e.target.value))
-          }
+          onChange={(e) => field.handleChange(blankToUndefined(e.target.value))}
           onBlur={field.handleBlur}
         >
           {!attrs.multiple && <option value="">-- select --</option>}
