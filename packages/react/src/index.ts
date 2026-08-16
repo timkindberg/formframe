@@ -18,7 +18,9 @@ export type { BoundSchemaFieldsProps, UseFormTreeOptions } from './useFormTree'
 //
 // The library RENDERS validation errors via the inject seam
 // (`<Default of={field} errors={ValidationError[]} />`) — it does not
-// produce/schedule/store them (ADR 050).
+// produce/schedule/store them (ADR 050). Custom field/array roots compose
+// `useFieldA11y`, `FieldControlSlot`, and `ArrayHost` instead of copying
+// the default templates.
 export {
   SchemaFields,
   createRenderer,
@@ -30,6 +32,9 @@ export {
   fieldControlId,
   fieldErrorId,
   errorA11yProps,
+  useFieldA11y,
+  FieldControlSlot,
+  ArrayHost,
   InjectFieldErrors,
   FieldA11yContext,
 } from './renderer'
@@ -57,6 +62,7 @@ export type {
   EArrayItem,
   ErrorA11yProps,
   FieldA11yState,
+  UseFieldA11yResult,
 } from './renderer'
 
 // The intercept-rules layer (ADR 047/048) — a form-scope selector registry

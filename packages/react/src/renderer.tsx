@@ -10,7 +10,7 @@
 // makes a *fresh component type every render*, so any real re-render remounts the
 // subtree and discards uncontrolled DOM (typed values). Calling instead yields
 // markup composed only of module-level component types (`NodeRenderer`,
-// `ArrayStateProvider`, `PartHost`, the intrinsic elements), which reconcile in place. The
+// `ArrayHost`, `PartHost`, the intrinsic elements), which reconcile in place. The
 // engine threads the active resolver as a parameter and each handle closes over
 // it, so a called `node.Default()` still sees the right (possibly scoped)
 // resolver with no Context — the vanilla probe (ADR 008) proved Context was
@@ -281,6 +281,51 @@ export function fieldErrorId(path: string): string {
   return `${path}-errors`
 }
 
+/** Load-bearing field error-a11y setup (ADR 052 / #154). Reads the inject
+ * context: `issues` is `[]` when nothing was injected. Custom field roots
+ * compose this instead of copying `DefaultFieldRoot`. */
+export interface UseFieldA11yResult {
+  issues: ValidationError[]
+  visible: boolean
+  a11yState: FieldA11yState | null
+  errorA11y: ErrorA11yProps
+}
+
+export function useFieldA11y(path: string): UseFieldA11yResult {
+  const injected = useContext(InjectedFieldErrorsContext)
+  const issues = injected ?? []
+  const visible = issues.length > 0
+  const a11yState = visible ? { errorId: fieldErrorId(path) } : null
+  const errorA11y = errorA11yProps(a11yState)
+  return { issues, visible, a11yState, errorA11y }
+}
+
+/**
+ * Dual-path control slot (#154): a `parts.control` override must go through
+ * kind-specific attr merge; the default control must sit under
+ * `FieldA11yContext`. Miss either and error a11y silently dies. Custom field
+ * roots compose this with no extra setup — it reads {@link useFieldA11y}
+ * itself. `enrichControlErrorA11y` stays internal to this slot.
+ */
+export function FieldControlSlot({
+  node,
+  overrides,
+}: {
+  node: EField
+  overrides?: PartOverrideMap<ReactNode>
+}): ReactNode {
+  const { a11yState, errorA11y } = useFieldA11y(node.path)
+  const controlPart = node.parts.control
+  const controlOverride = overrides?.['control']
+  return controlOverride ? (
+    controlOverride(enrichControlErrorA11y(controlPart, errorA11y))
+  ) : (
+    <FieldA11yContext.Provider value={a11yState}>
+      {controlPart.Default()}
+    </FieldA11yContext.Provider>
+  )
+}
+
 /** Shared error-list markup for the inject path. No `role="alert"` —
  * assertive live regions re-announce on every keystroke under revalidate-on-
  * change; `aria-describedby` carries the message without the interruption. */
@@ -301,10 +346,10 @@ function FieldErrorsList({
 }
 
 /** Compose a field from its parts: label, description, control, and errors.
- * `parts.control` overrides receive the enriched control plus `a11y` (spreadable
- * aria attrs). `parts.errors` overrides receive the visible `ValidationError[]`
- * — same fractal hijack as label/control (ADR 047), including on the
- * `<Default errors={…} />` inject path. */
+ * Control dual-path (override attr merge vs default `FieldA11yContext`) lives
+ * in {@link FieldControlSlot}. `parts.errors` overrides receive the visible
+ * `ValidationError[]` — same fractal hijack as label/control (ADR 047),
+ * including on the `<Default errors={…} />` inject path. */
 function DefaultFieldRoot({
   node,
   overrides,
@@ -321,28 +366,7 @@ function DefaultFieldRoot({
     // Call, never mount: `part.Default()` returns a stable `PartHost` element.
     return override ? override(part) : part.Default()
   }
-  // Inject-only (ADR 050): no `errors` prop via `<Default errors={…} />`
-  // means no errors and no a11y error state — the library renders, it does
-  // not produce/store validation errors.
-  const injected = useContext(InjectedFieldErrorsContext)
-  const issues = injected ?? []
-  const visible = issues.length > 0
-  const a11yState = visible ? { errorId: fieldErrorId(node.path) } : null
-  const errorA11y = errorA11yProps(a11yState)
-
-  // Control override: merge error-state a11y into `attrs` when the archetype
-  // has them (input/select/textarea) so `{...c.attrs}` is enough. Always also
-  // expose `errorA11y` for choicegroup (no top-level attrs — error aria goes
-  // on the wrapper; `role` / `labelledBy` stay structural).
-  const controlPart = node.parts.control
-  const controlOverride = overrides?.['control']
-  const control = controlOverride ? (
-    controlOverride(enrichControlErrorA11y(controlPart, errorA11y))
-  ) : (
-    <FieldA11yContext.Provider value={a11yState}>
-      {controlPart.Default()}
-    </FieldA11yContext.Provider>
-  )
+  const { issues, visible } = useFieldA11y(node.path)
 
   // Errors override (runtime slot — not a Core IR part) receives the visible
   // issues; otherwise the default list renders the injected errors, if any.
@@ -357,7 +381,7 @@ function DefaultFieldRoot({
     <div className="jsf-field">
       {renderSlot(node.parts.label, 'label')}
       {renderSlot(node.parts.description, 'description')}
-      {control}
+      <FieldControlSlot node={node} overrides={overrides} />
       {errorsNode}
     </div>
   )
@@ -387,7 +411,7 @@ function DefaultArrayLabel({ text }: { text: string }): ReactNode {
 }
 
 /**
- * Per-array action handlers, supplied by `ArrayStateProvider` to the add /
+ * Per-array action handlers, supplied by `ArrayHost` to the add /
  * remove button parts through Context. Interactivity is per-adapter, *not* part
  * of the markup contract (ADR 008/013) — the string oracle has no Context and
  * renders the same buttons inert. Routing behavior through Context (rather than
@@ -432,7 +456,7 @@ function DefaultRemoveButton({
 
 /**
  * Per-item Context boundary. Memoizing `actions` on `[remove, id]` — both stable
- * — keeps the value referentially constant across `ArrayStateProvider` re-renders, so a
+ * — keeps the value referentially constant across `ArrayHost` re-renders, so a
  * sibling add/remove can never re-render this item's Remove button (a Context
  * consumer) even though it sits below a memo-bailed `NodeRenderer`.
  */
@@ -480,10 +504,10 @@ interface ArraySlot {
  * constraint and reverses ADR 015 §6's stable-sparse paths (ADR 018).
  *
  * Lifted above the replaceable `array.root` template (ADR 051 §3): `createRenderer`
- * always wraps the merged template in this provider so add/remove state survives
+ * always wraps the merged template in this host so add/remove state survives
  * custom layout. The template receives live slot children via the render prop.
  */
-function ArrayStateProvider({
+export function ArrayHost({
   node,
   children,
 }: {
@@ -1011,9 +1035,9 @@ export function createRenderer(defaults: ReactPartialDefaults) {
     array: {
       ...merged.array,
       root: (props) => (
-        <ArrayStateProvider node={props.node}>
+        <ArrayHost node={props.node}>
           {(items) => merged.array.root({ ...props, children: items })}
-        </ArrayStateProvider>
+        </ArrayHost>
       ),
     },
   }
