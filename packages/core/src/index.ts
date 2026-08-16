@@ -131,6 +131,7 @@ export type {
   RendererAdapter,
   PartialAdapter,
   FieldPartRenderers,
+  FieldControlRenderers,
   GroupPartRenderers,
   ArrayPartRenderers,
   ArrayItemPartRenderers,

@@ -124,7 +124,7 @@ function DefaultDescription({ text }: { text: string }): ReactNode {
 }
 
 /** When a field has errors, the root wraps its control in this provider.
- * Used by the default `DefaultControl` (and by customize `parts.Control` when
+ * Used by the default control arms (and by customize `parts.Control` when
  * no render prop). Hand-wired control *overrides* get the same attrs as
  * `part.errorA11y` instead — no context read required in the callback. */
 export interface FieldA11yState {
@@ -188,59 +188,69 @@ function enrichControlErrorA11y(
 const InjectedFieldErrorsContext = createContext<ValidationError[] | null>(null)
 
 /**
- * The unified control renderer (ADR 029 §5, v60): ONE `field.control` slot that
- * narrows on `control.kind` — the render archetype — instead of separate
- * `input`/`select` parts. A new widget is a new `kind` arm here, nothing in the
- * engine or the node type. a11y wiring (`aria-invalid`/`aria-describedby`) is
- * applied once, from the field root's `FieldA11yContext`, for every archetype.
+ * Native control arms (ADR 052): one function per `kind`, assigned onto the
+ * `field.control` map. a11y wiring (`aria-invalid`/`aria-describedby`) is
+ * applied from the field root's `FieldA11yContext` in each arm. There is no
+ * unified `DefaultControl` — wrapping every widget is `field.root`'s job.
  */
-function DefaultControl(control: FieldControl): ReactNode {
-  const a11yState = useContext(FieldA11yContext)
-  const errorA11y = errorA11yProps(a11yState)
-  switch (control.kind) {
-    case 'input':
-      return <input {...control.attrs} {...errorA11y} />
-    case 'textarea':
-      return <textarea {...control.attrs} {...errorA11y} />
-    case 'select': {
-      const { attrs, options } = control
-      return (
-        <select {...attrs} {...errorA11y}>
-          {/* No blank placeholder for multiple — nothing to "un-select" to. */}
-          {!attrs.multiple && <option value="">-- select --</option>}
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      )
-    }
-    case 'choicegroup': {
-      // Radio (single) or checkbox (multi) group — a set of native option inputs,
-      // each implicitly labelled by its wrapping `<label>` (bd cm7). Group label
-      // a11y is Core-derived (bd l8j): `control.role` (radiogroup|group) and
-      // `aria-labelledby={control.labelledBy}` naming the group by its caption id —
-      // no adapter recomputes the role. Error-state aria (`errorA11y`) is separate.
-      // Each option is uncontrolled with a `value` attr (radio/checkbox use
-      // `checked`, not `value`, so no controlled warning).
-      return (
-        <div
-          className="jsf-choicegroup"
-          role={control.role}
-          aria-labelledby={control.labelledBy}
-          {...errorA11y}
-        >
-          {control.options.map((o) => (
-            <label key={o.attrs.id} className="jsf-choice">
-              <input {...o.attrs} />
-              <span className="jsf-choice-text">{o.label}</span>
-            </label>
-          ))}
-        </div>
-      )
-    }
-  }
+function DefaultInput(
+  control: Extract<FieldControl, { kind: 'input' }>
+): ReactNode {
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  return <input {...control.attrs} {...errorA11y} />
+}
+
+function DefaultTextarea(
+  control: Extract<FieldControl, { kind: 'textarea' }>
+): ReactNode {
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  return <textarea {...control.attrs} {...errorA11y} />
+}
+
+function DefaultSelect(
+  control: Extract<FieldControl, { kind: 'select' }>
+): ReactNode {
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  const { attrs, options } = control
+  return (
+    <select {...attrs} {...errorA11y}>
+      {/* No blank placeholder for multiple — nothing to "un-select" to. */}
+      {!attrs.multiple && <option value="">-- select --</option>}
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function DefaultChoicegroup(
+  control: Extract<FieldControl, { kind: 'choicegroup' }>
+): ReactNode {
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  // Radio (single) or checkbox (multi) group — a set of native option inputs,
+  // each implicitly labelled by its wrapping `<label>` (bd cm7). Group label
+  // a11y is Core-derived (bd l8j): `control.role` (radiogroup|group) and
+  // `aria-labelledby={control.labelledBy}` naming the group by its caption id —
+  // no adapter recomputes the role. Error-state aria (`errorA11y`) is separate.
+  // Each option is uncontrolled with a `value` attr (radio/checkbox use
+  // `checked`, not `value`, so no controlled warning).
+  return (
+    <div
+      className="jsf-choicegroup"
+      role={control.role}
+      aria-labelledby={control.labelledBy}
+      {...errorA11y}
+    >
+      {control.options.map((o) => (
+        <label key={o.attrs.id} className="jsf-choice">
+          <input {...o.attrs} />
+          <span className="jsf-choice-text">{o.label}</span>
+        </label>
+      ))}
+    </div>
+  )
 }
 
 function DefaultGroupLabel({ text }: { text: string }): ReactNode {
@@ -600,7 +610,12 @@ export const nativeDefaults: ReactDefaults = {
     root: DefaultFieldRoot,
     label: DefaultFieldLabel,
     description: DefaultDescription,
-    control: DefaultControl,
+    control: {
+      input: DefaultInput,
+      select: DefaultSelect,
+      textarea: DefaultTextarea,
+      choicegroup: DefaultChoicegroup,
+    },
   },
   group: {
     root: DefaultGroupRoot,
@@ -659,7 +674,16 @@ export const diagnosticDefaults: ReactDefaults = {
     ),
     label: (data) => <NotImplemented kind="label" data={data} />,
     description: (data) => <NotImplemented kind="description" data={data} />,
-    control: (data) => <NotImplemented kind="control" data={data} />,
+    control: {
+      input: (data) => <NotImplemented kind="control.input" data={data} />,
+      select: (data) => <NotImplemented kind="control.select" data={data} />,
+      textarea: (data) => (
+        <NotImplemented kind="control.textarea" data={data} />
+      ),
+      choicegroup: (data) => (
+        <NotImplemented kind="control.choicegroup" data={data} />
+      ),
+    },
   },
   group: {
     root: ({ node, children }) => (
@@ -703,7 +727,8 @@ export const diagnosticDefaults: ReactDefaults = {
   combine,
 }
 
-/** Last-wins merge of renderer defaults (ADR 051). Core's engine name is `mergeAdapter`. */
+/** Last-wins merge of renderer defaults (ADR 051); object part-slots merge one
+ * level (ADR 052). Core's engine name is `mergeAdapter`. */
 export function mergeDefaults(
   base: ReactDefaults,
   over: ReactPartialDefaults

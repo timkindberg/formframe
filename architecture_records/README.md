@@ -63,7 +63,8 @@ no first-party store, annotated).
 | [048](./048_typed_tree_form_shape_binding.md) | Front-ends brand the tree with a resolved `FormShape` | |
 | [049](./049_as_const_guard_and_runtime_door.md) | The `as const` narrowing guard | |
 | [050](./050_validation_is_a_non_goal.md) | Validation Is a Non-Goal — Library Renders; Recipes Produce | Current validation framing |
-| [051](./051_defaults_and_intercept.md) | Defaults vs Intercept — Two Jobs, Two Names | Annotates ADR 013 and ADR 047 §3/§6 |
+| [051](./051_defaults_and_intercept.md) | Defaults vs Intercept — Two Jobs, Two Names | Annotates ADR 013 and ADR 047 §3/§6; annotated by ADR 052 |
+| [052](./052_control_map_and_object_slot_merge.md) | `field.control` Is a Kind Map; Object Part-Slots Merge One Level | Annotates ADR 029 §5 and ADR 051 §1 |
 
 ## Proposed
 

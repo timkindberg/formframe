@@ -27,7 +27,6 @@ import {
   type EArrayItem,
   type AnyGroupNode,
   type AnySchemaResolver,
-  type FieldControl,
 } from '@formframe/core'
 
 // ---------------------------------------------------------------------------
@@ -123,47 +122,47 @@ const nativeDefaultsImpl: VanillaDefaults = {
       return `<small class="jsf-description">${escapeText(text)}</small>`
     },
 
-    // One unified control slot (ADR 029 §5, v60): narrow on `control.kind`.
-    control(control: FieldControl) {
-      switch (control.kind) {
-        case 'input':
-          return `<input${renderAttrs(control.attrs)}>`
-        case 'textarea':
-          return `<textarea${renderAttrs(control.attrs)}></textarea>`
-        case 'select': {
-          const opts = control.options
-            .map(
-              (o) =>
-                `<option value="${escapeAttr(String(o.value))}">${escapeText(
-                  o.label
-                )}</option>`
-            )
-            .join('')
-          // No blank placeholder for multiple — nothing to "un-select" to.
-          const placeholder = control.attrs.multiple
-            ? ''
-            : '<option value="">-- select --</option>'
-          return `<select${renderAttrs(control.attrs)}>${placeholder}${opts}</select>`
-        }
-        case 'choicegroup': {
-          // Radio/checkbox group — one implicitly-labelled option input each,
-          // mirroring the React markup exactly (bd cm7). Group a11y is Core-derived
-          // (bd l8j): `control.role` + `aria-labelledby` naming it by its caption id.
-          const opts = control.options
-            .map(
-              (o) =>
-                `<label class="jsf-choice"><input${renderAttrs(
-                  o.attrs
-                )}><span class="jsf-choice-text">${escapeText(
-                  o.label
-                )}</span></label>`
-            )
-            .join('')
-          return `<div class="jsf-choicegroup" role="${control.role}" aria-labelledby="${escapeAttr(
-            control.labelledBy
-          )}">${opts}</div>`
-        }
-      }
+    // Control map (ADR 052): one arm per kind. Dispatch is engine coerce-at-lookup.
+    control: {
+      input(control) {
+        return `<input${renderAttrs(control.attrs)}>`
+      },
+      textarea(control) {
+        return `<textarea${renderAttrs(control.attrs)}></textarea>`
+      },
+      select(control) {
+        const opts = control.options
+          .map(
+            (o) =>
+              `<option value="${escapeAttr(String(o.value))}">${escapeText(
+                o.label
+              )}</option>`
+          )
+          .join('')
+        // No blank placeholder for multiple — nothing to "un-select" to.
+        const placeholder = control.attrs.multiple
+          ? ''
+          : '<option value="">-- select --</option>'
+        return `<select${renderAttrs(control.attrs)}>${placeholder}${opts}</select>`
+      },
+      choicegroup(control) {
+        // Radio/checkbox group — one implicitly-labelled option input each,
+        // mirroring the React markup exactly (bd cm7). Group a11y is Core-derived
+        // (bd l8j): `control.role` + `aria-labelledby` naming it by its caption id.
+        const opts = control.options
+          .map(
+            (o) =>
+              `<label class="jsf-choice"><input${renderAttrs(
+                o.attrs
+              )}><span class="jsf-choice-text">${escapeText(
+                o.label
+              )}</span></label>`
+          )
+          .join('')
+        return `<div class="jsf-choicegroup" role="${control.role}" aria-labelledby="${escapeAttr(
+          control.labelledBy
+        )}">${opts}</div>`
+      },
     },
   },
 
@@ -253,7 +252,12 @@ export const diagnosticDefaults: VanillaDefaults = {
     },
     label: (data) => notImplemented('label', data),
     description: (data) => notImplemented('description', data),
-    control: (data) => notImplemented('control', data),
+    control: {
+      input: (data) => notImplemented('control.input', data),
+      select: (data) => notImplemented('control.select', data),
+      textarea: (data) => notImplemented('control.textarea', data),
+      choicegroup: (data) => notImplemented('control.choicegroup', data),
+    },
   },
   group: {
     root({ node, children }) {
@@ -292,7 +296,8 @@ export const diagnosticDefaults: VanillaDefaults = {
 // Public entry — takes the Core tree (front-end-agnostic, like SchemaFields)
 // ---------------------------------------------------------------------------
 
-/** Last-wins merge of renderer defaults (ADR 051). Core's engine name is `mergeAdapter`. */
+/** Last-wins merge of renderer defaults (ADR 051); object part-slots merge one
+ * level (ADR 052). Core's engine name is `mergeAdapter`. */
 export function mergeDefaults(
   base: VanillaDefaults,
   over: VanillaPartialDefaults

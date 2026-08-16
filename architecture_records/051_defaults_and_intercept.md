@@ -4,6 +4,7 @@
 **Status:** Accepted (GitHub epic [#141](https://github.com/timkindberg/formframe/issues/141))
 **Deciders:** Tim Kindberg
 **Annotates:** ADR 013 (renderer set is **defaults**; React adoption is not `createRenderer` + a second selector language), ADR 047 §3 and §6 (kind blankets / `control` on the registrar are not a stylesheet; adapter and customize are not one registrar at two scopes)
+**Annotated by:** [ADR 052](./052_control_map_and_object_slot_merge.md) — `field.control` is a **control map**; form-lib wiring is per arm, not a kind switch inside one function
 **Builds on:** ADR 010 / 017 (continuation floor), ADR 013 (renderer set), ADR 047 §1–§2 and §4 (mounted handlers, arrangeable parts, path-narrowed types), ADR 048 (`FormShape` binding), ADR 031 (`present()` is a different axis)
 
 The customize layer grew two composition rules that both looked like “change how it renders”: a by-reference renderer set (`createRenderer` / `defaultAdapter`) and a specificity registrar (`useRenderNodeRules`) whose `<Default />` skipped the registrar and hit the engine. Kind-wide `allFields` / `r.control` occupied the intercept list, so a path Extra dropped team look and form-lib wiring. We keep the continuation floor and split the jobs by name.
@@ -18,7 +19,7 @@ The renderer set (ADR 013) is the defaults object: per kind, a **template** (`ro
 
 A **template** is only that kind `root` — RJSF’s good part (Field / Object / Array templates), not a parallel `allFields` intercept. `<Default />` means the **current merged defaults**, not the previous layer’s template. Wrapping a previous root is calling it in userland (`(p) => <Card>{org.field.root(p)}</Card>`).
 
-Recipes (Chakra × RHF, native error inject, …) are defaults objects, not winning `r.control` intercepts. Form-lib wiring lives on `defaults.field.control` (or a kind switch inside it).
+Recipes (Chakra × RHF, native error inject, …) are defaults objects, not winning `r.control` intercepts. Form-lib wiring lives on `defaults.field.control` (per-arm as of ADR 052; a kind switch inside one function was the pre-052 shape).
 
 Org → team → feature composition is **userland**, not a library builder: `mergeDefaults`, wrap roots, unmatched intercepts call the previous `intercept`, close over team defaults with `useTeamFormTree`. Untouched slots flow down; a lower layer that touches a slot replaces it.
 

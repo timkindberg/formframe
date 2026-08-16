@@ -18,7 +18,6 @@ import {
   type EArrayItem,
   type AnyGroupNode,
   type AnySchemaResolver,
-  type FieldControl,
 } from '@formframe/core'
 
 // ---------------------------------------------------------------------------
@@ -170,51 +169,48 @@ const nativeDefaultsImpl: DomDefaults = {
       return createEl('small', { class: 'jsf-description' }, text)
     },
 
-    // One unified control slot (ADR 029 §5, v60): narrow on `control.kind`. Mirrors
-    // the string oracle's markup exactly so DOM ≡ string parity holds.
-    control(control: FieldControl) {
-      switch (control.kind) {
-        case 'input':
-          return createEl('input', control.attrs)
-        case 'textarea':
-          return createEl('textarea', control.attrs)
-        case 'select': {
-          const select = document.createElement('select')
-          setAttrs(select, control.attrs)
-          if (!control.attrs.multiple) {
-            appendChild(
-              select,
-              createEl('option', { value: '' }, '-- select --')
-            )
-          }
-          for (const option of control.options) {
-            appendChild(
-              select,
-              createEl('option', { value: String(option.value) }, option.label)
-            )
-          }
-          return select
+    // Control map (ADR 052): one arm per kind. Mirrors the string oracle's
+    // markup exactly so DOM ≡ string parity holds. Dispatch is engine lookup.
+    control: {
+      input(control) {
+        return createEl('input', control.attrs)
+      },
+      textarea(control) {
+        return createEl('textarea', control.attrs)
+      },
+      select(control) {
+        const select = document.createElement('select')
+        setAttrs(select, control.attrs)
+        if (!control.attrs.multiple) {
+          appendChild(select, createEl('option', { value: '' }, '-- select --'))
         }
-        case 'choicegroup': {
-          // Mirror renderToString.ts markup exactly so DOM ≡ string parity holds.
-          // Group a11y is Core-derived (bd l8j): `control.role` + `aria-labelledby`.
-          const wrap = createEl('div', {
-            class: 'jsf-choicegroup',
-            role: control.role,
-            'aria-labelledby': control.labelledBy,
-          })
-          for (const option of control.options) {
-            const label = createEl('label', { class: 'jsf-choice' })
-            appendChild(label, createEl('input', option.attrs))
-            appendChild(
-              label,
-              createEl('span', { class: 'jsf-choice-text' }, option.label)
-            )
-            appendChild(wrap, label)
-          }
-          return wrap
+        for (const option of control.options) {
+          appendChild(
+            select,
+            createEl('option', { value: String(option.value) }, option.label)
+          )
         }
-      }
+        return select
+      },
+      choicegroup(control) {
+        // Mirror renderToString.ts markup exactly so DOM ≡ string parity holds.
+        // Group a11y is Core-derived (bd l8j): `control.role` + `aria-labelledby`.
+        const wrap = createEl('div', {
+          class: 'jsf-choicegroup',
+          role: control.role,
+          'aria-labelledby': control.labelledBy,
+        })
+        for (const option of control.options) {
+          const label = createEl('label', { class: 'jsf-choice' })
+          appendChild(label, createEl('input', option.attrs))
+          appendChild(
+            label,
+            createEl('span', { class: 'jsf-choice-text' }, option.label)
+          )
+          appendChild(wrap, label)
+        }
+        return wrap
+      },
     },
   },
 
@@ -327,7 +323,12 @@ export const diagnosticDomDefaults: DomDefaults = {
     },
     label: (data) => notImplemented('label', data),
     description: (data) => notImplemented('description', data),
-    control: (data) => notImplemented('control', data),
+    control: {
+      input: (data) => notImplemented('control.input', data),
+      select: (data) => notImplemented('control.select', data),
+      textarea: (data) => notImplemented('control.textarea', data),
+      choicegroup: (data) => notImplemented('control.choicegroup', data),
+    },
   },
   group: {
     root({ node, children }) {

@@ -109,15 +109,27 @@ The component that folds the form tree into UI — the fractal root from which `
 _Avoid_: Form, FormRenderer (it renders fields, not a `<form>`); bare `Fields` (ambiguous with a form's fields — the `Schema` prefix marks it as the schema-driven renderer).
 
 **Renderer adapter** (a presentation consumer):
-A consumer that folds the form tree into UI for one target (React, vanilla DOM, …). It supplies the **default renderer set**, organized as a *compound per node kind*: each kind has a **template** (`root` — its composition renderer) plus its **parts** — `field: { root, label, description, control }`, `group: { root, label, description }`, `array: { root, label, description, addButton }`, `arrayItem: { root, removeButton }` — plus the `combine` plumbing. (`root` follows the compound-component convention — Chakra/Radix/Ark — the root of *that* thing; namespaced under the kind, so distinct from the form-tree root.) You customize by overriding entries *by reference*: `{ ...nativeDefaults, field: { ...nativeDefaults.field, label: MyLabel } }`; the same set, partially overridden, is the lower rung beneath the batteries-included renderer. Parts are **per-node-context** — a field's `label` is a `<label>`, a group's `label` is a `<legend>`; an array's `addButton` and an arrayItem's `removeButton` are the add/remove controls. **Interactive behavior is per-adapter, not part of the contract** — the engine and the renderer set produce *markup*; a stateful adapter (React; a future vanilla-DOM adapter) wires add/remove, while the string oracle (`renderToString`) renders the same controls inert. Cross-adapter conformance is therefore a *markup* contract. A renderer ships two built-in sets: the real **defaults**, and a **diagnostic** set whose every content entry renders a visible `[… not implemented]` marker echoing the node's data — the floor's fallback, so an incomplete adapter still runs and tells you what's missing.
+A consumer that folds the form tree into UI for one target (React, vanilla DOM, …). It supplies the **default renderer set**, organized as a *compound per node kind*: each kind has a **template** (`root` — its composition renderer) plus its **parts** — `field: { root, label, description, control }`, `group: { root, label, description }`, `array: { root, label, description, addButton }`, `arrayItem: { root, removeButton }` — plus the `combine` plumbing. (`root` follows the compound-component convention — Chakra/Radix/Ark — the root of *that* thing; namespaced under the kind, so distinct from the form-tree root.) `field.control` is a **control map**, not one function. You customize by overriding entries *by reference*: `{ ...nativeDefaults, field: { ...nativeDefaults.field, label: MyLabel } }`; the same set, partially overridden, is the lower rung beneath the batteries-included renderer. Parts are **per-node-context** — a field's `label` is a `<label>`, a group's `label` is a `<legend>`; an array's `addButton` and an arrayItem's `removeButton` are the add/remove controls. **Interactive behavior is per-adapter, not part of the contract** — the engine and the renderer set produce *markup*; a stateful adapter (React; a future vanilla-DOM adapter) wires add/remove, while the string oracle (`renderToString`) renders the same controls inert. Cross-adapter conformance is therefore a *markup* contract. A renderer ships two built-in sets: the real **defaults**, and a **diagnostic** set whose every content entry renders a visible `[… not implemented]` marker echoing the node's data — the floor's fallback, so an incomplete adapter still runs and tells you what's missing.
 _Avoid_: template-set, calling the whole adapter a template (that's RJSF's schema-keyed registry). The kind `root` *is* a template.
 
 **Defaults** (the renderer set):
-The table of templates + parts that `<Default />` draws — one entry per kind (`field` / `group` / `array` / `arrayItem`), each a template (`root`) plus parts. You pass `defaults` into `useFormTree` / `createRenderer`. Batteries native HTML is `nativeDefaults`; diagnostics are `diagnosticDefaults`; `mergeDefaults` last-wins per key. Close over team defaults with a userland `useTeamFormTree` wrapper — not a library context.
+The table of templates + parts that `<Default />` draws — one entry per kind (`field` / `group` / `array` / `arrayItem`), each a template (`root`) plus parts. You pass `defaults` into `useFormTree` / `createRenderer`. Batteries native HTML is `nativeDefaults`; diagnostics are `diagnosticDefaults`; `mergeDefaults` last-wins per key, and a part slot that is a map (today: the **control map**) merges one level so one **control arm** does not wipe the others. Close over team defaults with a userland `useTeamFormTree` wrapper — not a library context.
 _Avoid_: adapter (as the React adoption name — internally it is still a renderer adapter); template-set for the whole table; a library N-layer provider.
 
+**Control map**:
+The `field.control` defaults slot: one **control arm** per Core control kind (`input`, `select`, `textarea`, `choicegroup`). Kind-wide form-lib wiring overrides one arm without replacing the others. Per-node intercept `parts.control` is still one function for that node — the map is defaults-only.
+_Avoid_: a single `control` function; `controls` as a second slot; widget map (`widget` is the presentation name, `kind` is the render archetype).
+
+**Control arm**:
+One entry in the control map — the renderer for one `kind`.
+_Avoid_: widget renderer (that's the catalog / `bindRenders`); control template.
+
+**Defaults piece**:
+An exported building block a **template** composes — only the load-bearing setup that is easy to get wrong (field error-a11y wiring, the array host). Markup a consumer would rewrite anyway (the error `<ul>`, a fieldset) is not a piece. Replacing a root means composing pieces, not copying the default template. React-only today; vanilla roots have no equivalent load-bearing state.
+_Avoid_: sub-template, primitive, helper (as the public name); exporting default markup as if it were a seam.
+
 **Template**:
-The kind-wide composition renderer for a field, group, array, or arrayItem — `defaults[kind].root`. It arranges that kind's parts (and `{children}` for containers). Path-specific customization is an intercept, not a template.
+The kind-wide composition renderer for a field, group, array, or arrayItem — `defaults[kind].root`. It arranges that kind's parts (and `{children}` for containers) by composing **defaults pieces**. Path-specific customization is an intercept, not a template.
 _Avoid_: FieldTemplate as a second API beside the kind root; using template for an intercept or RJSF's widget/uiSchema registry.
 
 **Hijack** / **Intercept**:
@@ -125,12 +137,11 @@ Supplying your own JSX for a node or part instead of the current defaults — at
 _Avoid_: widget override; using template for an intercept; `renderNode` in new public API.
 
 **`intercept`**:
-The per-node function the renderer calls while walking the tree — the floor. Return custom JSX to intercept a node, or `<Default of={node} />` to keep the current defaults. React sugar on the same prop: a dotted-path map (`{ email, 'address.street' }`), or a bag `{ paths, where }` (`where` is predicate + handler pairs, not the function floor). A map value is a handler, or a **parts object** (`{ email: { control, label, … } }`) — the same `parts={{…}}` map `<Default>` already takes, keyed by path. `{ root: Handler }` is the long form of passing a node handler (Default *is* root, so `root` is not a Default `parts` key). Exact path beats `where`. Unmatched nodes keep defaults. Nested-object maps are not the path language (`FieldPath` is dotted).
-_Avoid_: `renderNode` as the adoption name; a registrar `allFields` / `control` as a second defaults table; treating a parts object as a path-scoped defaults patch.
+The per-node function the renderer calls while walking the tree — the floor. Return custom JSX to intercept a node, or `<Default of={node} />` to keep the current defaults. React sugar on the same prop: a dotted-path map of handlers (`{ email, 'address.street' }`), or a bag `{ paths, where }` (`where` is predicate + handler pairs, not the function floor). Exact path beats `where`. Unmatched nodes keep defaults. Nested-object maps are not the path language (`FieldPath` is dotted).
+_Avoid_: `renderNode` as the adoption name; a registrar `allFields` / `control` as a second defaults table.
 
-**`interceptRules` / `useInterceptRules`**:
-The previous intercept sugar (ADR 047/048 registrar; historically `renderNodeRules` / `useRenderNodeRules`). Replaced as the adoption path by the `intercept` prop’s path map / `{ paths, where }` bag. Do not use `allFields` / `allGroups` / `allArrays` / `control` as stylesheets — those jobs are **defaults**.
-_Avoid_: `renderNodeRules`, `useRenderNodeRules` in new public API.
+**`useRenderNodeRules` / `renderNodeRules`**:
+The previous intercept sugar (ADR 047/048 registrar). Replaced by the `intercept` prop’s path map / `{ paths, where }` bag. Do not use `allFields` / `allGroups` / `allArrays` / `control` as stylesheets — those jobs are **defaults**.
 
 **`Default`**:
 The component that renders the **current merged renderer set** for the thing it hangs off — `node.Default` (that kind's template + parts) or `part.Default` (one part). It does not mean the previous layer's template; wrapping a previous template is calling that root in userland. Re-enters the engine, so descendants still pass through intercepts.
@@ -139,7 +150,7 @@ The component that renders the **current merged renderer set** for the thing it 
 `node.Children` renders a node's child *nodes* through the resolver — the inter-node continuation that lets you take the reins on a node's layout while the library renders below.
 
 **`parts={{…}}`**:
-The part-scope intercept on `node.Default`: override individual parts (each override receives the part object, which carries both its data and its own `.Default`) while the rest render default. The intercept path-map parts object is this same map (`{ email: { control: X } }` is literally `<Default of={email} parts={{ control: X }} />`). `{ root: Handler }` is the long form of a node handler — `root` is not a Default `parts` key.
+The part-scope intercept on `node.Default`: override individual parts (each override receives the part object, which carries both its data and its own `.Default`) while the rest render default.
 
 ## Working method
 

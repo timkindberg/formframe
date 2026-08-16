@@ -8,7 +8,7 @@
 //
 // Everything here is about RHF and nothing else: `register()` bindings and
 // mapping RHF errors → `ValidationError[]`, injected on `defaults.field.root`
-// via `<InjectFieldErrors>` (form-lib wiring on `defaults.field.control`).
+// via `<InjectFieldErrors>` (form-lib wiring on a `defaults.field.control` arm).
 // Field chrome + error-state a11y come from the library (merged into `attrs`
 // for input/select; choicegroup spreads error a11y on the wrapper). Typed
 // against FormFrame's neutral control seam (no schema generics), so ONE copy
@@ -112,65 +112,71 @@ function RhfRecipeFieldRoot({
   )
 }
 
-function RhfRecipeFieldControl(control: FieldControl): ReactNode {
+function RhfRecipeInput(
+  control: Extract<FieldControl, { kind: 'input' }>
+): ReactNode {
   const { register } = useFormContext()
   const errorA11y = errorA11yProps(useContext(FieldA11yContext))
-  switch (control.kind) {
-    case 'input': {
-      const path = control.attrs.name
-      return (
-        <input
-          {...control.attrs}
-          {...register(path, blankOption)}
-          {...errorA11y}
-        />
-      )
-    }
-    case 'select': {
-      const { attrs, options } = control
-      const path = attrs.name
-      return (
-        <select
-          {...attrs}
-          {...register(path, attrs.multiple ? undefined : blankOption)}
-          {...errorA11y}
-        >
-          {!attrs.multiple && <option value="">-- select --</option>}
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      )
-    }
-    case 'choicegroup': {
-      const path = control.options[0].attrs.name
-      return (
-        <div
-          className="jsf-choicegroup"
-          role={control.role}
-          aria-labelledby={control.labelledBy}
-          {...errorA11y}
-        >
-          {control.options.map((o) => (
-            <label key={o.attrs.id} className="jsf-choice">
-              <input {...o.attrs} {...register(path, unselectedOption)} />
-              <span className="jsf-choice-text">{o.label}</span>
-            </label>
-          ))}
-        </div>
-      )
-    }
-    default:
-      return nativeDefaults.field.control(control)
-  }
+  const path = control.attrs.name
+  return (
+    <input {...control.attrs} {...register(path, blankOption)} {...errorA11y} />
+  )
+}
+
+function RhfRecipeSelect(
+  control: Extract<FieldControl, { kind: 'select' }>
+): ReactNode {
+  const { register } = useFormContext()
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  const { attrs, options } = control
+  const path = attrs.name
+  return (
+    <select
+      {...attrs}
+      {...register(path, attrs.multiple ? undefined : blankOption)}
+      {...errorA11y}
+    >
+      {!attrs.multiple && <option value="">-- select --</option>}
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function RhfRecipeChoicegroup(
+  control: Extract<FieldControl, { kind: 'choicegroup' }>
+): ReactNode {
+  const { register } = useFormContext()
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  const path = control.options[0].attrs.name
+  return (
+    <div
+      className="jsf-choicegroup"
+      role={control.role}
+      aria-labelledby={control.labelledBy}
+      {...errorA11y}
+    >
+      {control.options.map((o) => (
+        <label key={o.attrs.id} className="jsf-choice">
+          <input {...o.attrs} {...register(path, unselectedOption)} />
+          <span className="jsf-choice-text">{o.label}</span>
+        </label>
+      ))}
+    </div>
+  )
 }
 
 /** Kind-wide RHF recipe defaults — pass to `useFormTree({ defaults })`. */
 export const rhfFieldDefaults: ReactPartialDefaults = {
   field: {
     root: RhfRecipeFieldRoot,
-    control: RhfRecipeFieldControl,
+    control: {
+      input: RhfRecipeInput,
+      select: RhfRecipeSelect,
+      choicegroup: RhfRecipeChoicegroup,
+    },
   },
 }

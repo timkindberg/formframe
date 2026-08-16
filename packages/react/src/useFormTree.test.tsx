@@ -135,10 +135,11 @@ describe('useFormTree', () => {
   it('binds { defaults } over nativeDefaults so kind-wide slots apply without intercept', async () => {
     const teamDefaults = {
       field: {
-        control: (control: FieldControl) =>
-          control.kind === 'input' ? (
+        control: {
+          input: (control: Extract<FieldControl, { kind: 'input' }>) => (
             <input {...control.attrs} data-team="yes" />
-          ) : null,
+          ),
+        },
       },
     }
 
@@ -156,13 +157,46 @@ describe('useFormTree', () => {
     expect(document.querySelector('[data-jsf-not-implemented]')).toBeNull()
   })
 
+  it('defaults.field.control.input override keeps native select', async () => {
+    const mixedTree = jsonSchemaToTree({
+      type: 'object',
+      properties: {
+        name: { type: 'string', title: 'Name' },
+        color: {
+          type: 'string',
+          title: 'Color',
+          enum: ['red', 'green', 'blue', 'cyan', 'magenta', 'yellow'],
+        },
+      },
+    } as const satisfies JSONSchema)
+
+    function CustomInput(control: Extract<FieldControl, { kind: 'input' }>) {
+      return <input {...control.attrs} data-custom-input="" />
+    }
+
+    function Harness() {
+      const { SchemaFields } = useFormTree(mixedTree, {
+        defaults: { field: { control: { input: CustomInput } } },
+      })
+      return <SchemaFields />
+    }
+
+    const screen = await render(<Harness />)
+    expect(document.querySelector('input[data-custom-input]')).not.toBeNull()
+    await expect
+      .element(screen.getByRole('combobox', { name: 'Color' }))
+      .toBeInTheDocument()
+    expect(document.querySelector('select')).not.toBeNull()
+  })
+
   it('SchemaFields intercept still hijacks a node when defaults are bound', async () => {
     const teamDefaults = {
       field: {
-        control: (control: FieldControl) =>
-          control.kind === 'input' ? (
+        control: {
+          input: (control: Extract<FieldControl, { kind: 'input' }>) => (
             <input {...control.attrs} data-team="yes" />
-          ) : null,
+          ),
+        },
       },
     }
 

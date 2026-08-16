@@ -26,6 +26,7 @@
 import type {
   AnyNode,
   ContainerNode,
+  ControlKind,
   FieldControl,
   FieldNode,
   GroupNode,
@@ -56,7 +57,7 @@ export type PartsOverrides<P, R> = {
  *
  * A single shape now (ADR 029 §5/§6, v60): the widget variation lives inside
  * `parts.control` (discriminated on `control.kind`), so nothing that handles
- * *nodes* narrows on widget — only the `field.control` renderer does.
+ * *nodes* narrows on widget — only the matching `field.control` map arm does.
  */
 export type EField<R, S = unknown> = Omit<FieldNode<S>, 'parts'> & {
   parts: EnrichedParts<FieldNode<S>['parts'], R>
@@ -138,13 +139,19 @@ export interface ChildResult<R> {
  */
 export type PartOverrideMap<R> = Record<string, (part: unknown) => R>
 
-/** Renderers for a field's parts. The unified `control` slot (ADR 029 §5, v60)
- * replaces the old per-widget `input`/`select`: one renderer that narrows on
- * `control.kind` — so a new widget is a `kind` arm here, never an engine change. */
+/** Per-kind renderers for `field.control` (ADR 052). A recipe overrides one arm;
+ * the engine indexes the map by `data.kind` at part lookup — not a named
+ * `"control"` special case. A new widget is a new `ControlKind` + map key. */
+export type FieldControlRenderers<R> = {
+  [K in ControlKind]: (data: Extract<FieldControl, { kind: K }>) => R
+}
+
+/** Renderers for a field's parts. `control` is a kind map (ADR 052), not one
+ * function that switches on `kind`. Common field chrome stays on `field.root`. */
 export interface FieldPartRenderers<R> {
   label(data: FieldPartsBase['label']): R
   description(data: NonNullable<FieldPartsBase['description']>): R
-  control(data: FieldControl): R
+  control: FieldControlRenderers<R>
 }
 
 /** Renderers for a group's parts (captions). */
@@ -194,34 +201,65 @@ export interface RendererAdapter<R> {
 }
 
 /**
+ * One-level Partial of a kind's renderer bag: functions stay themselves;
+ * plain-object slots (today: the control map) become `Partial` of their keys
+ * so `{ field: { control: { input } } }` typechecks (ADR 052).
+ */
+type PartialKind<T> = {
+  [K in keyof T]?: T[K] extends (...args: never[]) => unknown
+    ? T[K]
+    : Partial<T[K]>
+}
+
+/**
  * A partial renderer set — what the public floor (`createRenderer`) accepts.
  * Missing content entries fall back to the diagnostic set; `combine` always
  * carries the framework's real default (it is plumbing, not content).
  */
 export interface PartialAdapter<R> {
-  field?: Partial<RendererAdapter<R>['field']>
-  group?: Partial<RendererAdapter<R>['group']>
-  array?: Partial<RendererAdapter<R>['array']>
-  arrayItem?: Partial<RendererAdapter<R>['arrayItem']>
+  field?: PartialKind<RendererAdapter<R>['field']>
+  group?: PartialKind<RendererAdapter<R>['group']>
+  array?: PartialKind<RendererAdapter<R>['array']>
+  arrayItem?: PartialKind<RendererAdapter<R>['arrayItem']>
   combine?: RendererAdapter<R>['combine']
+}
+
+/** Functions are not objects for this test (`typeof === 'function'`). */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**
  * Fill a partial renderer set over a complete `base` (e.g. the diagnostic floor
- * or the real defaults), by reference. Per-kind shallow merge; `combine` is
- * taken whole. This is the one merge every renderer's `createRenderer` uses.
+ * or the real defaults), by reference. Per-kind key: both values plain objects
+ * (not functions, not arrays) → one-level `{ ...base, ...over }`; else last-wins.
+ * `combine` is taken whole. Do not recurse. Do not special-case `"control"`.
  */
 export function mergeAdapter<R>(
   base: RendererAdapter<R>,
   over: PartialAdapter<R>
 ): RendererAdapter<R> {
   return {
-    field: { ...base.field, ...over.field },
-    group: { ...base.group, ...over.group },
-    array: { ...base.array, ...over.array },
-    arrayItem: { ...base.arrayItem, ...over.arrayItem },
+    field: mergeKindSlot(base.field, over.field),
+    group: mergeKindSlot(base.group, over.group),
+    array: mergeKindSlot(base.array, over.array),
+    arrayItem: mergeKindSlot(base.arrayItem, over.arrayItem),
     combine: over.combine ?? base.combine,
   }
+}
+
+function mergeKindSlot<T extends object>(base: T, over?: object): T {
+  if (!over) return base
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) }
+  for (const [key, overVal] of Object.entries(over)) {
+    if (overVal === undefined) continue
+    const baseVal = out[key]
+    out[key] =
+      isPlainObject(baseVal) && isPlainObject(overVal)
+        ? { ...baseVal, ...overVal }
+        : overVal
+  }
+  return out as T
 }
 
 export interface Continuation<R> {
@@ -281,16 +319,39 @@ export function createContinuation<R>(
   type Overrides = PartOverrideMap<R>
   type AnyPartRenderer = (data: unknown) => R
 
-  /** Look up the renderer for `kind`'s `name` part; `undefined` if none. */
-  function partRenderer(
-    kind: PartKind | null,
-    name: string
-  ): AnyPartRenderer | undefined {
+  /** Look up the renderer entry for `kind`'s `name` part; `undefined` if none. */
+  function partEntry(kind: PartKind | null, name: string): unknown {
     if (!kind) return undefined
     // Internal dynamic dispatch: the public adapter type stays precise; here we
     // index by runtime part name (`root` is never a part name, so no collision).
-    const set = adapter[kind] as unknown as Record<string, AnyPartRenderer>
+    const set = adapter[kind] as unknown as Record<string, unknown>
     return set[name]
+  }
+
+  function hasKindString(data: unknown): data is { kind: string } {
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      typeof (data as { kind?: unknown }).kind === 'string'
+    )
+  }
+
+  /**
+   * Coerce-at-lookup (ADR 052): a function is called with `data`; a plain object
+   * is indexed by `data.kind`. Missing entry / missing arm / data without a
+   * `kind` string → empty `R`. Generic — not `if (name === 'control')`.
+   */
+  function invokePart(entry: unknown, data: unknown): R {
+    if (typeof entry === 'function') {
+      return (entry as AnyPartRenderer)(data)
+    }
+    if (isPlainObject(entry) && hasKindString(data)) {
+      const arm = entry[data.kind]
+      if (typeof arm === 'function') {
+        return (arm as AnyPartRenderer)(data)
+      }
+    }
+    return adapter.combine({ children: [] })
   }
 
   function enrichParts(
@@ -304,10 +365,12 @@ export function createContinuation<R>(
           ? {
               ...data,
               Default: () => {
-                const renderer = partRenderer(kind, name)
+                const entry = partEntry(kind, name)
                 // Unrendered parts (e.g. `container`, array buttons) → empty `R`.
                 const run = (): R =>
-                  renderer ? renderer(data) : adapter.combine({ children: [] })
+                  entry === undefined
+                    ? adapter.combine({ children: [] })
+                    : invokePart(entry, data)
                 return options.renderPart ? options.renderPart(run) : run()
               },
             }
