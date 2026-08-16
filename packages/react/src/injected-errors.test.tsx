@@ -3,20 +3,23 @@
 // flag). Inject-only: the library does not produce/store validation errors
 // itself, so omitting `errors` means no errors and no a11y error state.
 
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import type { ValidationError } from '@formframe/core'
+import type { FieldControl, ValidationError } from '@formframe/core'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
   SchemaFields,
   Default,
+  createRenderer,
+  nativeDefaults,
   fieldControlId,
   fieldErrorId,
+  useFieldA11y,
+  FieldControlSlot,
   type ErrorA11yProps,
 } from './renderer'
-import type { FieldControl } from '@formframe/core'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -175,6 +178,105 @@ describe('<Default errors={ValidationError[]}> inject path', () => {
 
     const control = document.querySelector(
       '[data-testid="hijacked-control"]'
+    ) as HTMLInputElement | null
+    expect(control?.getAttribute('aria-invalid')).toBe('true')
+    expect(control?.getAttribute('aria-describedby')).toBe(
+      fieldErrorId('username')
+    )
+  })
+})
+
+describe('defaults pieces (#154)', () => {
+  // Custom field.root composes the exported pieces instead of copying
+  // DefaultFieldRoot. Error UI is the consumer's (id={fieldErrorId(path)}),
+  // not the unexported batteries <ul class="jsf-field-errors">.
+  function CustomFieldRoot({
+    node,
+    overrides,
+  }: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]): ReactNode {
+    const { issues, visible } = useFieldA11y(node.path)
+    return (
+      <div data-testid="custom-field-root">
+        {node.parts.label?.Default()}
+        <FieldControlSlot node={node} overrides={overrides} />
+        {visible ? (
+          <p id={fieldErrorId(node.path)} data-testid="custom-errors">
+            {issues.map((e) => e.message).join('; ')}
+          </p>
+        ) : null}
+      </div>
+    )
+  }
+
+  const CustomFields = createRenderer({
+    ...nativeDefaults,
+    field: {
+      ...nativeDefaults.field,
+      root: CustomFieldRoot,
+    },
+  })
+
+  it('custom field.root composing useFieldA11y + FieldControlSlot keeps error a11y', async () => {
+    const injected: ValidationError[] = [
+      { path: 'username', message: 'Too short' },
+    ]
+    function Form() {
+      const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
+      return (
+        <CustomFields form={f}>
+          {(root, { Default: D }) => (
+            <D of={root.children.username} errors={injected} />
+          )}
+        </CustomFields>
+      )
+    }
+    await render(<Form />)
+
+    const username = document.getElementById(fieldControlId('username'))
+    expect(username?.getAttribute('aria-invalid')).toBe('true')
+    expect(username?.getAttribute('aria-describedby')).toBe(
+      fieldErrorId('username')
+    )
+    const custom = document.querySelector('[data-testid="custom-errors"]')
+    expect(custom?.id).toBe(fieldErrorId('username'))
+    expect(custom?.textContent).toContain('Too short')
+    expect(
+      document.querySelector('[data-testid="custom-field-root"]')
+    ).not.toBeNull()
+  })
+
+  it('FieldControlSlot dual path: parts.control override still gets error a11y on attrs', async () => {
+    const injected: ValidationError[] = [
+      { path: 'username', message: 'Too short' },
+    ]
+    function Form() {
+      const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
+      return (
+        <CustomFields form={f}>
+          {(root, { Default: D }) => (
+            <D
+              of={root.children.username}
+              errors={injected}
+              parts={{
+                control: (
+                  c: FieldControl & {
+                    errorA11y: ErrorA11yProps
+                    Default(): React.ReactNode
+                  }
+                ) =>
+                  c.kind === 'input' ? (
+                    <input {...c.attrs} data-testid="piece-hijacked-control" />
+                  ) : null,
+              }}
+            />
+          )}
+        </CustomFields>
+      )
+    }
+    await render(<Form />)
+
+    const control = document.querySelector(
+      '[data-testid="piece-hijacked-control"]'
     ) as HTMLInputElement | null
     expect(control?.getAttribute('aria-invalid')).toBe('true')
     expect(control?.getAttribute('aria-describedby')).toBe(

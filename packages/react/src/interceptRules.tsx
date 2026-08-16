@@ -99,7 +99,7 @@ export type PartComponent<D> = (props: {
  * control to the error list by id, so `Control` and `Errors` stay wired together
  * no matter where a handler places them (ADR 047 §2). Inject-only (ADR 050): no
  * `errors` prop means no issues and no a11y error state. */
-function useFieldA11y(
+function a11yStateFromIssues(
   path: string,
   injected?: ValidationError[]
 ): { errorId: string } | null {
@@ -144,8 +144,7 @@ function Control({
 }): ReactNode {
   const h = useContext(HandleCtx)
   const path = h && h.node.isField ? h.node.path : ''
-  // Hook runs unconditionally (rules-of-hooks); ignored for non-field handles.
-  const a11y = useFieldA11y(path, injectedErrors)
+  const a11y = a11yStateFromIssues(path, injectedErrors)
   if (!h || !h.node.isField) return null
   const control = h.node.parts.control
   // A render-prop control is hand-authored: the consumer owns a11y by spreading

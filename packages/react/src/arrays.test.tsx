@@ -10,7 +10,12 @@ import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
-import { SchemaFields, createRenderer, nativeDefaults } from './renderer'
+import {
+  SchemaFields,
+  createRenderer,
+  nativeDefaults,
+  ArrayHost,
+} from './renderer'
 
 const schema: JSONSchema = {
   type: 'object',
@@ -153,7 +158,10 @@ describe('dense array submission (ADR 018)', () => {
   })
 })
 
-describe('custom array.root template (#145 / #139)', () => {
+describe('custom array.root template (#145 / #139 / #154)', () => {
+  // createRenderer wraps ArrayHost around the merged array.root, so a custom
+  // template that only arranges `{children}` + addButton still gets live slot
+  // children and add/remove context. Do not call ArrayHost from the template.
   const CustomFields = createRenderer({
     ...nativeDefaults,
     array: {
@@ -166,6 +174,10 @@ describe('custom array.root template (#145 / #139)', () => {
         </fieldset>
       ),
     },
+  })
+
+  it('ArrayHost is the exported slot-state host (#154)', () => {
+    expect(typeof ArrayHost).toBe('function')
   })
 
   it('add/remove still work when the root template arranges parts without wrapping Default', async () => {
