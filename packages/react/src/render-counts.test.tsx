@@ -12,12 +12,12 @@ import { render } from 'vitest-browser-react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import { useState } from 'react'
+import type { FieldControl } from '@formframe/core'
 import {
   createRenderer,
   nativeDefaults,
   type ReactPartialDefaults,
 } from './renderer'
-import type { FieldControl } from '@formframe/core'
 
 type Counts = Record<string, number>
 
@@ -43,9 +43,23 @@ function countingAdapter(counts: Counts): ReactPartialDefaults {
       },
       label: d.field.label,
       description: d.field.description,
-      control: (data) => {
-        bump(`field.control:${controlName(data)}`)
-        return d.field.control(data)
+      control: {
+        input: (data) => {
+          bump(`field.control:${controlName(data)}`)
+          return d.field.control.input(data)
+        },
+        select: (data) => {
+          bump(`field.control:${controlName(data)}`)
+          return d.field.control.select(data)
+        },
+        textarea: (data) => {
+          bump(`field.control:${controlName(data)}`)
+          return d.field.control.textarea(data)
+        },
+        choicegroup: (data) => {
+          bump(`field.control:${controlName(data)}`)
+          return d.field.control.choicegroup(data)
+        },
       },
     },
     group: {

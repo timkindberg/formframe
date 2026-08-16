@@ -70,28 +70,25 @@ function RhfParityFieldRoot({
   )
 }
 
-function RhfParityFieldControl(control: FieldControl): ReactNode {
+function RhfParityInput(
+  control: Extract<FieldControl, { kind: 'input' }>
+): ReactNode {
   const { register } = useFormContext()
   const errorA11y = errorA11yProps(useContext(FieldA11yContext))
-  switch (control.kind) {
-    case 'input': {
-      const path = control.attrs.name
-      return (
-        <input
-          {...control.attrs}
-          {...register(path, { setValueAs: blankToUndefined })}
-          {...errorA11y}
-        />
-      )
-    }
-  }
-  return nativeDefaults.field.control(control)
+  const path = control.attrs.name
+  return (
+    <input
+      {...control.attrs}
+      {...register(path, { setValueAs: blankToUndefined })}
+      {...errorA11y}
+    />
+  )
 }
 
 const rhfParityDefaults: ReactPartialDefaults = {
   field: {
     root: RhfParityFieldRoot,
-    control: RhfParityFieldControl,
+    control: { input: RhfParityInput },
   },
 }
 

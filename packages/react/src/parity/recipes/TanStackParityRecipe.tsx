@@ -91,28 +91,30 @@ function useTanStackForm(): RecipeFormApi {
   return form
 }
 
-function TanStackParityControlInner({
-  control,
-  field,
-}: {
-  control: FieldControl
-  field: RecipeFieldApi
-}): ReactNode {
-  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
-  switch (control.kind) {
-    case 'input':
-      return (
-        <input
-          {...control.attrs}
-          {...errorA11y}
-          value={String(field.state.value ?? '')}
-          onChange={(e) => field.handleChange(blankToUndefined(e.target.value))}
-          onBlur={field.handleBlur}
-        />
-      )
-    default:
-      return nativeDefaults.field.control(control)
+function useTanStackParityField(): RecipeFieldApi {
+  const field = useContext(TanStackFieldBindingContext)
+  if (!field) {
+    throw new Error(
+      'TanStackParityRecipe: field.control rendered outside TanStackParityFieldRoot'
+    )
   }
+  return field
+}
+
+function TanStackParityInput(
+  control: Extract<FieldControl, { kind: 'input' }>
+): ReactNode {
+  const field = useTanStackParityField()
+  const errorA11y = errorA11yProps(useContext(FieldA11yContext))
+  return (
+    <input
+      {...control.attrs}
+      {...errorA11y}
+      value={String(field.state.value ?? '')}
+      onChange={(e) => field.handleChange(blankToUndefined(e.target.value))}
+      onBlur={field.handleBlur}
+    />
+  )
 }
 
 function TanStackParityFieldRoot({
@@ -141,20 +143,10 @@ function TanStackParityFieldRoot({
   )
 }
 
-function TanStackParityFieldControl(control: FieldControl): ReactNode {
-  const field = useContext(TanStackFieldBindingContext)
-  if (!field) {
-    throw new Error(
-      'TanStackParityRecipe: field.control rendered outside TanStackParityFieldRoot'
-    )
-  }
-  return <TanStackParityControlInner control={control} field={field} />
-}
-
 const tanstackParityDefaults: ReactPartialDefaults = {
   field: {
     root: TanStackParityFieldRoot,
-    control: TanStackParityFieldControl,
+    control: { input: TanStackParityInput },
   },
 }
 

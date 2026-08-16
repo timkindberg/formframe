@@ -31,17 +31,18 @@ const form = jsonSchemaToRuntimeTree(schema)
 // 1. Nothing supplied — the whole tree renders diagnostic markers.
 const FieldsEmpty = createRenderer({})
 
-// 2. Supply just the field control for text inputs — inputs light up; the rest
-// (including selects) stay markers. One unified `control` slot (ADR 029 §5).
+// 2. Supply just the field control input arm — inputs light up; the rest
+// (including selects) stay markers. One arm, not a kind switch (ADR 052).
 const FieldsInput = createRenderer({
   field: {
-    control: (control) =>
-      control.kind === 'input' ? <input {...control.attrs} /> : null,
+    control: {
+      input: (control) => <input {...control.attrs} />,
+    },
   },
 })
 
-// 3. Supply the field's parts + the group's caption — almost there. The single
-// `control` renderer narrows on `control.kind` to cover every archetype.
+// 3. Supply the field's parts + the group's caption — almost there. The
+// control map has one arm per archetype.
 const FieldsMost = createRenderer({
   field: {
     label: ({ text, attrs, showRequired }) => (
@@ -51,34 +52,28 @@ const FieldsMost = createRenderer({
         {showRequired && <span aria-hidden> *</span>}
       </label>
     ),
-    control: (control) => {
-      switch (control.kind) {
-        case 'input':
-          return <input {...control.attrs} />
-        case 'textarea':
-          return <textarea {...control.attrs} />
-        case 'select':
-          return (
-            <select {...control.attrs}>
-              <option value="">-- select --</option>
-              {control.options.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          )
-        case 'choicegroup':
-          return (
-            <div role={control.role} aria-labelledby={control.labelledBy}>
-              {control.options.map((o) => (
-                <label key={o.attrs.id}>
-                  <input {...o.attrs} /> {o.label}
-                </label>
-              ))}
-            </div>
-          )
-      }
+    control: {
+      input: (control) => <input {...control.attrs} />,
+      textarea: (control) => <textarea {...control.attrs} />,
+      select: (control) => (
+        <select {...control.attrs}>
+          <option value="">-- select --</option>
+          {control.options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      ),
+      choicegroup: (control) => (
+        <div role={control.role} aria-labelledby={control.labelledBy}>
+          {control.options.map((o) => (
+            <label key={o.attrs.id}>
+              <input {...o.attrs} /> {o.label}
+            </label>
+          ))}
+        </div>
+      ),
     },
   },
   group: { label: ({ text }) => <legend>{text}</legend> },

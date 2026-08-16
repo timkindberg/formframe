@@ -7,6 +7,7 @@ bd `cm7`)
 **Deciders:** Tim Kindberg
 **Supersedes:** ADR 022 (Widget Selection as a Layered IR Slot)
 **Amends:** ADR 012 §3 (ownership of schema-derived HTML attributes)
+**Annotated by:** [ADR 052](./052_control_map_and_object_slot_merge.md) — defaults `field.control` is a map of kind arms; the IR facet is still one `parts.control`
 
 ## Context
 

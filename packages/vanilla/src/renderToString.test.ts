@@ -157,13 +157,12 @@ describe('createRenderer — the floor (ADR 013)', () => {
     expect(html).not.toContain('<input')
   })
 
-  it('a supplied entry renders for real; the rest stay diagnostic', () => {
+  it('a supplied control arm renders for real; the rest stay diagnostic', () => {
     const render = createRenderer({
       field: {
-        control: (control) =>
-          control.kind === 'input'
-            ? `<input data-floor${attrsId(control.attrs.id)}>`
-            : '',
+        control: {
+          input: (control) => `<input data-floor${attrsId(control.attrs.id)}>`,
+        },
       },
     })
     const html = render(form)

@@ -192,13 +192,12 @@ describe('createRenderer — the floor (ADR 013)', () => {
     expect(document.querySelector('input')).toBeNull()
   })
 
-  it('a supplied entry renders for real; siblings stay diagnostic', async () => {
+  it('a supplied control arm renders for real; siblings stay diagnostic', async () => {
     const Floor = createRenderer({
       field: {
-        control: (control) =>
-          control.kind === 'input' ? (
-            <input {...control.attrs} data-floor />
-          ) : null,
+        control: {
+          input: (control) => <input {...control.attrs} data-floor />,
+        },
       },
     })
     const form = jsonSchemaToRuntimeTree(schema)
@@ -220,12 +219,21 @@ describe('createRenderer — the floor (ADR 013)', () => {
       .toBeInTheDocument()
   })
 
-  it('mergeDefaults last-wins per key and leaves untouched slots on the base', () => {
-    const customControl = () => <input data-merged />
+  it('mergeDefaults one-level-merges a control arm and keeps native siblings by reference', () => {
+    const customInput = () => <input data-merged />
     const merged = mergeDefaults(nativeDefaults, {
-      field: { control: customControl },
+      field: { control: { input: customInput } },
     })
-    expect(merged.field.control).toBe(customControl)
+    expect(merged.field.control.input).toBe(customInput)
+    expect(merged.field.control.select).toBe(
+      nativeDefaults.field.control.select
+    )
+    expect(merged.field.control.textarea).toBe(
+      nativeDefaults.field.control.textarea
+    )
+    expect(merged.field.control.choicegroup).toBe(
+      nativeDefaults.field.control.choicegroup
+    )
     expect(merged.field.label).toBe(nativeDefaults.field.label)
     expect(merged.group.root).toBe(nativeDefaults.group.root)
   })
