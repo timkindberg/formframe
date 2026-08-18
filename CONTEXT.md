@@ -11,7 +11,7 @@ The hub. Owns the form tree and the recursive fold over it. Stateless, framework
 _Avoid_: kernel, parser (parsing is one front-end, not Core's identity). "Engine" is fine for the continuation mechanism *within* Core (see **Continuation** — "the continuation engine"), just not as a bare synonym for Core-the-hub.
 
 **Form tree** (the IR):
-Core's internal representation of a form — the intermediate representation that every front-end compiles *into* and every consumer folds *over*.
+Core's internal representation of a form — the intermediate representation that every front-end compiles *into* and every adapter folds *over*.
 _Avoid_: AST, model, schema (the schema is a source, not the tree).
 
 **Continuation** (the fold):
@@ -22,11 +22,12 @@ An adapter that compiles a schema *into* the form tree (e.g. the JSON Schema fro
 _Avoid_: parser, loader.
 
 **Consumer**:
-An adapter that folds *over* the form tree to produce something (a framework binding, validation, form state, rendered UI).
+The app developer using FormFrame — someone who writes a defaults table (team / Chakra recipe) or a page-level form.
+_Avoid_: using consumer for a package that folds over the tree (that's an **adapter**); end user (the person filling in the form).
 
 **Spoke** / **Adapter**:
-Any pluggable package that hangs off Core. Used interchangeably. First-class and user-writable — the extension model is to write an adapter, not fork Core.
-_Avoid_: layer (implies a strict linear stack; the shape is deliberately undrawn — see ADRs).
+Any pluggable package that hangs off Core. Used interchangeably. Front-ends compile *into* the tree; other adapters fold *over* it (renderer, form-state, validation, …). First-class and user-writable — the extension model is to write an adapter, not fork Core.
+_Avoid_: layer (implies a strict linear stack; the shape is deliberately undrawn — see ADRs); consumer (the person, not the package).
 
 **Capability slot**:
 A swappable responsibility: structure, validation, framework-binding, form-state, presentation. Swappability is per-slot — one package may fill several slots (e.g. a UI kit that ships its own form-state).
@@ -82,19 +83,19 @@ _Avoid_: cancelled run (staleness does not imply cancellation)
 **Schema** (the source):
 The pluggable artifact that drives automatic form generation. May be JSON Schema, a Zod schema, or a TypeScript type. The developer authors *one* source; everything else is derived.
 
-**Mode 1** (Dynamic):
-The form's shape is unknown at build time and must be serializable (DB-driven). JSON Schema is the source.
-_Avoid_: runtime mode.
+**Unknown-shape** (Mode 1, Dynamic):
+The form's shape is not known at build time and must be serializable (DB-driven / tenant-configured). JSON Schema is the usual source. Customize with ui_schema / rule_schema only where JSX cannot be shipped.
+_Avoid_: runtime mode; saying Mode 1 without unknown-shape.
 
-**Mode 2** (Static):
-The form's shape is known at build time. A Zod schema or TS type is the source, and customization is done in JSX.
-_Avoid_: known-shape mode, compile-time mode (pick "Static").
+**Known-shape** (Mode 2, Static):
+The form's shape is known at build time, so customize is JSX (defaults / intercept). Source may be JSON Schema, Zod, or a TypeScript type — known-shape is not a Zod requirement. Every source still gets a typed `FormShape` binding; a greenfield app may prefer Zod, but JSON Schema is not a second-class type story.
+_Avoid_: compile-time mode; saying Mode 2 without known-shape; saying known-shape requires Zod.
 
 **ui_schema**:
-Serializable customization hints, used only in Mode 1 where customization must also be stored. Kept deliberately minimal — reaching for a new ui_schema keyword is a smell that the form is actually Static and should use JSX.
+Serializable customization hints, used only for unknown-shape forms where customization must also be stored. Kept deliberately minimal — reaching for a new ui_schema keyword is a smell that the form is actually known-shape and should use JSX.
 
 **rule_schema**:
-Serializable conditional logic (e.g. conditionally required/hidden fields), used only in Mode 1 for genuinely DB-driven, tenant-configured rules. Thin by design.
+Serializable conditional logic (e.g. conditionally required/hidden fields), used only for unknown-shape, tenant-configured rules. Thin by design.
 
 ## Rendering & customization
 
@@ -108,8 +109,8 @@ _Avoid_: source-specific React hooks that hide compilation and privilege one fro
 The component that folds the form tree into UI — the fractal root from which `intercept` / `Default` / `Children` descend. It renders the form's *content only*; the `<form>` element + submit button are the consumer's (chrome is deliberately not the library's, so renderers nest cleanly).
 _Avoid_: Form, FormRenderer (it renders fields, not a `<form>`); bare `Fields` (ambiguous with a form's fields — the `Schema` prefix marks it as the schema-driven renderer).
 
-**Renderer adapter** (a presentation consumer):
-A consumer that folds the form tree into UI for one target (React, vanilla DOM, …). It supplies the **default renderer set**, organized as a *compound per node kind*: each kind has a **template** (`root` — its composition renderer) plus its **parts** — `field: { root, label, description, control }`, `group: { root, label, description }`, `array: { root, label, description, addButton }`, `arrayItem: { root, removeButton }` — plus the `combine` plumbing. (`root` follows the compound-component convention — Chakra/Radix/Ark — the root of *that* thing; namespaced under the kind, so distinct from the form-tree root.) You customize by overriding entries *by reference*: `{ ...nativeDefaults, field: { ...nativeDefaults.field, label: MyLabel } }`; the same set, partially overridden, is the lower rung beneath the batteries-included renderer. Parts are **per-node-context** — a field's `label` is a `<label>`, a group's `label` is a `<legend>`; an array's `addButton` and an arrayItem's `removeButton` are the add/remove controls. **Interactive behavior is per-adapter, not part of the contract** — the engine and the renderer set produce *markup*; a stateful adapter (React; a future vanilla-DOM adapter) wires add/remove, while the string oracle (`renderToString`) renders the same controls inert. Cross-adapter conformance is therefore a *markup* contract. A renderer ships two built-in sets: the real **defaults**, and a **diagnostic** set whose every content entry renders a visible `[… not implemented]` marker echoing the node's data — the floor's fallback, so an incomplete adapter still runs and tells you what's missing.
+**Renderer adapter** (a presentation adapter):
+An adapter that folds the form tree into UI for one target (React, vanilla DOM, …). It supplies the **default renderer set**, organized as a *compound per node kind*: each kind has a **template** (`root` — its composition renderer) plus its **parts** — `field: { root, label, description, control }`, `group: { root, label, description }`, `array: { root, label, description, addButton }`, `arrayItem: { root, removeButton }` — plus the `combine` plumbing. (`root` follows the compound-component convention — Chakra/Radix/Ark — the root of *that* thing; namespaced under the kind, so distinct from the form-tree root.) You customize by overriding entries *by reference*: `{ ...nativeDefaults, field: { ...nativeDefaults.field, label: MyLabel } }`; the same set, partially overridden, is the lower rung beneath the batteries-included renderer. Parts are **per-node-context** — a field's `label` is a `<label>`, a group's `label` is a `<legend>`; an array's `addButton` and an arrayItem's `removeButton` are the add/remove controls. **Interactive behavior is per-adapter, not part of the contract** — the engine and the renderer set produce *markup*; a stateful adapter (React; a future vanilla-DOM adapter) wires add/remove, while the string oracle (`renderToString`) renders the same controls inert. Cross-adapter conformance is therefore a *markup* contract. A renderer ships two built-in sets: the real **defaults**, and a **diagnostic** set whose every content entry renders a visible `[… not implemented]` marker echoing the node's data — the floor's fallback, so an incomplete adapter still runs and tells you what's missing.
 _Avoid_: template-set, calling the whole adapter a template (that's RJSF's schema-keyed registry). The kind `root` *is* a template.
 
 **Defaults** (the renderer set):
@@ -146,8 +147,45 @@ The part-scope intercept on `node.Default`: override individual parts (each over
 **Golden scenario**:
 A representative real-world form (sanitized, VNDLY-style) that must pass at all three test altitudes — unit, component-integration, and end-to-end in the example app. The collected golden scenarios are the project's definition of done.
 
-**Stubborn spike**:
-A deliberate experiment that tries to push a piece of logic (or a sub-piece) as close to Core as it can go, to discover its true floor. Produces an ADR/issue documenting where it stopped and why — not a pass/fail gate.
+**Stubborn Core boundary**:
+Core imports nothing, holds no state, and touches no DOM or framework. If a feature needs any of those, it lives in an adapter.
+_Avoid_: stubborn spike (deleted — this boundary is the term; trying something in Core and writing an ADR needs no special ticket type).
+
+**As-is spike**:
+An experiment that uses FormFrame without adding library features, against one real known-shape screen. Compile or runtime bugs that prevent rendering may be fixed; everything else becomes a filed issue. Output is a failure list, not a production replacement and not a golden scenario until a later decision copies it. Each failure is tagged with one **failure disposition** plus timing (`now` / `defer`).
+_Avoid_: forcing-function spike; adoption spike (that's the epic's job); stubborn spike.
+
+**Failure disposition**:
+Ownership of an as-is-spike failure. One of **library gap**, **IOC seam**, **host recipe**, or **don’t migrate**. Timing (`now` / `defer`) is a separate flag, not a fifth bucket.
+_Avoid_: FormFrame hole; VNDLY adapter; don’t migrate yet (that mixed ownership with timing).
+
+**Library gap**:
+FormFrame’s own foundations are missing or broken — the consumer cannot build on top, or the promised model is false.
+_Avoid_: calling an ignored consumer construct (RJSF `enumNames`, `l10nTitle`, `preloadFromApi`, JSFSelect) a library gap.
+
+**IOC seam**:
+A generic FormFrame surface added only because a **host recipe** was too hacky. Early in adoption the bar is low: if a common need does not look canonically correct, that is too hacky. The bar rises later for lesser customizations. The consumer still owns the capability; FormFrame does not learn the consumer’s construct.
+_Avoid_: shipping enumNames / l10nTitle / preloadFromApi / JSFSelect; speculative seams (ADR 008).
+
+**Host recipe**:
+Consumer-owned code that implements a capability FormFrame does not ship — `defaults`, `intercept`, a **source transform**, payload mapping — using existing foundations. It has two layers: **platform defaults** (UI-platform team: Chakra, RHF, …) and **form intercept** (feature team: this screen’s layout and path intercepts). The feature team consumes the exported platform form, not a copy of the defaults table.
+_Avoid_: VNDLY adapter (collides with **Adapter**); a FormFrame package for the host (ADR 024); mixing both layers in one module as the taught shape.
+
+**Platform defaults**:
+The host UI-platform team’s `defaults` table (and `useTeamFormTree` wrapper) shared across forms. Kind-wide widget swaps live here — e.g. SmartSelect as the default `select` control (static options and fetched options).
+_Avoid_: putting path intercepts or screen layout in the platform table.
+
+**Form intercept**:
+The feature team’s per-form customize — `SchemaFields` children for layout, and path `intercept` only for what is unique to this screen. Built on **platform defaults**, not on `nativeDefaults` directly.
+_Avoid_: re-declaring Chakra/RHF defaults in the screen; intercepting every select when the platform already swapped `select` for SmartSelect.
+
+**Don’t migrate**:
+An RJSF construct is replaced by JSX or dropped. It never becomes a `ui_schema` keyword.
+_Avoid_: don’t migrate yet; treating JSX replacement as a library gap.
+
+**Source transform**:
+A consumer rewrite of a source document into a shape an existing **front-end** already compiles, run *before* `jsonSchemaToTree` / `zodToTree` (e.g. `enum`+`enumNames` → `oneOf`+`const`+`title`).
+_Avoid_: front-end (that compiles *into* the tree); compiling the original construct inside FormFrame.
 
 **Swappability contract test**:
 A shared test suite that every adapter filling a given capability slot must pass, plus a throwaway "fake" adapter, proving the seam is real rather than claimed.

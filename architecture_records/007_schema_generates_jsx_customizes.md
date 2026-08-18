@@ -11,7 +11,7 @@ Two failure modes bracket this library:
 - **RJSF** — schema drives *everything*, including customization. The easy 80% is fast, but every hard-20% need forces more `ui_schema`/`rule_schema` indirection, because RJSF's overrides are schema-keyed registries, not code.
 - **Plain form libs (RHF/TanStack)** — code for everything, no auto-generation.
 
-We want the in-between. We must also fully serve VNDLY (very schema-, ui_schema-, rule_schema-centric, genuinely DB-driven) **without** re-growing RJSF's indirection for everyone else.
+We want the in-between. We must also fully serve VNDLY: unknown-shape tenant forms (schema / ui_schema / rule_schema, genuinely DB-driven) **and** known-shape product forms still authored with those artifacts — **without** re-growing RJSF's indirection for everyone else.
 
 ## Decision
 
@@ -22,9 +22,9 @@ We want the in-between. We must also fully serve VNDLY (very schema-, ui_schema-
 - **JSX (code)** is the first-class, default surface. Override any node in the tree with your own JSX, and call `renderChildren()` to hand control back to the default renderer for that node's subtree (re-entrancy). This is the RJSF-killer.
 - **Serializable schema (data)** supports DB-driven cases where customization itself must be stored. This heavier path is pushed into **adapters — including user-written ones** (e.g. a VNDLY adapter for tenant-specific behavior). Its precise shape is **deferred**.
 
-**Authoring modes:** Mode 1 (dynamic / DB-driven → JSON Schema source) vs Mode 2 (static / known-shape → Zod or TS source). Principle: **serialize when you must, code when you can** — per form, even per node.
+**Authoring modes:** **Unknown-shape** (Mode 1, Dynamic) vs **known-shape** (Mode 2, Static). Unknown-shape is DB-driven / tenant-configured and must be serializable; JSON Schema is the usual source. Known-shape is known at build time, so customize is JSX. Known-shape source may be JSON Schema, Zod, or a TypeScript type — a greenfield app may prefer Zod for types, but JSON Schema known-shape still gets a typed `FormShape` binding (ADR 048). Principle: **serialize when you must, code when you can** — per form, even per node.
 
-**Guardrail:** never bloat the *core* schema vocabulary to solve a customization. A new core `ui_schema` keyword is a smell that the form is actually static and should use JSX.
+**Guardrail:** never bloat the *core* schema vocabulary to solve a customization. A new core `ui_schema` keyword is a smell that the form is actually known-shape and should use JSX.
 
 ## Consequences
 
@@ -38,4 +38,6 @@ We want the in-between. We must also fully serve VNDLY (very schema-, ui_schema-
 
 ---
 
-**Amends:** the pairing/customization framing in `README.md`. **Relates to:** ADR 006 (adapters), ADR 008 (swappability).
+**Amends:** the pairing/customization framing in `README.md`. **Relates to:** ADR 006 (adapters), ADR 008 (swappability), ADR 048 (`FormShape` types).
+
+**Amended 2026-08-16:** Known-shape (Mode 2) is not Zod-or-TS-only. JSON Schema is a valid known-shape source; customize is still JSX. Greenfield apps may still choose Zod. See `CONTEXT.md` (unknown-shape / known-shape).
