@@ -115,7 +115,9 @@ In a schema-driven form, the end user never sees the form-state library — it's
 - We do not chase every form library — native plus at most RHF/TanStack.
 - *Live* validation display requires a reactive form-state adapter; submit-time validation works fine on the native adapter.
 
-A first-party reactive store (dependency-free live behavior without reaching for RHF/TanStack) is a deferred idea — YAGNI until a concrete need (e.g. live tenant rules) forces it.
+Unknown-shape `rule_schema` is the same trigger: FormFrame does **not** evaluate it ([ADR 056](./architecture_records/056_field_mode_is_a_recipe_result.md)). A host engine folds into **field mode** (hidden / required / read-only) and **value effects**; the copyable recipe is `createFieldMode` + `createAjvValidator(schema, { fieldMode })`. Live rules need a reactive form-state adapter — native FormData snapshots go stale. Field-mode changes project **data and errors**; they do not mutate `schema.required` or recompile AJV.
+
+A first-party reactive store (dependency-free live behavior without reaching for RHF/TanStack) is a deferred idea — YAGNI until a concrete need forces it.
 
 ## Type System Decisions
 

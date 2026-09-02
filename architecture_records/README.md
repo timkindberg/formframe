@@ -65,6 +65,7 @@ no first-party store, annotated).
 | [050](./050_validation_is_a_non_goal.md) | Validation Is a Non-Goal — Library Renders; Recipes Produce | Current validation framing |
 | [051](./051_defaults_and_intercept.md) | Defaults vs Intercept — Two Jobs, Two Names | Annotates ADR 013 and ADR 047 §3/§6 |
 | [052](./052_consumers_build_on_foundations.md) | Consumers Build Capabilities; FormFrame Grows Generic Surfaces | Host recipes vs IOC seams; no consumer constructs in the library |
+| [056](./056_field_mode_is_a_recipe_result.md) | Field Mode Is a Recipe Result Seam, Not a FormFrame Rules Engine | Annotates ADR 047 §7 |
 
 ## Proposed
 

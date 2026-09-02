@@ -22,6 +22,7 @@ import RecipeTanStackFormJSONSchema from './Recipe_TanStackForm_JSONSchema'
 import RecipeTanStackFormZod from './Recipe_TanStackForm_Zod'
 import RecipeNativeFormJSONSchema from './Recipe_NativeForm_JSONSchema'
 import RecipeNativeFormZod from './Recipe_NativeForm_Zod'
+import RecipeFieldModeJSONSchema from './Recipe_FieldMode_JSONSchema'
 
 const examples = [
   { id: '01', name: 'Core + Boilerplate', component: App01 },
@@ -98,6 +99,11 @@ const examples = [
     id: 'native-zod',
     name: 'Recipe · Native · Zod',
     component: RecipeNativeFormZod,
+  },
+  {
+    id: 'field-mode',
+    name: 'Recipe · unknown-shape field mode',
+    component: RecipeFieldModeJSONSchema,
   },
 ]
 
