@@ -5,6 +5,9 @@
 // Recipe_TanStackForm_JSONSchema, plus the App_* demos that share that stack).
 // Zod recipes do not need it — use `fromStandardSchema(schema)` from Core.
 //
+// `{ fieldMode }` also needs `fieldMode.recipe.ts` (ADR 056). Native / Zod
+// use `withFieldMode` from that file instead of this option.
+//
 // Defaults suit form data: `allErrors`, `strict: false`, `coerceTypes: true`
 // (FormData is all strings), and `ajv-formats` so `format: 'email'` etc. work.
 // The input is never mutated (clone when AJV would rewrite in place); coerced
@@ -14,6 +17,7 @@ import addFormats from 'ajv-formats'
 import type { Validator, ValidationError } from '@formframe/core'
 import { joinPath, jsonPointerToPath } from '@formframe/core'
 import type { InferData, JSONSchema } from '@formframe/input-jsonschema'
+import { withFieldMode, type FieldModeSnapshot } from './fieldMode.recipe'
 
 export interface AjvValidatorOptions {
   /**
@@ -27,11 +31,20 @@ export interface AjvValidatorOptions {
    * own formats via {@link AjvValidatorOptions.ajv}.
    */
   formats?: boolean
+  /**
+   * Same function as field UI: `(values) => snapshot` from `createFieldMode`.
+   * AJV then omits hidden paths, drops their errors, and injects field-mode
+   * `required`. Derive from the data being validated — not a React ref.
+   */
+  fieldMode?: (data: unknown) => FieldModeSnapshot
 }
 
 /**
  * Build a {@link Validator} backed by AJV. The schema is compiled once; returned
  * errors use the same dot-path as `node.path` so FormFrame can place them.
+ * Pass `{ fieldMode }` (from `createFieldMode`) so required/hidden agree with
+ * field UI — copy `fieldMode.recipe.ts` when you use that option. Field mode
+ * does not mutate `schema.required` or recompile between validations.
  */
 export function createAjvValidator<const S extends JSONSchema>(
   schema: S,
@@ -52,7 +65,7 @@ export function createAjvValidator<const S extends JSONSchema>(
     Boolean(ajvOpts.useDefaults) ||
     Boolean(ajvOpts.removeAdditional)
 
-  return (data: unknown) => {
+  const run: Validator<InferData<S>> = (data: unknown) => {
     if (!mutates) {
       const valid = validate(data) === true
       const errors = valid ? [] : (validate.errors ?? []).map(toError)
@@ -63,6 +76,8 @@ export function createAjvValidator<const S extends JSONSchema>(
     const errors = valid ? [] : (validate.errors ?? []).map(toError)
     return { valid, errors, data: coerced as InferData<S> }
   }
+
+  return options.fieldMode ? withFieldMode(run, options.fieldMode) : run
 }
 
 /** Deep-clone JSON-shaped form data (plain objects, arrays, primitives). */

@@ -95,7 +95,15 @@ _Avoid_: compile-time mode; saying Mode 2 without known-shape; saying known-shap
 Serializable customization hints, used only for unknown-shape forms where customization must also be stored. Kept deliberately minimal — reaching for a new ui_schema keyword is a smell that the form is actually known-shape and should use JSX.
 
 **rule_schema**:
-Serializable conditional logic (e.g. conditionally required/hidden fields), used only for unknown-shape, tenant-configured rules. Thin by design.
+Serializable conditional logic for unknown-shape, tenant-configured forms, stored next to the schema. FormFrame does not evaluate it. A host engine folds its result into field mode and value effects.
+_Avoid_: treating rule_schema as a FormFrame DSL or runtime; ui_rules as the FormFrame name; putting functions in the portable representation.
+
+**Field mode**:
+The current per-path hidden, required, and read-only axes a host engine’s result is folded into. Consumed as predicates (`isHidden` / `isRequired` / `isReadOnly`). Not a FormFrame hide API.
+_Avoid_: overlay (that is `parts` on `Default`); rule state; hide API; calling set/clear a field-mode axis; a FormFrame condition language.
+
+**Value effects**:
+The set/clear writes that fall out of the same fold. The host applies them; they are not field mode.
 
 ## Rendering & customization
 

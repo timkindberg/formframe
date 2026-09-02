@@ -10,6 +10,8 @@
     "src/**/*.test.tsx",
     "src/**/*.tsx",
     "vitest.setup.ts",
-    "../../examples/basic-react/src/ajvValidator.recipe.ts"
+    "vitest.memory.setup.ts",
+    "../../examples/basic-react/src/ajvValidator.recipe.ts",
+    "../../examples/basic-react/src/fieldMode.recipe.ts"
   ]
 }
