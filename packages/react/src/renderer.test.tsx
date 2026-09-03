@@ -133,18 +133,19 @@ describe('SchemaFields', () => {
       .toBeInTheDocument()
   })
 
-  it('place-yourself at the root: custom layout via children render-prop', async () => {
+  it('place-yourself at the root: custom layout via the layout prop', async () => {
     const form = jsonSchemaToRuntimeTree(schema)
     const screen = await render(
-      <SchemaFields form={form}>
-        {(root, { Default }) => (
+      <SchemaFields
+        form={form}
+        layout={(root, { Default }) => (
           <>
             <Default of={root.children.color} />
             <p>in-between</p>
             <Default of={root.children.name} />
           </>
         )}
-      </SchemaFields>
+      />
     )
 
     await expect.element(screen.getByText('in-between')).toBeInTheDocument()
@@ -159,8 +160,9 @@ describe('SchemaFields', () => {
   it('scoped renderNode applies only within a subtree', async () => {
     const form = jsonSchemaToRuntimeTree(schema)
     const screen = await render(
-      <SchemaFields form={form}>
-        {(root, { Default }) => {
+      <SchemaFields
+        form={form}
+        layout={(root, { Default }) => {
           const address = root.children.address
           return address.isGroup ? (
             <Default
@@ -175,11 +177,129 @@ describe('SchemaFields', () => {
             />
           ) : null
         }}
-      </SchemaFields>
+      />
     )
 
     // the scoped override fires inside address…
     await expect.element(screen.getByText('scoped-street')).toBeInTheDocument()
+  })
+
+  it('layout placements go through SchemaFields intercept', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{
+          name: () => <p>intercepted-name</p>,
+        }}
+        layout={(root, { Default }) => (
+          <>
+            <Default of={root.children.name} />
+            <Default of={root.children.color} />
+          </>
+        )}
+      />
+    )
+
+    await expect
+      .element(screen.getByText('intercepted-name'))
+      .toBeInTheDocument()
+    await expect
+      .element(screen.getByRole('combobox', { name: 'Color' }))
+      .toBeInTheDocument()
+    expect(document.querySelector('input[name="name"]')).toBeNull()
+  })
+
+  it('Default accepts layout to place a nested group (fractal SchemaFields)', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        layout={(root, { Default }) => {
+          const address = root.children.address
+          return address.isGroup ? (
+            <Default
+              of={address}
+              layout={(addr, { Default: D }) => (
+                <div data-testid="addr-layout">
+                  <D of={addr.children.street} />
+                </div>
+              )}
+            />
+          ) : null
+        }}
+      />
+    )
+
+    await expect.element(screen.getByTestId('addr-layout')).toBeInTheDocument()
+    await expect
+      .element(screen.getByRole('textbox', { name: 'Street' }))
+      .toBeInTheDocument()
+    expect(document.querySelector('input[name="name"]')).toBeNull()
+  })
+
+  it('nested layout placements still go through intercept', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{
+          'address.street': () => <p>intercepted-street</p>,
+        }}
+        layout={(root, { Default }) => {
+          const address = root.children.address
+          return address.isGroup ? (
+            <Default
+              of={address}
+              layout={(addr, { Default: D }) => (
+                <div data-testid="addr-layout">
+                  <D of={addr.children.street} />
+                </div>
+              )}
+            />
+          ) : null
+        }}
+      />
+    )
+
+    await expect.element(screen.getByTestId('addr-layout')).toBeInTheDocument()
+    await expect
+      .element(screen.getByText('intercepted-street'))
+      .toBeInTheDocument()
+  })
+
+  it('layout + intercept on Default: layout first, intercept on placed nodes', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        layout={(root, { Default }) => {
+          const address = root.children.address
+          return address.isGroup ? (
+            <Default
+              of={address}
+              intercept={(node, { Default: D }) =>
+                node.isField && node.path === 'address.street' ? (
+                  <p>scoped-laid-out-street</p>
+                ) : (
+                  <D of={node} />
+                )
+              }
+              layout={(addr, { Default: D }) => (
+                <div data-testid="addr-layout">
+                  <D of={addr.children.street} />
+                </div>
+              )}
+            />
+          ) : null
+        }}
+      />
+    )
+
+    await expect.element(screen.getByTestId('addr-layout')).toBeInTheDocument()
+    await expect
+      .element(screen.getByText('scoped-laid-out-street'))
+      .toBeInTheDocument()
   })
 })
 

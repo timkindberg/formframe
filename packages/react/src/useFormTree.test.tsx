@@ -6,12 +6,23 @@
 
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { z } from 'zod'
+import { z, type ZodType } from 'zod'
 import { zodToTree } from '@formframe/input-zod'
-import { jsonSchemaToTree, type JSONSchema } from '@formframe/input-jsonschema'
+import {
+  jsonSchemaToRuntimeTree,
+  jsonSchemaToTree,
+  type JSONSchema,
+  type JSONSchemaObject,
+} from '@formframe/input-jsonschema'
 import { useFormTree } from './index'
 import type { BoundSchemaFieldsProps, UseFormTreeOptions } from './index'
 import type { FieldControl } from '@formframe/core'
+import {
+  Default,
+  type EField,
+  type EGroup,
+  type RenderHelpers,
+} from './renderer'
 
 const schema = z.object({
   name: z.string().min(2).meta({ title: 'Name' }),
@@ -190,6 +201,137 @@ describe('useFormTree', () => {
     expectTypeOf<UseFormTreeOptions>().toHaveProperty('defaults')
     expectTypeOf<UseFormTreeOptions>().not.toHaveProperty('adapter')
     expectTypeOf<BoundSchemaFieldsProps>().toHaveProperty('intercept')
+    expectTypeOf<BoundSchemaFieldsProps>().toHaveProperty('layout')
     expectTypeOf<BoundSchemaFieldsProps>().not.toHaveProperty('renderNode')
+    expectTypeOf<BoundSchemaFieldsProps>().not.toHaveProperty('children')
+  })
+
+  it('layout callback params infer from the named prop', async () => {
+    function Harness() {
+      const { SchemaFields } = useFormTree(tree)
+      return (
+        <SchemaFields
+          layout={(root, { Default: D, Children }) => {
+            expectTypeOf(root.children.name).toEqualTypeOf<EField<ZodType>>()
+            expectTypeOf<keyof typeof root.children>().toEqualTypeOf<'name'>()
+            expectTypeOf(D).toEqualTypeOf<RenderHelpers['Default']>()
+            expectTypeOf(Children).toEqualTypeOf<RenderHelpers['Children']>()
+            expectTypeOf(D).toEqualTypeOf<typeof Default>()
+            return <D of={root.children.name} />
+          }}
+        />
+      )
+    }
+    const screen = await render(<Harness />)
+    await expect
+      .element(screen.getByRole('textbox', { name: 'Name' }))
+      .toBeInTheDocument()
+  })
+
+  it('layout root.children is FormShape-keyed (field vs group, nested layout)', async () => {
+    const nested = z.object({
+      from: z.string().meta({ title: 'From' }),
+      address: z.object({
+        street: z.string().meta({ title: 'Street' }),
+      }),
+    })
+    const nestedTree = zodToTree(nested)
+    function Harness() {
+      const { SchemaFields } = useFormTree(nestedTree)
+      return (
+        <SchemaFields
+          layout={(root, { Default }) => {
+            expectTypeOf(root.children.from).toEqualTypeOf<EField<ZodType>>()
+            expectTypeOf<keyof typeof root.children>().toEqualTypeOf<
+              'from' | 'address'
+            >()
+            expectTypeOf(root.children.address.children.street).toEqualTypeOf<
+              EField<ZodType>
+            >()
+            // @ts-expect-error — not a child of this schema
+            void root.children.nope
+            return (
+              <>
+                <Default of={root.children.from} />
+                <Default
+                  of={root.children.address}
+                  layout={(addr, { Default: D }) => {
+                    expectTypeOf(addr.children.street).toEqualTypeOf<
+                      EField<ZodType>
+                    >()
+                    return <D of={addr.children.street} />
+                  }}
+                />
+              </>
+            )
+          }}
+        />
+      )
+    }
+    const screen = await render(<Harness />)
+    await expect
+      .element(screen.getByRole('textbox', { name: 'From' }))
+      .toBeInTheDocument()
+    await expect
+      .element(screen.getByRole('textbox', { name: 'Street' }))
+      .toBeInTheDocument()
+  })
+
+  it('jsonSchemaToTree literal also keys children (not the runtime door)', async () => {
+    const literal = {
+      type: 'object',
+      properties: {
+        from: { type: 'string', title: 'From' },
+        address: {
+          type: 'object',
+          properties: { street: { type: 'string', title: 'Street' } },
+        },
+      },
+    } as const satisfies JSONSchema
+    const literalTree = jsonSchemaToTree(literal)
+    function Harness() {
+      const { SchemaFields } = useFormTree(literalTree)
+      return (
+        <SchemaFields
+          layout={(root, { Default }) => {
+            expectTypeOf<keyof typeof root.children>().toEqualTypeOf<
+              'from' | 'address'
+            >()
+            expectTypeOf(root.children.from).toEqualTypeOf<
+              EField<JSONSchemaObject>
+            >()
+            // @ts-expect-error — not a child of this schema
+            void root.children.nope
+            return <Default of={root.children.from} />
+          }}
+        />
+      )
+    }
+    const screen = await render(<Harness />)
+    await expect
+      .element(screen.getByRole('textbox', { name: 'From' }))
+      .toBeInTheDocument()
+  })
+
+  it('unbranded FormShape keeps EGroup children (no literal keys)', async () => {
+    const runtime = jsonSchemaToRuntimeTree({
+      type: 'object',
+      properties: { n: { type: 'string', title: 'N' } },
+    })
+    function Harness() {
+      const { SchemaFields } = useFormTree(runtime)
+      return (
+        <SchemaFields
+          layout={(root, { Default }) => {
+            expectTypeOf(root).toEqualTypeOf<EGroup<JSONSchemaObject>>()
+            return <Default of={root.children.n} />
+          }}
+        />
+      )
+    }
+    const screen = await render(<Harness />)
+    await expect
+      .element(screen.getByRole('textbox', { name: 'N' }))
+      .toBeInTheDocument()
   })
 })

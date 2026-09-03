@@ -35,14 +35,15 @@ describe('<Default errors={ValidationError[]}> inject path', () => {
     function Form() {
       const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
       return (
-        <SchemaFields form={f}>
-          {(root, { Default: D }) => (
+        <SchemaFields
+          form={f}
+          layout={(root, { Default: D }) => (
             <>
               <D of={root.children.username} errors={injected} />
               <D of={root.children.zip} errors={[]} />
             </>
           )}
-        </SchemaFields>
+        />
       )
     }
     await render(<Form />)
@@ -108,8 +109,9 @@ describe('<Default errors={ValidationError[]}> inject path', () => {
     function Form() {
       const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
       return (
-        <SchemaFields form={f}>
-          {(root, { Default: D }) => (
+        <SchemaFields
+          form={f}
+          layout={(root, { Default: D }) => (
             <D
               of={root.children.username}
               errors={injected}
@@ -125,7 +127,7 @@ describe('<Default errors={ValidationError[]}> inject path', () => {
               }}
             />
           )}
-        </SchemaFields>
+        />
       )
     }
     await render(<Form />)
@@ -150,8 +152,9 @@ describe('<Default errors={ValidationError[]}> inject path', () => {
     function Form() {
       const f = useMemo(() => jsonSchemaToRuntimeTree(schema), [])
       return (
-        <SchemaFields form={f}>
-          {(root, { Default: D }) => (
+        <SchemaFields
+          form={f}
+          layout={(root, { Default: D }) => (
             <D
               of={root.children.username}
               errors={injected}
@@ -168,7 +171,7 @@ describe('<Default errors={ValidationError[]}> inject path', () => {
               }}
             />
           )}
-        </SchemaFields>
+        />
       )
     }
     await render(<Form />)

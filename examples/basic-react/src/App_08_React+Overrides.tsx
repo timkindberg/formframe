@@ -187,10 +187,11 @@ export default function App() {
         />
       </Section>
 
-      <Section title="3. Place-yourself at the ROOT (function children)">
+      <Section title="3. Place-yourself at the ROOT (`layout` prop)">
         <form>
-          <SchemaFields form={form}>
-            {(root, { Default }) => (
+          <SchemaFields
+            form={form}
+            layout={(root, { Default }) => (
               <>
                 <p style={{ color: '#666' }}>Custom top-level layout:</p>
                 <Default of={root.children.name} />
@@ -202,14 +203,15 @@ export default function App() {
                 </div>
               </>
             )}
-          </SchemaFields>
+          />
         </form>
       </Section>
 
       <Section title="4. Recursion within recursion — root layout + a scoped intercept subtree">
         <form>
-          <SchemaFields form={form}>
-            {(root, { Default }) => {
+          <SchemaFields
+            form={form}
+            layout={(root, { Default }) => {
               const theme = root.child('theme')
               const address = root.children.address
               return (
@@ -278,7 +280,7 @@ export default function App() {
                 </>
               )
             }}
-          </SchemaFields>
+          />
         </form>
       </Section>
     </div>

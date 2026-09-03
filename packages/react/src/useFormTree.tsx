@@ -1,11 +1,13 @@
-import { useMemo, type FC, type FormEvent, type ReactNode } from 'react'
+import { useMemo, type FormEvent, type ReactNode } from 'react'
 import { present, defaultPresentation, layered } from '@formframe/core'
 import type {
   ApplyWidgetOverrides,
   FormShape,
   GroupNode,
+  OriginOf,
   TypedTree,
   PresentationResolver,
+  TreeShapeOf,
   WidgetOverridesOf,
 } from '@formframe/core'
 import {
@@ -13,9 +15,9 @@ import {
   createRenderer,
   mergeDefaults,
   nativeDefaults,
-  type EGroup,
   type Intercept,
   type ReactPartialDefaults,
+  type SchemaFieldsLayout,
 } from './renderer'
 
 /**
@@ -23,11 +25,14 @@ import {
  * {@link useFormTree}. Same as `SchemaFieldsProps` minus `form` because the hook
  * holds the tree.
  */
-export interface BoundSchemaFieldsProps {
+export interface BoundSchemaFieldsProps<
+  TS extends FormShape = FormShape,
+  Origin = unknown,
+> {
   /** Per-node intercept (ADR 010 / ADR 051). Omit to render every node's default. */
   intercept?: Intercept
-  /** Place-yourself at the root: receives the enriched root node. */
-  children?: (root: EGroup) => ReactNode
+  /** Place-yourself at the root (ADR 053 / 055). Named so the callback infers. */
+  layout?: SchemaFieldsLayout<TS, Origin>
 }
 
 /** Options for {@link useFormTree}. */
@@ -75,7 +80,10 @@ export interface UseFormTreeResult<F, Output> {
    * supplied (bd bh7.8) — type your customize binding off THIS, not the pre-override
    * input, and the typed control cannot desync from what renders. */
   form: F
-  SchemaFields: FC<BoundSchemaFieldsProps>
+  /** Not `React.FC` — `FC` ate the old children-callback type (ADR 053). */
+  SchemaFields: (
+    props: BoundSchemaFieldsProps<TreeShapeOf<F>, OriginOf<F>>
+  ) => ReactNode
   /** Build a DOM submit handler: assembles FormData into `Output` and always
    * calls `onSubmit` with it — no validation gating. Side-load validation
    * (a `Validator`/Standard Schema adapter) yourself and gate the call, or feed
@@ -134,18 +142,20 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
   )
 
   // Stable component type: re-renders do not remount uncontrolled fields.
-  const SchemaFields = useMemo<FC<BoundSchemaFieldsProps>>(() => {
+  const SchemaFields = useMemo(() => {
     const Renderer = defaults
       ? createRenderer(mergeDefaults(nativeDefaults, defaults))
       : SchemaFieldsRenderer
     return function SchemaFields({
       intercept,
-      children,
-    }: BoundSchemaFieldsProps) {
+      layout,
+    }: BoundSchemaFieldsProps<FormShape, S>) {
       return (
-        <Renderer form={form} intercept={intercept}>
-          {children}
-        </Renderer>
+        <Renderer
+          form={form}
+          intercept={intercept}
+          layout={layout as SchemaFieldsLayout}
+        />
       )
     }
   }, [form, defaults])

@@ -49,18 +49,15 @@ import {
   type PartialAdapter,
   type PartOverrideMap,
   type ArrayItemNode,
-  type ENode as CoreENode,
-  type EField as CoreEField,
-  type EGroup as CoreEGroup,
-  type EArray as CoreEArray,
-  type EArrayItem as CoreEArrayItem,
   type AnySchemaResolver,
   type AnyGroupNode,
   type AnyTreeNode,
   type FieldControl,
   type ControlKind,
   type ValidationError,
+  type FormShape,
 } from '@formframe/core'
+import type { EArray, EArrayItem, EField, EGroup } from './enriched'
 import {
   resolveIntercept,
   interceptStabilityDeps,
@@ -68,6 +65,7 @@ import {
   type InterceptFn,
 } from './intercept'
 import type { PartsBag } from './interceptRules'
+import type { LayoutRoot } from './layoutShape'
 
 // ---------------------------------------------------------------------------
 // Public types — React instantiates the generic engine at R = ReactNode.
@@ -84,11 +82,7 @@ import type { PartsBag } from './interceptRules'
 export type { Intercept, InterceptFn } from './intercept'
 export type ReactDefaults = RendererAdapter<ReactNode>
 export type ReactPartialDefaults = PartialAdapter<ReactNode>
-export type ENode = CoreENode<ReactNode>
-export type EField = CoreEField<ReactNode>
-export type EGroup = CoreEGroup<ReactNode>
-export type EArray = CoreEArray<ReactNode>
-export type EArrayItem = CoreEArrayItem<ReactNode>
+export type { ENode, EField, EGroup, EArray, EArrayItem } from './enriched'
 
 // ---------------------------------------------------------------------------
 // Default renderer set (R = ReactNode)
@@ -179,13 +173,21 @@ function enrichControlErrorA11y(
 }
 
 /**
- * Internal bridge for `<Default of={field} errors={…} />`: the ADR-017
- * component cannot forward `errors` through Core's `node.Default(opts)` without
- * a Core change, so it wraps the re-entry in this provider. `null` = not
- * injected (no errors); an array (including `[]`) = recipe-pre-gated source of
- * truth. Not a public seam — recipes pass the prop, not this context.
+ * Bridge for `<Default of={field} errors={…} />` and {@link InjectFieldErrors}:
+ * the ADR-017 component cannot forward `errors` through Core's
+ * `node.Default(opts)` without a Core change, so it wraps the re-entry in this
+ * provider. `null` = not injected (no errors); an array (including `[]`) =
+ * recipe-pre-gated source of truth. Recipes write via the wrap / `errors` prop;
+ * `DefaultFieldRoot` reads via {@link useInjectedFieldErrors}.
  */
 const InjectedFieldErrorsContext = createContext<ValidationError[] | null>(null)
+
+/** Read recipe-pre-gated errors written by {@link InjectFieldErrors} or
+ * `<Default of={field} errors={…} />`. Empty when nothing was injected — the
+ * library does not produce/store errors itself (ADR 050). */
+function useInjectedFieldErrors(): ValidationError[] {
+  return useContext(InjectedFieldErrorsContext) ?? []
+}
 
 /**
  * The unified control renderer (ADR 029 §5, v60): ONE `field.control` slot that
@@ -290,11 +292,19 @@ function FieldErrorsList({
   )
 }
 
+function renderPart(
+  part: { Default(): ReactNode } | undefined,
+  override: ((part: unknown) => ReactNode) | undefined
+): ReactNode {
+  if (!part) return null
+  // Call, never mount: `part.Default()` returns a stable `PartHost` element.
+  return override ? override(part) : part.Default()
+}
+
 /** Compose a field from its parts: label, description, control, and errors.
- * `parts.control` overrides receive the enriched control plus `a11y` (spreadable
- * aria attrs). `parts.errors` overrides receive the visible `ValidationError[]`
- * — same fractal hijack as label/control (ADR 047), including on the
- * `<Default errors={…} />` inject path. */
+ * FormFrame error a11y (`FieldA11yContext` / enrich / `FieldErrorsList`) lives
+ * here. `parts.control` overlays receive the enriched control plus `errorA11y`.
+ * `parts.errors` overlays receive the visible `ValidationError[]`. */
 function DefaultFieldRoot({
   node,
   overrides,
@@ -302,28 +312,11 @@ function DefaultFieldRoot({
   node: EField
   overrides?: PartOverrideMap<ReactNode>
 }): ReactNode {
-  const renderSlot = (
-    part: { Default(): ReactNode } | undefined,
-    name: string
-  ): ReactNode => {
-    if (!part) return null
-    const override = overrides?.[name]
-    // Call, never mount: `part.Default()` returns a stable `PartHost` element.
-    return override ? override(part) : part.Default()
-  }
-  // Inject-only (ADR 050): no `errors` prop via `<Default errors={…} />`
-  // means no errors and no a11y error state — the library renders, it does
-  // not produce/store validation errors.
-  const injected = useContext(InjectedFieldErrorsContext)
-  const issues = injected ?? []
+  const issues = useInjectedFieldErrors()
   const visible = issues.length > 0
   const a11yState = visible ? { errorId: fieldErrorId(node.path) } : null
   const errorA11y = errorA11yProps(a11yState)
 
-  // Control override: merge error-state a11y into `attrs` when the archetype
-  // has them (input/select/textarea) so `{...c.attrs}` is enough. Always also
-  // expose `errorA11y` for choicegroup (no top-level attrs — error aria goes
-  // on the wrapper; `role` / `labelledBy` stay structural).
   const controlPart = node.parts.control
   const controlOverride = overrides?.['control']
   const control = controlOverride ? (
@@ -334,8 +327,6 @@ function DefaultFieldRoot({
     </FieldA11yContext.Provider>
   )
 
-  // Errors override (runtime slot — not a Core IR part) receives the visible
-  // issues; otherwise the default list renders the injected errors, if any.
   const errorsOverride = overrides?.['errors']
   const errorsNode: ReactNode = !visible ? null : errorsOverride ? (
     errorsOverride(issues)
@@ -345,8 +336,8 @@ function DefaultFieldRoot({
 
   return (
     <div className="jsf-field">
-      {renderSlot(node.parts.label, 'label')}
-      {renderSlot(node.parts.description, 'description')}
+      {renderPart(node.parts.label, overrides?.['label'])}
+      {renderPart(node.parts.description, overrides?.['description'])}
       {control}
       {errorsNode}
     </div>
@@ -722,7 +713,9 @@ export function mergeDefaults(
 // delegate to the node's own bound callable, so they reconcile in place, work in-
 // and out-of-position (`of={node.children.x}`), render parts too
 // (`of={node.parts.label}`), and are null-safe (`of={undefined}` → nothing). The
-// two IOC seams inject `{ Default, Children }`; both are also exported to import.
+// two IOC seams inject `{ Default, Children }` (`intercept` per node, `layout`
+// at any container — ADR 053 / 054). Layout placements `Resolve` (intercept then
+// template); intercept re-entry is the template. Both helpers are also exported.
 // ---------------------------------------------------------------------------
 
 /** Helpers handed to the IOC callbacks (also exported as top-level components). */
@@ -731,13 +724,35 @@ export interface RenderHelpers {
   Children: typeof Children
 }
 
+/**
+ * Place-yourself callback (ADR 053 / 054). Same shape at the root (`SchemaFields
+ * layout`) and on a nested container (`<Default of={group} layout={…} />`).
+ */
+export type NodeLayout<N = EGroup> = (
+  node: N,
+  helpers: RenderHelpers
+) => ReactNode
+
+/**
+ * Layout's `<Default of={node} />` is placement (`Resolve` — intercept then
+ * template). Intercept's `<Default of={node} />` is the template (no loop).
+ * `layout` on Default sets place-mode for its callback.
+ */
+const PlaceModeCtx = createContext(false)
+/** Nearest `<Default intercept>` while laying out nested placements. */
+const PlacementInterceptCtx = createContext<Intercept | undefined>(undefined)
+
 const helpers: RenderHelpers = { Default, Children }
 
 /** Adapt a user `InterceptFn` (node + helpers) to Core's 1-arg `Resolver`. */
-const adaptResolver =
-  (rn: InterceptFn): AnySchemaResolver<ReactNode> =>
-  (node) =>
-    rn(node, helpers)
+const adaptResolver = (rn: InterceptFn): AnySchemaResolver<ReactNode> =>
+  function resolveWithIntercept(node) {
+    return (
+      <PlaceModeCtx.Provider value={false}>
+        {rn(node, helpers)}
+      </PlaceModeCtx.Provider>
+    )
+  }
 
 /** The (post-adapt) opts every node's `Default` accepts. Widened so the generic
  * constraint covers both nodes and parts and `of.Default(...)` needs no cast;
@@ -821,17 +836,27 @@ type DefaultExtra<H> =
     parts?: infer P
     renderNode?: unknown
   }
-    ? { parts?: WidenParts<H, P>; intercept?: Intercept }
+    ? {
+        parts?: WidenParts<H, P>
+        intercept?: Intercept
+        layout?: NodeLayout<H>
+      }
     : Record<never, never>
 
 /**
  * Render any handle's default — a node, a child node, or a part (anything with a
  * `.Default()`). `of={null/undefined}` renders nothing, so optional parts and
- * absent children are safe. `parts` / `intercept` apply only to nodes (a part's
- * type offers neither). `errors` injects per-field `ValidationError[]` for
- * field nodes — recipe-pre-gated (present == show); omit for no errors (the
+ * absent children are safe. `parts` / `intercept` / `layout` apply only to nodes
+ * (a part's type offers none). `errors` injects per-field `ValidationError[]`
+ * for field nodes — recipe-pre-gated (present == show); omit for no errors (the
  * library does not produce/store them itself — ADR 050). Stable module-level
  * type → reconciles in place.
+ *
+ * `layout` is fractal SchemaFields (ADR 054): skip this node's template and
+ * place its children. Nested `<Default of={child} />` still goes through
+ * intercept. `intercept` without `layout` is a scoped resolver for this
+ * template call (nearest scope wins). `layout` + `intercept` together: layout
+ * first; intercept applies to placed nodes.
  *
  * `parts` is the camelCase Default map (`{ control: X }`) or the handler
  * placeable bag (`{ Control, Label, … }`) for intercept pass-through.
@@ -851,6 +876,7 @@ export function Default<
   errors?: ValidationError[]
   parts: PartsBag
   intercept?: Intercept
+  layout?: NodeLayout<H>
 }): ReactNode
 export function Default<
   H extends { Default(opts?: NodeDefaultOpts): ReactNode },
@@ -859,6 +885,7 @@ export function Default<
   errors?: ValidationError[]
   parts: DefaultParts
   intercept?: Intercept
+  layout?: NodeLayout<H>
 }): ReactNode
 export function Default<
   H extends { Default(opts?: NodeDefaultOpts): ReactNode },
@@ -867,26 +894,63 @@ export function Default<
   errors?: ValidationError[]
   parts?: unknown
   intercept?: Intercept
+  layout?: NodeLayout<H>
 }): ReactNode {
+  const place = useContext(PlaceModeCtx)
+  const ambient = useContext(PlacementInterceptCtx)
+  const scopedResolver = useMemo(
+    () => (ambient ? adaptResolver(resolveIntercept(ambient)) : undefined),
+    // Map/bag sugar: stabilize on handler/pred identity, not the map object.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- interceptStabilityDeps
+    interceptStabilityDeps(ambient)
+  )
   const { of, errors } = props
   if (of == null) return null
-  const { parts: rawParts, intercept } = props as {
+  const {
+    parts: rawParts,
+    intercept,
+    layout,
+  } = props as {
     parts?: PartOverrideMap<ReactNode> | PartsBag
     intercept?: Intercept
+    layout?: NodeLayout<H>
   }
   const parts =
     rawParts && isHandlerPartsBag(rawParts)
       ? handlerBagToOverrides(rawParts)
       : rawParts
-  const render = (): ReactNode =>
-    !parts && !intercept
-      ? of.Default()
-      : of.Default({
-          parts,
-          renderNode: intercept
-            ? adaptResolver(resolveIntercept(intercept))
-            : undefined,
-        })
+  const render = (): ReactNode => {
+    if (layout) {
+      return (
+        <PlaceModeCtx.Provider value={true}>
+          <PlacementInterceptCtx.Provider value={intercept ?? ambient}>
+            {layout(of, helpers)}
+          </PlacementInterceptCtx.Provider>
+        </PlaceModeCtx.Provider>
+      )
+    }
+    if (parts || intercept) {
+      return of.Default({
+        parts,
+        renderNode: intercept
+          ? adaptResolver(resolveIntercept(intercept))
+          : undefined,
+      })
+    }
+    const resolve = (
+      of as {
+        Resolve?: (opts?: {
+          renderNode?: AnySchemaResolver<ReactNode>
+        }) => ReactNode
+      }
+    ).Resolve
+    if (place && typeof resolve === 'function') {
+      return scopedResolver
+        ? resolve({ renderNode: scopedResolver })
+        : resolve()
+    }
+    return of.Default()
+  }
   // `of.Default()` calls `DefaultFieldRoot` as a function (engine contract), so
   // its hooks run in whatever component invokes it. Bridge `errors` by mounting
   // a child under the provider and invoking the thunk THERE — same PartHost
@@ -954,13 +1018,24 @@ export function Children({
 // The renderer (front-end-agnostic — takes the Core tree, not a schema)
 // ---------------------------------------------------------------------------
 
+/** Root place-yourself (ADR 053 / 054 / 055). Same callback as nested `Default layout`. */
+export type SchemaFieldsLayout<
+  TS extends FormShape = FormShape,
+  Origin = unknown,
+> = NodeLayout<LayoutRoot<TS, Origin>>
+
 export interface SchemaFieldsProps {
   /** The Core form tree (e.g. from `jsonSchemaToTree`). */
   form: AnyGroupNode
   /** Per-node intercept (ADR 010 / ADR 051). Omit to render every node's default. */
   intercept?: Intercept
-  /** Place-yourself at the root: receives the enriched root + injected helpers. */
-  children?: (root: EGroup, helpers: RenderHelpers) => ReactNode
+  /**
+   * Place-yourself at the root (ADR 010 / ADR 053 / ADR 054). Named prop so the
+   * callback infers `{ root, Default, Children }` — JSX `children` does not.
+   * Nested `<Default of={node} />` placements resolve through `intercept`.
+   * Omit to let the engine walk the tree (defaults + `intercept`).
+   */
+  layout?: SchemaFieldsLayout
 }
 
 const defaultResolver: AnySchemaResolver<ReactNode> = (node) => node.Default()
@@ -1021,11 +1096,7 @@ export function createRenderer(defaults: ReactPartialDefaults) {
     }
   )
 
-  return function SchemaFields({
-    form,
-    intercept,
-    children,
-  }: SchemaFieldsProps) {
+  return function SchemaFields({ form, intercept, layout }: SchemaFieldsProps) {
     // Dev-only remount guard (bd jsonschema-form-108): `intercept` changing
     // identity between renders defeats the `memo` bail below no matter WHY it
     // changed — a hand-rolled unstable resolver, or the low-level
@@ -1091,8 +1162,10 @@ export function createRenderer(defaults: ReactPartialDefaults) {
     )
     return (
       <>
-        {children ? (
-          children(root, helpers)
+        {layout ? (
+          <PlaceModeCtx.Provider value={true}>
+            {layout(root, helpers)}
+          </PlaceModeCtx.Provider>
         ) : (
           <NodeRenderer core={form} resolver={resolver} />
         )}

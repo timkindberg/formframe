@@ -45,6 +45,8 @@ export type {
 export { resolveIntercept, interceptStabilityDeps } from './intercept'
 export type {
   SchemaFieldsProps,
+  SchemaFieldsLayout,
+  NodeLayout,
   RenderHelpers,
   ReactDefaults,
   ReactPartialDefaults,
@@ -58,6 +60,7 @@ export type {
   ErrorA11yProps,
   FieldA11yState,
 } from './renderer'
+export type { LayoutRoot, LayoutGroup, LayoutNode } from './layoutShape'
 
 // The intercept-rules layer (ADR 047/048) — a form-scope selector registry
 // lowering to an ordinary `Intercept` (no engine seam); handlers are mounted

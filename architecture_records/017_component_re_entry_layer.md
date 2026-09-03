@@ -1,7 +1,7 @@
 # ADR 017: Component Re-entry Layer — JSX Handles over the Callable Engine
 
 **Date:** 2026-06-24
-**Status:** Accepted
+**Status:** Accepted. **Annotated by [ADR 053](./053_schemafields_layout_prop.md)** — the root IOC seam is `layout={(root, helpers) => …}`, not function children. **Annotated by [ADR 054](./054_layout_placements_resolve.md)** — layout placements `Resolve`; `<Default layout>` is fractal.
 **Deciders:** Tim Kindberg
 
 ## Context
@@ -75,8 +75,8 @@ itself a `RenderNode` and is adapted to Core's 1-arg resolver internally.
 `(root, helpers) => R`, where `helpers = { Default, Children }`:
 
 ```tsx
-<SchemaFields renderNode={(node, { Default }) => <Default of={node} />} />
-<SchemaFields>{(root, { Default }) => <Default of={root.children.name} />}</SchemaFields>
+<SchemaFields intercept={(node, { Default }) => <Default of={node} />} />
+<SchemaFields layout={(root, { Default }) => <Default of={root.children.name} />} />
 ```
 
 Both components are **also exported** for `import`. Part-override callbacks

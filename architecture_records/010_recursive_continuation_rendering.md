@@ -1,7 +1,7 @@
 # ADR 010: Recursive Continuation Rendering & Customization
 
 **Date:** 2026-06-19
-**Status:** Accepted
+**Status:** Accepted. **Annotated by [ADR 053](./053_schemafields_layout_prop.md)** (root place-yourself is `layout`) and **[ADR 054](./054_layout_placements_resolve.md)** (`layout` + `intercept` compose; `Default` is fractal).
 **Deciders:** Tim Kindberg
 
 ## Context
