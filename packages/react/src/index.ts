@@ -60,7 +60,10 @@ export type {
   ErrorA11yProps,
   FieldA11yState,
 } from './renderer'
-export type { LayoutRoot, LayoutGroup, LayoutNode } from './layoutShape'
+// `layoutShape`'s structural types (`LayoutRoot` / `LayoutGroup` / `LayoutNode`)
+// stay internal — reachable through `SchemaFieldsLayout<Shape>`, which is the
+// annotation ADR 055 names for hoisting a layout callback. Export them when a
+// consumer actually needs to annotate a nested container layout (ADR 008).
 
 // The intercept-rules layer (ADR 047/048) — a form-scope selector registry
 // lowering to an ordinary `Intercept` (no engine seam); handlers are mounted

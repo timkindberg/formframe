@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
@@ -300,6 +301,220 @@ describe('SchemaFields', () => {
     await expect
       .element(screen.getByText('scoped-laid-out-street'))
       .toBeInTheDocument()
+  })
+
+  // A placement scope must be a WHOLE scope, not just the placements that go
+  // through `<Default>`. Core `rebind` re-enriches the handle the callback gets,
+  // so `<Children>` (and `child()` / `children.x` / `renderItem`) resolve
+  // through the scoped intercept too.
+  it('<Children/> inside a scoped layout resolves through that layout’s intercept', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        layout={(root, { Default }) => {
+          const address = root.children.address
+          return address.isGroup ? (
+            <Default
+              of={address}
+              intercept={(node, { Default: D }) =>
+                node.isField && node.path === 'address.street' ? (
+                  <p>street-via-children</p>
+                ) : (
+                  <D of={node} />
+                )
+              }
+              layout={(addr, { Children }) => (
+                <div data-testid="addr-children">
+                  <Children of={addr} />
+                </div>
+              )}
+            />
+          ) : null
+        }}
+      />
+    )
+
+    await expect
+      .element(screen.getByTestId('addr-children'))
+      .toBeInTheDocument()
+    await expect
+      .element(screen.getByText('street-via-children'))
+      .toBeInTheDocument()
+    // the scoped intercept replaced it — no Street input should survive
+    expect(document.querySelector('[name="address.street"]')).toBeNull()
+  })
+
+  it('a nested intercept added after first render applies to the layout scope', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    function Toggle() {
+      const [on, setOn] = useState(false)
+      return (
+        <>
+          <button type="button" onClick={() => setOn(true)}>
+            enable scoped
+          </button>
+          <SchemaFields
+            form={form}
+            layout={(root, { Default }) => {
+              const address = root.children.address
+              return address.isGroup ? (
+                <Default
+                  of={address}
+                  intercept={
+                    on
+                      ? (node, { Default: D }) =>
+                          node.path === 'address.street' ? (
+                            <p>toggled-street</p>
+                          ) : (
+                            <D of={node} />
+                          )
+                      : undefined
+                  }
+                  layout={(addr, { Children }) => <Children of={addr} />}
+                />
+              ) : null
+            }}
+          />
+        </>
+      )
+    }
+    const screen = await render(<Toggle />)
+    await expect
+      .element(screen.getByRole('textbox', { name: 'Street' }))
+      .toBeInTheDocument()
+    await screen.getByRole('button', { name: 'enable scoped' }).click()
+    await expect.element(screen.getByText('toggled-street')).toBeInTheDocument()
+  })
+
+  // `parts` is a template instruction, so it deliberately wins over an ambient
+  // placement intercept (the inline overlay is the more specific instruction).
+  // Pinned because the two cannot compose: an intercept that replaces the node
+  // outright has nowhere to apply part overrides.
+  it('parts at a placement beat an ambient intercept for that node', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        intercept={{ name: () => <p>intercepted-name</p> }}
+        layout={(root, { Default }) => (
+          <>
+            <Default
+              of={root.children.name}
+              parts={{ label: () => <span>overlaid-label</span> }}
+            />
+            <Default of={root.children.color} />
+          </>
+        )}
+      />
+    )
+
+    await expect.element(screen.getByText('overlaid-label')).toBeInTheDocument()
+    expect(screen.getByText('intercepted-name').elements()).toHaveLength(0)
+    // a bare placement in the same layout still resolves through intercept
+    await expect
+      .element(screen.getByRole('combobox', { name: 'Color' }))
+      .toBeInTheDocument()
+  })
+
+  // Placements bypass the engine's `combine`, which is what supplies child keys
+  // in the normal walk. A layout that REORDERS nodes must key them itself, or
+  // React reconciles by position and an uncontrolled input keeps the previous
+  // field's value under the new field's name.
+  it('keyed placements survive a reorder with values attached to the right field', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    function Reorderable() {
+      const [flip, setFlip] = useState(false)
+      return (
+        <>
+          <button type="button" onClick={() => setFlip((f) => !f)}>
+            flip
+          </button>
+          <SchemaFields
+            form={form}
+            layout={(root, { Default }) => {
+              const order = flip
+                ? ['color', 'name']
+                : (['name', 'color'] as const)
+              return (
+                <>
+                  {order.map((k) => (
+                    <Default key={k} of={root.children[k]} />
+                  ))}
+                </>
+              )
+            }}
+          />
+        </>
+      )
+    }
+    const screen = await render(<Reorderable />)
+    await screen.getByRole('textbox', { name: 'Name' }).fill('Ada')
+
+    await screen.getByRole('button', { name: 'flip' }).click()
+
+    const name = document.querySelector<HTMLInputElement>('[name="name"]')
+    expect(name?.value).toBe('Ada')
+    // Color is still a select, not an input that inherited "Ada"
+    await expect
+      .element(screen.getByRole('combobox', { name: 'Color' }))
+      .toBeInTheDocument()
+  })
+})
+
+// A custom array layout replaces `array.root`, which is where `createRenderer`
+// installs add/remove state (ADR 051 §3 / #145). Without re-installing it the
+// Add button is inert and `<Children/>` renders static seed items.
+describe('layout on an array keeps add/remove state', () => {
+  const arraySchema: JSONSchema = {
+    type: 'object',
+    properties: {
+      contacts: {
+        type: 'array',
+        title: 'Contacts',
+        minItems: 1,
+        items: {
+          type: 'object',
+          properties: { name: { type: 'string', title: 'Contact name' } },
+        },
+      },
+    },
+  }
+
+  it('Add appends a live item into a custom array layout', async () => {
+    const form = jsonSchemaToRuntimeTree(arraySchema)
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        layout={(root, { Default }) => (
+          <Default
+            of={root.children.contacts}
+            layout={(contacts, { Default: D, Children }) =>
+              contacts.isArray ? (
+                <section data-testid="contacts-layout">
+                  <Children of={contacts} />
+                  <D of={contacts.parts.addButton} />
+                </section>
+              ) : null
+            }
+          />
+        )}
+      />
+    )
+
+    await expect
+      .element(screen.getByTestId('contacts-layout'))
+      .toBeInTheDocument()
+
+    const inputs = () =>
+      document.querySelectorAll<HTMLInputElement>('input[name$=".name"]')
+    await expect.poll(() => inputs().length).toBe(1)
+
+    await screen.getByRole('textbox', { name: 'Contact name' }).fill('Alice')
+    await screen.getByRole('button', { name: /add/i }).click()
+
+    await expect.poll(() => inputs().length).toBe(2)
+    expect(inputs()[0].value).toBe('Alice')
   })
 })
 

@@ -742,6 +742,14 @@ const PlaceModeCtx = createContext(false)
 /** Nearest `<Default intercept>` while laying out nested placements. */
 const PlacementInterceptCtx = createContext<Intercept | undefined>(undefined)
 
+/** Live array item slots, published by {@link ArrayStateProvider} so a custom
+ * `layout` on an array can place them via `<Children of={array} />`. Keyed by
+ * path: a group layout containing `<Children of={someOtherArray} />` must not
+ * pick up the items of the array whose layout it sits inside. */
+const ArrayItemsCtx = createContext<{ path: string; items: ReactNode } | null>(
+  null
+)
+
 const helpers: RenderHelpers = { Default, Children }
 
 /** Adapt a user `InterceptFn` (node + helpers) to Core's 1-arg `Resolver`. */
@@ -753,6 +761,34 @@ const adaptResolver = (rn: InterceptFn): AnySchemaResolver<ReactNode> =>
       </PlaceModeCtx.Provider>
     )
   }
+
+/**
+ * Identity-stable `Intercept` → Core resolver, cached at module scope.
+ *
+ * `Default` runs for every placed node, so it cannot memoize this with a hook:
+ * `interceptStabilityDeps` returns a *variable-length* array (`[]` for
+ * `undefined`, `[fn]` for a function, N entries for a map/bag), and React
+ * compares only the overlapping prefix of a resized dep list — so toggling an
+ * intercept from `undefined` to a function kept the stale `undefined` resolver
+ * (#168). `resolveIntercept` already caches lowered maps/bags on handler
+ * identity, so a WeakMap on the lowered function is stable without hooks.
+ */
+const resolverByIntercept = new WeakMap<
+  InterceptFn,
+  AnySchemaResolver<ReactNode>
+>()
+function resolverFor(
+  intercept: Intercept | undefined
+): AnySchemaResolver<ReactNode> | undefined {
+  if (!intercept) return undefined
+  const lowered = resolveIntercept(intercept)
+  let resolver = resolverByIntercept.get(lowered)
+  if (!resolver) {
+    resolver = adaptResolver(lowered)
+    resolverByIntercept.set(lowered, resolver)
+  }
+  return resolver
+}
 
 /** The (post-adapt) opts every node's `Default` accepts. Widened so the generic
  * constraint covers both nodes and parts and `of.Default(...)` needs no cast;
@@ -822,6 +858,29 @@ function isHandlerPartsBag(parts: object): parts is PartsBag {
   return Object.prototype.hasOwnProperty.call(parts, 'Control')
 }
 
+/** Core `rebind` is on node handles, not part handles (a part has only
+ * `Default()`), so re-enrich only when the handle actually offers it. */
+function rebindHandle<H>(
+  of: H,
+  resolver: AnySchemaResolver<ReactNode>
+): unknown {
+  const rebind = (
+    of as { rebind?: (r: AnySchemaResolver<ReactNode>) => unknown }
+  ).rebind
+  return typeof rebind === 'function' ? rebind.call(of, resolver) : of
+}
+
+/** An array node handle — has the stateful `renderItem` seam `ArrayStateProvider`
+ * drives. Narrowed structurally so parts and other kinds fall through. */
+function isArrayHandle(of: unknown): of is EArray {
+  return (
+    typeof of === 'object' &&
+    of !== null &&
+    (of as { isArray?: boolean }).isArray === true &&
+    typeof (of as { renderItem?: unknown }).renderItem === 'function'
+  )
+}
+
 function handlerBagToOverrides(bag: PartsBag): PartOverrideMap<ReactNode> {
   return {
     label: () => <bag.Label />,
@@ -853,10 +912,21 @@ type DefaultExtra<H> =
  * type → reconciles in place.
  *
  * `layout` is fractal SchemaFields (ADR 054): skip this node's template and
- * place its children. Nested `<Default of={child} />` still goes through
- * intercept. `intercept` without `layout` is a scoped resolver for this
- * template call (nearest scope wins). `layout` + `intercept` together: layout
- * first; intercept applies to placed nodes.
+ * place its children. A bare nested `<Default of={child} />` still goes through
+ * intercept; adding `parts` to a placement makes it a template call instead
+ * (the two cannot compose — an intercept that replaces the node has nowhere to
+ * apply part overrides). `intercept` without `layout` is a scoped resolver for
+ * this template call (nearest scope wins). `layout` + `intercept` together:
+ * layout first, and the callback receives a handle **rebound** to that scope so
+ * `Children` / `child` / `children.x` / `renderItem` resolve through it too.
+ *
+ * `layout` on an array re-installs add/remove state (the template it skips is
+ * where that state lives), so `<Children of={array} />` yields live slots.
+ *
+ * A layout that **reorders** placements must key them (`key={node.path}`) —
+ * placements bypass the engine's `combine`, which supplies child keys in the
+ * normal walk, so React would otherwise reconcile by position and leave an
+ * uncontrolled value attached to the wrong field.
  *
  * `parts` is the camelCase Default map (`{ control: X }`) or the handler
  * placeable bag (`{ Control, Label, … }`) for intercept pass-through.
@@ -898,12 +968,6 @@ export function Default<
 }): ReactNode {
   const place = useContext(PlaceModeCtx)
   const ambient = useContext(PlacementInterceptCtx)
-  const scopedResolver = useMemo(
-    () => (ambient ? adaptResolver(resolveIntercept(ambient)) : undefined),
-    // Map/bag sugar: stabilize on handler/pred identity, not the map object.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- interceptStabilityDeps
-    interceptStabilityDeps(ambient)
-  )
   const { of, errors } = props
   if (of == null) return null
   const {
@@ -921,21 +985,48 @@ export function Default<
       : rawParts
   const render = (): ReactNode => {
     if (layout) {
-      return (
+      // The scope's resolver is this node's own `intercept`, else the nearest
+      // enclosing placement intercept. `rebind` re-enriches the handle against
+      // it (Core) so EVERY handle the callback touches agrees — `Children()`,
+      // `child()`, `children.x`, `Resolve()`, and an array's `renderItem` —
+      // instead of only the placements that happen to go through `<Default>`.
+      // Without it, `<Children of={node} />` inside a scoped layout silently
+      // rendered through the OUTER resolver (ADR 054 "nearest scope wins").
+      const scopeIntercept = intercept ?? ambient
+      const scopeResolver = resolverFor(scopeIntercept)
+      const scoped = (
+        scopeResolver ? rebindHandle(of, scopeResolver) : of
+      ) as typeof of
+      const body = (
         <PlaceModeCtx.Provider value={true}>
-          <PlacementInterceptCtx.Provider value={intercept ?? ambient}>
-            {layout(of, helpers)}
+          <PlacementInterceptCtx.Provider value={scopeIntercept}>
+            {layout(scoped, helpers)}
           </PlacementInterceptCtx.Provider>
         </PlaceModeCtx.Provider>
       )
+      // A custom array layout replaces `array.root`, which is where
+      // `createRenderer` installs add/remove state — so install it here too, or
+      // the add button is inert and `<Children/>` shows static seed items
+      // instead of live slots (ADR 051 §3 / #145).
+      if (!isArrayHandle(scoped)) return body
+      const arrayNode = scoped
+      return (
+        <ArrayStateProvider node={arrayNode}>
+          {(items) => (
+            <ArrayItemsCtx.Provider value={{ path: arrayNode.path, items }}>
+              {body}
+            </ArrayItemsCtx.Provider>
+          )}
+        </ArrayStateProvider>
+      )
     }
+    // `parts` is a TEMPLATE instruction, so it deliberately wins over an
+    // ambient placement intercept: the inline overlay at the placement site is
+    // the more specific instruction (same "nearest scope wins" rule). An
+    // intercept that replaces the node outright cannot also honor part
+    // overrides, so the two do not compose — see ADR 054.
     if (parts || intercept) {
-      return of.Default({
-        parts,
-        renderNode: intercept
-          ? adaptResolver(resolveIntercept(intercept))
-          : undefined,
-      })
+      return of.Default({ parts, renderNode: resolverFor(intercept) })
     }
     const resolve = (
       of as {
@@ -945,9 +1036,8 @@ export function Default<
       }
     ).Resolve
     if (place && typeof resolve === 'function') {
-      return scopedResolver
-        ? resolve({ renderNode: scopedResolver })
-        : resolve()
+      const scopeResolver = resolverFor(ambient)
+      return scopeResolver ? resolve({ renderNode: scopeResolver }) : resolve()
     }
     return of.Default()
   }
@@ -1009,9 +1099,17 @@ export function InjectFieldErrors({
 export function Children({
   of,
 }: {
-  of: { Children?(): ReactNode } | null | undefined
+  of: { Children?(): ReactNode; path?: string } | null | undefined
 }): ReactNode {
-  return of && typeof of.Children === 'function' ? of.Children() : null
+  const arrayItems = useContext(ArrayItemsCtx)
+  if (!of || typeof of.Children !== 'function') return null
+  // Inside a custom array `layout`, the array's children are the provider's
+  // LIVE slots (added/removed at runtime), not Core's static seed children.
+  if (arrayItems && arrayItems.path === of.path) return arrayItems.items
+  // Otherwise the handle's own bound resolver is already correct: a scoped
+  // layout receives a `rebind`-ed handle, so `Children()` resolves through the
+  // scoped intercept without this component knowing about it.
+  return of.Children()
 }
 
 // ---------------------------------------------------------------------------
