@@ -56,6 +56,8 @@ import {
   type ControlKind,
   type ValidationError,
   type FormShape,
+  type OriginOf,
+  type TreeShapeOf,
 } from '@formframe/core'
 import type { EArray, EArrayItem, EField, EGroup } from './enriched'
 import {
@@ -1122,9 +1124,9 @@ export type SchemaFieldsLayout<
   Origin = unknown,
 > = NodeLayout<LayoutRoot<TS, Origin>>
 
-export interface SchemaFieldsProps {
+export interface SchemaFieldsProps<F extends AnyGroupNode = AnyGroupNode> {
   /** The Core form tree (e.g. from `jsonSchemaToTree`). */
-  form: AnyGroupNode
+  form: F
   /** Per-node intercept (ADR 010 / ADR 051). Omit to render every node's default. */
   intercept?: Intercept
   /**
@@ -1132,8 +1134,13 @@ export interface SchemaFieldsProps {
    * callback infers `{ root, Default, Children }` — JSX `children` does not.
    * Nested `<Default of={node} />` placements resolve through `intercept`.
    * Omit to let the engine walk the tree (defaults + `intercept`).
+   *
+   * `root.children` is keyed off the tree's own `FormShape` brand (ADR 055), so
+   * a branded tree (`jsonSchemaToTree` / `zodToTree`) needs no kind guards here
+   * — `root.children.contacts` is already an `EArray`. `useFormTree` binds the
+   * same callback; this prop reads the brand straight off `form`.
    */
-  layout?: SchemaFieldsLayout
+  layout?: SchemaFieldsLayout<TreeShapeOf<F>, OriginOf<F>>
 }
 
 const defaultResolver: AnySchemaResolver<ReactNode> = (node) => node.Default()
@@ -1194,7 +1201,11 @@ export function createRenderer(defaults: ReactPartialDefaults) {
     }
   )
 
-  return function SchemaFields({ form, intercept, layout }: SchemaFieldsProps) {
+  return function SchemaFields<F extends AnyGroupNode>({
+    form,
+    intercept,
+    layout,
+  }: SchemaFieldsProps<F>) {
     // Dev-only remount guard (bd jsonschema-form-108): `intercept` changing
     // identity between renders defeats the `memo` bail below no matter WHY it
     // changed — a hand-rolled unstable resolver, or the low-level
@@ -1254,8 +1265,14 @@ export function createRenderer(defaults: ReactPartialDefaults) {
         resolvedIntercept ? adaptResolver(resolvedIntercept) : defaultResolver,
       [resolvedIntercept]
     )
+    // `LayoutRoot` is a phantom narrowing of the SAME `EGroup` handle (ADR 055):
+    // `children` re-keyed off the brand `form` carries. Runtime is unchanged.
     const root = useMemo(
-      () => engine.enrich(form, resolver) as EGroup,
+      () =>
+        engine.enrich(form, resolver) as unknown as LayoutRoot<
+          TreeShapeOf<F>,
+          OriginOf<F>
+        >,
       [form, resolver]
     )
     return (

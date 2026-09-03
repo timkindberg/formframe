@@ -4,6 +4,7 @@
 // scheduling is a recipe/adapter concern; the library only RENDERS errors via
 // the inject seam (see injected-errors.test.tsx).
 
+import type { ReactNode } from 'react'
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { z, type ZodType } from 'zod'
@@ -17,12 +18,8 @@ import {
 import { useFormTree } from './index'
 import type { BoundSchemaFieldsProps, UseFormTreeOptions } from './index'
 import type { FieldControl } from '@formframe/core'
-import {
-  Default,
-  type EField,
-  type EGroup,
-  type RenderHelpers,
-} from './renderer'
+import { Default, type EField, type RenderHelpers } from './renderer'
+import type { AnyKindGroup } from './layoutShape'
 
 const schema = z.object({
   name: z.string().min(2).meta({ title: 'Name' }),
@@ -313,7 +310,7 @@ describe('useFormTree', () => {
       .toBeInTheDocument()
   })
 
-  it('unbranded FormShape keeps EGroup children (no literal keys)', async () => {
+  it('unbranded FormShape has no literal keys and no kind guards', async () => {
     const runtime = jsonSchemaToRuntimeTree({
       type: 'object',
       properties: { n: { type: 'string', title: 'N' } },
@@ -323,8 +320,22 @@ describe('useFormTree', () => {
       return (
         <SchemaFields
           layout={(root, { Default }) => {
-            expectTypeOf(root).toEqualTypeOf<EGroup<JSONSchemaObject>>()
-            return <Default of={root.children.n} />
+            expectTypeOf(root).toEqualTypeOf<AnyKindGroup<JSONSchemaObject>>()
+            const child = root.children.n
+            // A runtime-door child's kind is unknown, but every kind's surface
+            // still indexes — `undefined` where this kind has none (ADR 055).
+            expectTypeOf(child.parts.addButton).toEqualTypeOf<
+              | ({ attrs: { type: 'button' }; label: string } & {
+                  Default(): ReactNode
+                })
+              | undefined
+            >()
+            expectTypeOf(child.Children).toEqualTypeOf<
+              (() => ReactNode) | undefined
+            >()
+            // …and narrowing still works, for when you do want to branch.
+            if (child.isField) expectTypeOf(child.parts.control).not.toBeNever()
+            return <Default of={child} />
           }}
         />
       )

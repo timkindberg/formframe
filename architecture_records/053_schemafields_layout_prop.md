@@ -1,7 +1,7 @@
 # ADR 053: Root Place-Yourself Is `layout`, Not JSX `children`
 
 **Date:** 2026-08-19
-**Status:** Accepted. **Annotated by [ADR 054](./054_layout_placements_resolve.md)** — layout placements resolve through intercept; `Default` accepts `layout` + `intercept`. **Annotated by [ADR 055](./055_layout_children_formshape.md)** — bound `layout` `root.children` is FormShape-keyed.
+**Status:** Accepted. **Annotated by [ADR 054](./054_layout_placements_resolve.md)** — layout placements resolve through intercept; `Default` accepts `layout` + `intercept`. **Annotated by [ADR 055](./055_layout_children_formshape.md)** — `layout` `root.children` is FormShape-keyed, and kind-unknown handles need no guard.
 **Deciders:** Tim Kindberg
 **Annotates:** [ADR 010](./010_recursive_continuation_rendering.md) (root place-yourself sugar), [ADR 017](./017_component_re_entry_layer.md) §4 (the two IOC seams)
 

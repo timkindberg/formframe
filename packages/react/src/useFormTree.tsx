@@ -150,13 +150,7 @@ export function useFormTree<S = unknown, Output = Record<string, unknown>>(
       intercept,
       layout,
     }: BoundSchemaFieldsProps<FormShape, S>) {
-      return (
-        <Renderer
-          form={form}
-          intercept={intercept}
-          layout={layout as SchemaFieldsLayout}
-        />
-      )
+      return <Renderer form={form} intercept={intercept} layout={layout} />
     }
   }, [form, defaults])
 
