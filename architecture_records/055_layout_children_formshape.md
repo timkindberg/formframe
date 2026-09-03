@@ -34,7 +34,8 @@ Unbranded trees (`jsonSchemaToRuntimeTree`, plain `GroupNode`) and unbound `<Sch
 
 - `useFormTree`’s branded overload already had `TS`; `BoundSchemaFieldsProps<TS>` uses it.
 - Widget-narrowed `EField` parts (control archetype) stay the intercept-rules job (`FieldProps<Shape, P>`). Layout keys answer *which child* and *field vs group vs array*. Origin `S` (`EField<JSONSchemaObject>` / `EField<ZodType>`) is the tree-wide `facts.origin.schema` type (ADR 033), not a per-path subschema.
-- Array item children stay `EArray`’s `Record<string, ENode>` for now (`${number}` paths — [#171](https://github.com/timkindberg/formframe/issues/171)).
+- Array item children stay `EArray`’s `Record<string, ENode>` for now (`${number}` paths — [#171](https://github.com/timkindberg/formframe/issues/171)). Array *layouts* work regardless (ADR 054); only the keyed typing of item children is deferred.
+- The brand is only as exact as the front-end's inference. `$ref`, tuple `items`, and the combiners resolve to `unknown` in `InferData`, and a boolean property schema is typed but skipped at runtime — so a keyed child can claim `EField` where the runtime node is a group, or name a child that does not exist. This is inherited from ADR 048 (`useInterceptRules` already keys off the same brand), not introduced here — tracked separately.
 
 ## Alternatives considered
 

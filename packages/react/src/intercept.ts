@@ -219,12 +219,17 @@ export function resolveIntercept(intercept: Intercept): InterceptFn {
   return fn
 }
 
-/** Dependency list for stabilizing map/bag across new object identities each render. */
+/** Dependency list for stabilizing map/bag across new object identities each render.
+ *
+ * `undefined` and the function floor both yield a ONE-entry list on purpose.
+ * React compares only the overlapping prefix of a resized dep list, so an empty
+ * list for `undefined` compared equal to `[fn]` over zero entries and a
+ * `intercept={undefined}` → `intercept={fn}` toggle kept the stale resolver
+ * (#168). Same length, different entry, so the memo now invalidates. */
 export function interceptStabilityDeps(
   intercept: Intercept | undefined
 ): unknown[] {
-  if (intercept === undefined) return []
-  if (isInterceptFn(intercept)) return [intercept]
+  if (intercept === undefined || isInterceptFn(intercept)) return [intercept]
   if (isInterceptBag(intercept)) {
     const deps: unknown[] = []
     const paths = intercept.paths ?? {}

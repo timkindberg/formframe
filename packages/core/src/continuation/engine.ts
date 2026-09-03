@@ -61,12 +61,10 @@ export type PartsOverrides<P, R> = {
 export type EField<R, S = unknown> = Omit<FieldNode<S>, 'parts'> & {
   parts: EnrichedParts<FieldNode<S>['parts'], R>
   Default(opts?: { parts?: PartsOverrides<FieldNode<S>['parts'], R> }): R
-  /**
-   * Render this node through the active resolver (intercept, then template).
-   * `Default()` skips intercept and goes straight to the defaults table.
-   * Pass `renderNode` to resolve with a scoped interceptor.
-   */
+  /** Intercept, then template (`Default()` is template-only). */
   Resolve(opts?: { renderNode?: Resolver<R, S> }): R
+  /** Re-enrich against another resolver — see the container overload. */
+  rebind(renderNode: Resolver<R, S>): ENode<R, S>
 }
 
 /** Enriched container — parts + children + re-entry points. */
@@ -91,6 +89,15 @@ type EContainerOf<N extends ContainerNode<S>, R, S = unknown> = Omit<
    * Pass `renderNode` to resolve with a scoped interceptor.
    */
   Resolve(opts?: { renderNode?: Resolver<R, S> }): R
+  /**
+   * Re-enrich this node against a different resolver. Every handle on the
+   * result — `Children`, `child`, `children.x`, `Resolve`, `renderItem` — closes
+   * over `renderNode`, and navigation from it stays scoped. This is how an
+   * adapter makes a *scope* (not just one call) resolve through an interceptor;
+   * passing `renderNode` to a single `Default`/`Resolve` call scopes only that
+   * call and leaves sibling handles bound to the outer resolver.
+   */
+  rebind(renderNode: Resolver<R, S>): ENode<R, S>
 }
 export type EGroup<R, S = unknown> = EContainerOf<GroupNode<S>, R, S>
 export type EArray<R, S = unknown> = EContainerOf<ArrayNode<S>, R, S> & {
@@ -405,9 +412,15 @@ export function createContinuation<R>(
     /** Intercept then template. Same contract as `Children()` / `renderChild`. */
     const Resolve = (opts?: { renderNode?: Resolver<R, S> }): R =>
       renderChild(core, opts?.renderNode ?? resolver)
+    /** Re-enrich against another resolver — a whole scope, not one call. */
+    const rebind = (renderNode: Resolver<R, S>): ENode<R, S> =>
+      enrich(core, renderNode)
 
     if (core.isField) {
-      return { ...core, parts, Default, Resolve } as unknown as ENode<R, S>
+      return { ...core, parts, Default, Resolve, rebind } as unknown as ENode<
+        R,
+        S
+      >
     }
 
     const children: Record<string, ENode<R, S>> = {}
@@ -429,6 +442,7 @@ export function createContinuation<R>(
       Children,
       Default,
       Resolve,
+      rebind,
     }
     if (core.isArray) {
       return {
