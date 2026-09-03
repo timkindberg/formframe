@@ -213,7 +213,6 @@ export default function App() {
             form={form}
             layout={(root, { Default }) => {
               const theme = root.child('theme')
-              const address = root.children.address
               return (
                 <>
                   <p style={{ color: '#666' }}>
@@ -230,49 +229,47 @@ export default function App() {
                   <Default of={theme} />
 
                   {/* render address default, but inject an intercept scoped to ITS subtree */}
-                  {address.isGroup && (
-                    <Default
-                      of={address}
-                      intercept={(node, { Default }) => {
-                        // deep: tweak just the street label
-                        if (
-                          node.isField &&
-                          node.widget === 'input' &&
-                          node.path === 'address.street'
+                  <Default
+                    of={root.children.address}
+                    intercept={(node, { Default }) => {
+                      // deep: tweak just the street label
+                      if (
+                        node.isField &&
+                        node.widget === 'input' &&
+                        node.path === 'address.street'
+                      )
+                        return (
+                          <Default
+                            of={node}
+                            parts={{
+                              label: (label) => (
+                                <span>
+                                  📍 <Default of={label} />
+                                </span>
+                              ),
+                            }}
+                          />
                         )
-                          return (
-                            <Default
-                              of={node}
-                              parts={{
-                                label: (label) => (
-                                  <span>
-                                    📍 <Default of={label} />
-                                  </span>
-                                ),
-                              }}
-                            />
-                          )
-                        // deeper: wrap the coordinates group and reorder its children
-                        if (node.isGroup && node.path === 'address.location')
-                          return (
-                            <div
-                              style={{
-                                background: '#eef6ff',
-                                padding: 8,
-                                borderRadius: 6,
-                              }}
-                            >
-                              <strong>Coordinates</strong>
-                              <div style={{ display: 'flex', gap: 12 }}>
-                                <Default of={node.children.longitude} />
-                                <Default of={node.children.latitude} />
-                              </div>
+                      // deeper: wrap the coordinates group and reorder its children
+                      if (node.isGroup && node.path === 'address.location')
+                        return (
+                          <div
+                            style={{
+                              background: '#eef6ff',
+                              padding: 8,
+                              borderRadius: 6,
+                            }}
+                          >
+                            <strong>Coordinates</strong>
+                            <div style={{ display: 'flex', gap: 12 }}>
+                              <Default of={node.children.longitude} />
+                              <Default of={node.children.latitude} />
                             </div>
-                          )
-                        return <Default of={node} />
-                      }}
-                    />
-                  )}
+                          </div>
+                        )
+                      return <Default of={node} />
+                    }}
+                  />
 
                   <div style={{ marginTop: 12 }}>
                     <button type="submit">Submit</button>

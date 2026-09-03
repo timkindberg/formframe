@@ -1,7 +1,8 @@
 // FormShape-keyed layout handles (ADR 055).
 //
-// `useFormTree` already closes over the tree's `FormShape` brand (ADR 048). Bound
-// `SchemaFields layout` was still typed as `EGroup` (`children: Record<string,
+// A tree carries its `FormShape` brand (ADR 048) and both doors read it — the
+// bound `SchemaFields` from `useFormTree` and the unbound one, off its `form`
+// prop. `layout` used to be typed as plain `EGroup` (`children: Record<string,
 // ENode>`). That was a typing hole, not a missing factory skin: the primitive
 // `root.children.x` just was not indexed by the brand. This file is the overlay
 // — runtime handles stay `EGroup`; the layout callback's `root` is a phantom
@@ -11,9 +12,80 @@
 // `Origin` is the tree-wide `facts.origin.schema` type, not a per-path subschema.
 
 import type { FormShape } from '@formframe/core'
-import type { EArray, EField, EGroup, ENode } from './enriched'
+import type { EArray, EArrayItem, EField, EGroup } from './enriched'
 
 type Pretty<T> = { [K in keyof T]: T[K] } & {}
+
+// ---------------------------------------------------------------------------
+// Kind-unknown handles — the guard-free half of the overlay.
+//
+// A keyed path resolves to ONE kind (`EField` / `LayoutGroup` / `EArray`), so
+// branded layouts need no narrowing. Two places genuinely cannot know the kind:
+// an unbranded (runtime-door) tree, and a dynamic `child(path)` lookup. Typing
+// those as Core's `ENode` union forced a `node.isGroup ? … : null` ternary
+// before you could touch `children` or `parts` — a guard the consumer cannot
+// act on differently anyway, since the re-entry components are already
+// null-safe (`<Default of={undefined}/>` renders nothing).
+//
+// So instead of a union of four disjoint handles, this is a union of four
+// handles that each carry the OTHER kinds' keys typed `undefined`. Unnarrowed
+// access compiles and yields `T | undefined` (`node.parts.addButton`,
+// `node.children?.street`); `if (node.isArray)` still narrows, because the
+// discriminants are untouched. Keys come off the union itself, so a new
+// kind-only member on a Core handle is covered without editing a list.
+// ---------------------------------------------------------------------------
+
+type KeysOfUnion<T> = T extends unknown ? keyof T : never
+
+/** `T` plus every sibling-kind key it lacks, typed `undefined`. */
+type WithAbsent<T, All extends PropertyKey> = T & {
+  [K in Exclude<All, keyof T>]?: undefined
+}
+
+type AnyKind<Origin> =
+  | EField<Origin>
+  | EGroup<Origin>
+  | EArray<Origin>
+  | EArrayItem<Origin>
+
+type NodeKey<Origin> = KeysOfUnion<AnyKind<Origin>>
+type PartKey<Origin> = KeysOfUnion<AnyKind<Origin>['parts']>
+
+type AbsentParts<N extends { parts: object }, Origin> = WithAbsent<
+  N['parts'],
+  PartKey<Origin>
+>
+
+type AnyKindLeaf<N extends { parts: object }, Origin> = WithAbsent<
+  Omit<N, 'parts'> & { parts: AbsentParts<N, Origin> },
+  NodeKey<Origin>
+>
+
+/** A container whose own `children` / `child` stay kind-unknown too. */
+type AnyKindBranch<
+  N extends { parts: object; children: unknown; child: unknown },
+  Origin,
+> = WithAbsent<
+  Omit<N, 'parts' | 'children' | 'child'> & {
+    parts: AbsentParts<N, Origin>
+    children: Record<string, AnyKindNode<Origin>>
+    child(relativePath: string): AnyKindNode<Origin> | undefined
+  },
+  NodeKey<Origin>
+>
+
+/** Group handle of unknown kind-shape — the unbranded `layout` root. */
+export type AnyKindGroup<Origin = unknown> = AnyKindBranch<
+  EGroup<Origin>,
+  Origin
+>
+
+/** A handle whose kind is not known at compile time (runtime door, `child()`). */
+export type AnyKindNode<Origin = unknown> =
+  | AnyKindLeaf<EField<Origin>, Origin>
+  | AnyKindGroup<Origin>
+  | AnyKindBranch<EArray<Origin>, Origin>
+  | AnyKindBranch<EArrayItem<Origin>, Origin>
 
 /** Direct child names of `Prefix` among dotted `FormShape` paths. */
 type DirectOf<P extends string, Prefix extends string> = [Prefix] extends ['']
@@ -43,7 +115,7 @@ type JoinPath<Prefix extends string, K extends string> = [Prefix] extends ['']
 /**
  * The base `FormShape` uses `string` index keys on every axis. Keyed children
  * would collapse to `Record<string, EField>` (first branch of {@link LayoutNode}).
- * Unbranded / runtime trees keep plain `EGroup`.
+ * Unbranded / runtime trees fall back to {@link AnyKindGroup}.
  */
 type IsConcreteFormShape<TS extends FormShape> = string extends
   | keyof TS['fields']
@@ -65,14 +137,16 @@ export type LayoutNode<
     ? LayoutGroup<TS, Path, Origin>
     : Path extends keyof TS['arrays'] & string
       ? EArray<Origin>
-      : ENode<Origin>
+      : AnyKindNode<Origin>
 
-/** Group handle whose `children` are the direct child names under `Prefix`. */
+/** Group handle whose `children` are the direct child names under `Prefix`.
+ * Keyed children are exact; `child(path)` is a dynamic lookup, so it hands back
+ * a kind-unknown handle rather than forcing a cast. */
 export type LayoutGroup<
   TS extends FormShape,
   Prefix extends string = '',
   Origin = unknown,
-> = Omit<EGroup<Origin>, 'children'> & {
+> = Omit<EGroup<Origin>, 'children' | 'child'> & {
   children: Pretty<{
     [K in DirectChildKey<TS, Prefix>]: LayoutNode<
       TS,
@@ -80,10 +154,11 @@ export type LayoutGroup<
       Origin
     >
   }>
+  child(relativePath: string): AnyKindNode<Origin> | undefined
 }
 
 /** Root of a `layout` callback: keyed children when `TS` is a concrete brand. */
 export type LayoutRoot<TS extends FormShape = FormShape, Origin = unknown> =
   IsConcreteFormShape<TS> extends true
     ? LayoutGroup<TS, '', Origin>
-    : EGroup<Origin>
+    : AnyKindGroup<Origin>

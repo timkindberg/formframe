@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, expectTypeOf } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { jsonSchemaToRuntimeTree } from '@formframe/input-jsonschema'
+import {
+  jsonSchemaToRuntimeTree,
+  jsonSchemaToTree,
+} from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
   SchemaFields,
@@ -158,26 +161,64 @@ describe('SchemaFields', () => {
       .toBeInTheDocument()
   })
 
+  // The unbound component reads the brand off its own `form` prop, so it types
+  // `layout` exactly like the bound one from `useFormTree` (ADR 055) — a branded
+  // tree needs no kind guards, and a bogus child name is an error.
+  it('layout keys root.children off the form prop, not just useFormTree', async () => {
+    const form = jsonSchemaToTree({
+      type: 'object',
+      properties: {
+        name: { type: 'string', title: 'Name' },
+        address: {
+          type: 'object',
+          properties: { street: { type: 'string', title: 'Street' } },
+        },
+      },
+    })
+    const screen = await render(
+      <SchemaFields
+        form={form}
+        layout={(root, { Default }) => {
+          expectTypeOf<keyof typeof root.children>().toEqualTypeOf<
+            'name' | 'address'
+          >()
+          // @ts-expect-error — not a child of this schema
+          void root.children.nope
+          return (
+            <Default
+              of={root.children.address}
+              layout={(addr, { Default: D }) => (
+                // keyed and kind-resolved: no `addr.isGroup` ternary
+                <D of={addr.children.street} />
+              )}
+            />
+          )
+        }}
+      />
+    )
+
+    await expect
+      .element(screen.getByRole('textbox', { name: 'Street' }))
+      .toBeInTheDocument()
+  })
+
   it('scoped renderNode applies only within a subtree', async () => {
     const form = jsonSchemaToRuntimeTree(schema)
     const screen = await render(
       <SchemaFields
         form={form}
-        layout={(root, { Default }) => {
-          const address = root.children.address
-          return address.isGroup ? (
-            <Default
-              of={address}
-              intercept={(node, { Default }) =>
-                node.isField && node.path === 'address.street' ? (
-                  <p>scoped-street</p>
-                ) : (
-                  <Default of={node} />
-                )
-              }
-            />
-          ) : null
-        }}
+        layout={(root, { Default }) => (
+          <Default
+            of={root.children.address}
+            intercept={(node, { Default }) =>
+              node.isField && node.path === 'address.street' ? (
+                <p>scoped-street</p>
+              ) : (
+                <Default of={node} />
+              )
+            }
+          />
+        )}
       />
     )
 
@@ -216,19 +257,16 @@ describe('SchemaFields', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        layout={(root, { Default }) => {
-          const address = root.children.address
-          return address.isGroup ? (
-            <Default
-              of={address}
-              layout={(addr, { Default: D }) => (
-                <div data-testid="addr-layout">
-                  <D of={addr.children.street} />
-                </div>
-              )}
-            />
-          ) : null
-        }}
+        layout={(root, { Default }) => (
+          <Default
+            of={root.children.address}
+            layout={(addr, { Default: D }) => (
+              <div data-testid="addr-layout">
+                <D of={addr.children?.street} />
+              </div>
+            )}
+          />
+        )}
       />
     )
 
@@ -247,19 +285,16 @@ describe('SchemaFields', () => {
         intercept={{
           'address.street': () => <p>intercepted-street</p>,
         }}
-        layout={(root, { Default }) => {
-          const address = root.children.address
-          return address.isGroup ? (
-            <Default
-              of={address}
-              layout={(addr, { Default: D }) => (
-                <div data-testid="addr-layout">
-                  <D of={addr.children.street} />
-                </div>
-              )}
-            />
-          ) : null
-        }}
+        layout={(root, { Default }) => (
+          <Default
+            of={root.children.address}
+            layout={(addr, { Default: D }) => (
+              <div data-testid="addr-layout">
+                <D of={addr.children?.street} />
+              </div>
+            )}
+          />
+        )}
       />
     )
 
@@ -274,26 +309,23 @@ describe('SchemaFields', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        layout={(root, { Default }) => {
-          const address = root.children.address
-          return address.isGroup ? (
-            <Default
-              of={address}
-              intercept={(node, { Default: D }) =>
-                node.isField && node.path === 'address.street' ? (
-                  <p>scoped-laid-out-street</p>
-                ) : (
-                  <D of={node} />
-                )
-              }
-              layout={(addr, { Default: D }) => (
-                <div data-testid="addr-layout">
-                  <D of={addr.children.street} />
-                </div>
-              )}
-            />
-          ) : null
-        }}
+        layout={(root, { Default }) => (
+          <Default
+            of={root.children.address}
+            intercept={(node, { Default: D }) =>
+              node.isField && node.path === 'address.street' ? (
+                <p>scoped-laid-out-street</p>
+              ) : (
+                <D of={node} />
+              )
+            }
+            layout={(addr, { Default: D }) => (
+              <div data-testid="addr-layout">
+                <D of={addr.children?.street} />
+              </div>
+            )}
+          />
+        )}
       />
     )
 
@@ -312,26 +344,23 @@ describe('SchemaFields', () => {
     const screen = await render(
       <SchemaFields
         form={form}
-        layout={(root, { Default }) => {
-          const address = root.children.address
-          return address.isGroup ? (
-            <Default
-              of={address}
-              intercept={(node, { Default: D }) =>
-                node.isField && node.path === 'address.street' ? (
-                  <p>street-via-children</p>
-                ) : (
-                  <D of={node} />
-                )
-              }
-              layout={(addr, { Children }) => (
-                <div data-testid="addr-children">
-                  <Children of={addr} />
-                </div>
-              )}
-            />
-          ) : null
-        }}
+        layout={(root, { Default }) => (
+          <Default
+            of={root.children.address}
+            intercept={(node, { Default: D }) =>
+              node.isField && node.path === 'address.street' ? (
+                <p>street-via-children</p>
+              ) : (
+                <D of={node} />
+              )
+            }
+            layout={(addr, { Children }) => (
+              <div data-testid="addr-children">
+                <Children of={addr} />
+              </div>
+            )}
+          />
+        )}
       />
     )
 
@@ -356,25 +385,22 @@ describe('SchemaFields', () => {
           </button>
           <SchemaFields
             form={form}
-            layout={(root, { Default }) => {
-              const address = root.children.address
-              return address.isGroup ? (
-                <Default
-                  of={address}
-                  intercept={
-                    on
-                      ? (node, { Default: D }) =>
-                          node.path === 'address.street' ? (
-                            <p>toggled-street</p>
-                          ) : (
-                            <D of={node} />
-                          )
-                      : undefined
-                  }
-                  layout={(addr, { Children }) => <Children of={addr} />}
-                />
-              ) : null
-            }}
+            layout={(root, { Default }) => (
+              <Default
+                of={root.children.address}
+                intercept={
+                  on
+                    ? (node, { Default: D }) =>
+                        node.path === 'address.street' ? (
+                          <p>toggled-street</p>
+                        ) : (
+                          <D of={node} />
+                        )
+                    : undefined
+                }
+                layout={(addr, { Children }) => <Children of={addr} />}
+              />
+            )}
           />
         </>
       )
@@ -489,14 +515,12 @@ describe('layout on an array keeps add/remove state', () => {
         layout={(root, { Default }) => (
           <Default
             of={root.children.contacts}
-            layout={(contacts, { Default: D, Children }) =>
-              contacts.isArray ? (
-                <section data-testid="contacts-layout">
-                  <Children of={contacts} />
-                  <D of={contacts.parts.addButton} />
-                </section>
-              ) : null
-            }
+            layout={(contacts, { Default: D, Children }) => (
+              <section data-testid="contacts-layout">
+                <Children of={contacts} />
+                <D of={contacts.parts.addButton} />
+              </section>
+            )}
           />
         )}
       />
