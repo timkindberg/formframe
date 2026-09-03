@@ -61,6 +61,12 @@ export type PartsOverrides<P, R> = {
 export type EField<R, S = unknown> = Omit<FieldNode<S>, 'parts'> & {
   parts: EnrichedParts<FieldNode<S>['parts'], R>
   Default(opts?: { parts?: PartsOverrides<FieldNode<S>['parts'], R> }): R
+  /**
+   * Render this node through the active resolver (intercept, then template).
+   * `Default()` skips intercept and goes straight to the defaults table.
+   * Pass `renderNode` to resolve with a scoped interceptor.
+   */
+  Resolve(opts?: { renderNode?: Resolver<R, S> }): R
 }
 
 /** Enriched container — parts + children + re-entry points. */
@@ -79,6 +85,12 @@ type EContainerOf<N extends ContainerNode<S>, R, S = unknown> = Omit<
     parts?: PartsOverrides<N['parts'], R>
     renderNode?: Resolver<R, S>
   }): R
+  /**
+   * Render this node through the active resolver (intercept, then template).
+   * `Default()` skips intercept and goes straight to the defaults table.
+   * Pass `renderNode` to resolve with a scoped interceptor.
+   */
+  Resolve(opts?: { renderNode?: Resolver<R, S> }): R
 }
 export type EGroup<R, S = unknown> = EContainerOf<GroupNode<S>, R, S>
 export type EArray<R, S = unknown> = EContainerOf<ArrayNode<S>, R, S> & {
@@ -390,9 +402,12 @@ export function createContinuation<R>(
       parts?: Overrides
       renderNode?: Resolver<R, S>
     }): R => renderDefault(core, opts?.renderNode ?? resolver, opts?.parts)
+    /** Intercept then template. Same contract as `Children()` / `renderChild`. */
+    const Resolve = (opts?: { renderNode?: Resolver<R, S> }): R =>
+      renderChild(core, opts?.renderNode ?? resolver)
 
     if (core.isField) {
-      return { ...core, parts, Default } as unknown as ENode<R, S>
+      return { ...core, parts, Default, Resolve } as unknown as ENode<R, S>
     }
 
     const children: Record<string, ENode<R, S>> = {}
@@ -413,6 +428,7 @@ export function createContinuation<R>(
       child,
       Children,
       Default,
+      Resolve,
     }
     if (core.isArray) {
       return {

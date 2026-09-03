@@ -184,7 +184,7 @@ The host UI-platform team’s `defaults` table (and `useTeamFormTree` wrapper) s
 _Avoid_: putting path intercepts or screen layout in the platform table.
 
 **Form intercept**:
-The feature team’s per-form customize — `SchemaFields` children for layout, and path `intercept` only for what is unique to this screen. Built on **platform defaults**, not on `nativeDefaults` directly.
+The feature team’s per-form customize — `SchemaFields layout` for root arrangement, and path `intercept` only for what is unique to this screen. Built on **platform defaults**, not on `nativeDefaults` directly.
 _Avoid_: re-declaring Chakra/RHF defaults in the screen; intercepting every select when the platform already swapped `select` for SmartSelect.
 
 **Don’t migrate**:
