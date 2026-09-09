@@ -24,6 +24,7 @@ A **library gap** is only when the promised foundations are missing or broken (t
 - Known-shape i18n is `title: msg(...)` + `jsonSchemaToTree`, or a message key translated in **platform defaults** — not a FormFrame `l10nTitle`.
 - Labeled enums the consumer owns become `oneOf`+`const`+`title`, or a **source transform** from `enumNames`. FormFrame never compiles `enumNames`.
 - Fetched options are a host `select` control (e.g. SmartSelect in **platform defaults**). Pin the widget; do not compile `preloadFromApi`.
-- Custom `field.root` (Chakra `FormControl`) must compose the same a11y/error pieces the shipped root uses — exporting those pieces is an IOC seam, not a Chakra adapter.
+- Custom `field.root` (Chakra `FormControl`) must compose the same a11y/error pieces the shipped root uses — exporting those pieces is an IOC seam, not a Chakra adapter. Shipped as `useFieldRootSlots` plus the three primitives the native root is built from: `useInjectedFieldErrors`, `enrichControlErrorA11y`, `FieldErrorsList` (#163).
+- **A custom `field.root` owns its own a11y.** `useFieldRootSlots` resolves `parts.*` overlays and stops there — it deliberately does not wire `aria-invalid` / `aria-describedby` / the error list, because the host control that motivates a custom root (Chakra `FormControl`, an RHF wrapper) already emits those and would fight ours. Baking them in would make the seam a Chakra adapter by another name. A root that wants FormFrame's a11y composes the three primitives, which is exactly what `nativeDefaults.field.root` does.
 
 **Relates to:** ADR 007, 008, 024, 029 §5, 049, 051. Glossary: `CONTEXT.md` (failure disposition, library gap, IOC seam, host recipe, platform defaults, form intercept, source transform).
