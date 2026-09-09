@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org
 
@@ -73,21 +73,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Node 24 for the npm it bundles (>= 11), not for the runtime. The smoke
-      # consumer installs `@formframe/input-conformance`, whose `vitest` peer
-      # drags in a peer cycle (`@vitest/browser-playwright` peer-depends on
-      # `vitest@*`) that npm 10's arborist crashes on: `Cannot read properties
-      # of null (reading 'edgesOut')`. Nothing to do with our packages — the
-      # same install is green on npm 11.
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: npm ci
+
+      # The throwaway consumer installs `@formframe/input-conformance`, whose
+      # `vitest` peer drags in a peer cycle (`@vitest/browser-playwright`
+      # peer-depends on `vitest@*`) that npm 10's arborist crashes on:
+      # `Cannot read properties of null (reading 'edgesOut')`. npm 11 walks it
+      # fine. Upgrading here rather than moving the job to node 24 keeps
+      # `npm ci` above on npm 10, which is the only npm the committed
+      # lockfile satisfies (#175).
+      - name: Upgrade npm for the consumer install (npm 10 arborist bug)
+        run: npm i -g npm@11
 
       - name: Build all packages (tsup ESM + CJS + d.ts)
         run: npm run build
