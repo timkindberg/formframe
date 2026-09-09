@@ -140,6 +140,39 @@ describe('intercept function floor', () => {
       .element(screen.getByRole('textbox', { name: 'Street' }))
       .toBeInTheDocument()
   })
+
+  // #168: `interceptStabilityDeps` returns a variable-length array, and React
+  // compares only the overlapping prefix when a dep list resizes — so going
+  // from `undefined` to a function kept the stale resolver and the intercept
+  // never fired.
+  it('applies a function intercept added after the first render', async () => {
+    const form = jsonSchemaToRuntimeTree(schema)
+    function Toggle() {
+      const [on, setOn] = useState(false)
+      return (
+        <>
+          <button type="button" onClick={() => setOn(true)}>
+            enable intercept
+          </button>
+          <SchemaFields
+            form={form}
+            intercept={
+              on
+                ? (node, { Default }) =>
+                    node.path === 'email' ? null : <Default of={node} />
+                : undefined
+            }
+          />
+        </>
+      )
+    }
+    const screen = await render(<Toggle />)
+    await expect
+      .element(screen.getByRole('textbox', { name: 'Email' }))
+      .toBeInTheDocument()
+    await screen.getByRole('button', { name: 'enable intercept' }).click()
+    expect(document.querySelector('[name="email"]')).toBeNull()
+  })
 })
 
 describe('intercept path-map vs bag discrimination', () => {
