@@ -19,6 +19,13 @@ export type { BoundSchemaFieldsProps, UseFormTreeOptions } from './useFormTree'
 // The library RENDERS validation errors via the inject seam
 // (`<Default of={field} errors={ValidationError[]} />`) — it does not
 // produce/schedule/store them (ADR 050).
+//
+// A custom `field.root` is host chrome, not a library adapter (ADR 052 / #163):
+// it calls `useFieldRootSlots` for overlay resolution only and owns its own
+// a11y, since a UI-kit control (Chakra `FormControl`, an RHF wrapper) already
+// does. For a native-like root that wants FormFrame's a11y instead, compose
+// `useInjectedFieldErrors` + `enrichControlErrorA11y` + `FieldErrorsList` —
+// the same three pieces `nativeDefaults.field.root` is built from.
 export {
   SchemaFields,
   createRenderer,
@@ -32,6 +39,10 @@ export {
   errorA11yProps,
   InjectFieldErrors,
   FieldA11yContext,
+  FieldErrorsList,
+  enrichControlErrorA11y,
+  useInjectedFieldErrors,
+  useFieldRootSlots,
 } from './renderer'
 export type {
   Intercept,
@@ -59,6 +70,7 @@ export type {
   EArrayItem,
   ErrorA11yProps,
   FieldA11yState,
+  FieldRootSlots,
 } from './renderer'
 // `layoutShape`'s structural types (`LayoutRoot` / `LayoutGroup` / `LayoutNode`)
 // stay internal — reachable through `SchemaFieldsLayout<Shape>`, which is the

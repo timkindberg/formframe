@@ -145,8 +145,10 @@ export function errorA11yProps(state: FieldA11yState | null): ErrorA11yProps {
 
 /** Attach error-state a11y for a control *override*: merge into `attrs` when
  * the archetype has them (input/select/textarea); always expose top-level
- * `errorA11y` for choicegroup (no attrs bag — error aria goes on the wrapper). */
-function enrichControlErrorA11y(
+ * `errorA11y` for choicegroup (no attrs bag — error aria goes on the wrapper).
+ * A custom `field.root` that wants FormFrame's error a11y passes the result to
+ * `overrides.control` itself (ADR 052 / #163). */
+export function enrichControlErrorA11y(
   control: FieldControl,
   errorA11y: ErrorA11yProps
 ): FieldControl & { errorA11y: ErrorA11yProps } {
@@ -179,15 +181,18 @@ function enrichControlErrorA11y(
  * the ADR-017 component cannot forward `errors` through Core's
  * `node.Default(opts)` without a Core change, so it wraps the re-entry in this
  * provider. `null` = not injected (no errors); an array (including `[]`) =
- * recipe-pre-gated source of truth. Recipes write via the wrap / `errors` prop;
- * `DefaultFieldRoot` reads via {@link useInjectedFieldErrors}.
+ * recipe-pre-gated source of truth. Recipes write through the wrap or the
+ * `errors` prop; a custom `field.root` reads through
+ * {@link useInjectedFieldErrors}, never this context directly.
  */
 const InjectedFieldErrorsContext = createContext<ValidationError[] | null>(null)
 
 /** Read recipe-pre-gated errors written by {@link InjectFieldErrors} or
  * `<Default of={field} errors={…} />`. Empty when nothing was injected — the
- * library does not produce/store errors itself (ADR 050). */
-function useInjectedFieldErrors(): ValidationError[] {
+ * library does not produce or store errors itself (ADR 050). A custom
+ * `field.root` (e.g. a UI-kit FormControl) calls this instead of wrapping
+ * `nativeDefaults.field.root`. */
+export function useInjectedFieldErrors(): ValidationError[] {
   return useContext(InjectedFieldErrorsContext) ?? []
 }
 
@@ -277,8 +282,10 @@ export function fieldErrorId(path: string): string {
 
 /** Shared error-list markup for the inject path. No `role="alert"` —
  * assertive live regions re-announce on every keystroke under revalidate-on-
- * change; `aria-describedby` carries the message without the interruption. */
-function FieldErrorsList({
+ * change; `aria-describedby` carries the message without the interruption.
+ * A custom `field.root` places this (or its own `overrides.errors`) next to the
+ * control (ADR 052 / #163). */
+export function FieldErrorsList({
   path,
   errors,
 }: {
@@ -294,6 +301,23 @@ function FieldErrorsList({
   )
 }
 
+/**
+ * Overlay-resolved field slots for a custom `field.root` (ADR 052 / #163).
+ *
+ * Honors `parts.*` overlays and nothing else: it does **not** wire FormFrame's
+ * error a11y, because a host `field.root` is usually a UI-kit control (Chakra
+ * `FormControl`, a react-hook-form wrapper) whose own chrome owns
+ * `aria-invalid` / `aria-describedby` and would fight ours. A root that wants
+ * FormFrame's a11y builds it from `useInjectedFieldErrors` +
+ * `enrichControlErrorA11y` + `FieldErrorsList` — which is exactly what the
+ * native root below does.
+ */
+export interface FieldRootSlots {
+  label: ReactNode
+  description: ReactNode
+  control: ReactNode
+}
+
 function renderPart(
   part: { Default(): ReactNode } | undefined,
   override: ((part: unknown) => ReactNode) | undefined
@@ -303,10 +327,29 @@ function renderPart(
   return override ? override(part) : part.Default()
 }
 
+/** Resolve a field's part overlays from the same props object
+ * `defaults.field.root` receives. See {@link FieldRootSlots}. */
+export function useFieldRootSlots({
+  node,
+  overrides,
+}: {
+  node: EField
+  overrides?: PartOverrideMap<ReactNode>
+}): FieldRootSlots {
+  return {
+    label: renderPart(node.parts.label, overrides?.['label']),
+    description: renderPart(node.parts.description, overrides?.['description']),
+    control: renderPart(node.parts.control, overrides?.['control']),
+  }
+}
+
 /** Compose a field from its parts: label, description, control, and errors.
- * FormFrame error a11y (`FieldA11yContext` / enrich / `FieldErrorsList`) lives
- * here. `parts.control` overlays receive the enriched control plus `errorA11y`.
- * `parts.errors` overlays receive the visible `ValidationError[]`. */
+ * FormFrame's error a11y (`FieldA11yContext` / `enrichControlErrorA11y` /
+ * `FieldErrorsList`) lives here — native chrome — not in
+ * {@link useFieldRootSlots}. `parts.control` overrides receive the enriched
+ * control plus `errorA11y`; `parts.errors` overrides receive the visible
+ * `ValidationError[]` — the same fractal hijack as label/control (ADR 047),
+ * including on the `<Default errors={…} />` inject path. */
 function DefaultFieldRoot({
   node,
   overrides,
@@ -314,6 +357,9 @@ function DefaultFieldRoot({
   node: EField
   overrides?: PartOverrideMap<ReactNode>
 }): ReactNode {
+  // Inject-only (ADR 050): no `errors` prop via `<Default errors={…} />`
+  // means no errors and no a11y error state — the library renders, it does
+  // not produce/store validation errors.
   const issues = useInjectedFieldErrors()
   const visible = issues.length > 0
   const a11yState = visible ? { errorId: fieldErrorId(node.path) } : null
