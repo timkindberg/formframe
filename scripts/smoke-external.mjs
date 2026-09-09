@@ -18,8 +18,15 @@
 // Assumes `npm run build` has already produced dist/ for every package.
 
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import {
+  mkdtempSync,
+  writeFileSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
@@ -204,6 +211,19 @@ try {
   sh('npm', ['install', '--no-audit', '--no-fund'], { cwd: consumerDir })
 } catch (err) {
   fail('consumer npm install', err)
+  // npm prints a path to its debug log, which is useless on a CI runner that
+  // evaporates when the job ends — and an arborist crash says nothing without
+  // it. Tail it here.
+  try {
+    const logDir = join(homedir(), '.npm', '_logs')
+    const latest = readdirSync(logDir).sort().at(-1)
+    if (latest) {
+      console.error(`\n--- npm debug log ${latest} (tail)`)
+      console.error(readFileSync(join(logDir, latest), 'utf8').slice(-6000))
+    }
+  } catch {
+    // no debug log to show — the error above is all there is
+  }
   process.exit(1)
 }
 

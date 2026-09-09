@@ -72,6 +72,7 @@
     "@types/react": "^18.2.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/browser": "^4.0.14",
+    "@vitest/browser-playwright": "^4.0.14",
     "@vitest/ui": "^4.0.14",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
@@ -84,8 +85,5 @@
     "vitest": "^4.0.14",
     "vitest-browser-react": "^2.0.2",
     "zod": "^4.4.3"
-  },
-  "dependencies": {
-    "@vitest/browser-playwright": "^4.0.14"
   }
 }

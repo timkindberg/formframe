@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
 
@@ -73,10 +73,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # Node 24 for the npm it bundles (>= 11), not for the runtime. The smoke
+      # consumer installs `@formframe/input-conformance`, whose `vitest` peer
+      # drags in a peer cycle (`@vitest/browser-playwright` peer-depends on
+      # `vitest@*`) that npm 10's arborist crashes on: `Cannot read properties
+      # of null (reading 'edgesOut')`. Nothing to do with our packages — the
+      # same install is green on npm 11.
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
 
