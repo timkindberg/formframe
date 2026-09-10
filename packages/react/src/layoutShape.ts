@@ -7,11 +7,12 @@
 // `root.children.x` just was not indexed by the brand. This file is the overlay
 // — runtime handles stay `EGroup`; the layout callback's `root` is a phantom
 // narrowing of `children` to direct child names at a path prefix. Child
-// fields/groups/arrays reuse the public `EField` / `EGroup` / `EArray` aliases
-// so Quick Info is `EField<Origin>`, not a second `type EField = …` (`EField$1`).
+// groups/arrays reuse the public `EGroup` / `EArray` aliases so Quick Info is
+// `EGroup<Origin>`, not a second `type EGroup = …` (`EGroup$1`); a keyed field
+// gets {@link LayoutField}, an `EField` whose control the brand already narrowed.
 // `Origin` is the tree-wide `facts.origin.schema` type, not a per-path subschema.
 
-import type { FormShape } from '@formframe/core'
+import type { ControlForWidget, FormShape } from '@formframe/core'
 import type { EArray, EArrayItem, EField, EGroup } from './enriched'
 
 type Pretty<T> = { [K in keyof T]: T[K] } & {}
@@ -132,12 +133,42 @@ export type LayoutNode<
   Path extends string,
   Origin = unknown,
 > = Path extends keyof TS['fields'] & string
-  ? EField<Origin>
+  ? LayoutField<TS, Path, Origin>
   : Path extends keyof TS['groups'] & string
     ? LayoutGroup<TS, Path, Origin>
     : Path extends keyof TS['arrays'] & string
       ? EArray<Origin>
       : AnyKindNode<Origin>
+
+/**
+ * Field handle at a keyed `FormShape` path, with `parts.control` narrowed to the
+ * archetype the brand's widget resolves to (#176).
+ *
+ * The floor keeps `parts.control` a four-member union on purpose: `FieldNode` is
+ * one interface with `widget` as a resolved label, not a discriminant, so a
+ * function intercept — which fires for every node — cannot know more (ADR 029
+ * §5). A keyed path can: `TS['fields'][Path]['widget']` is a literal, and Core's
+ * `ControlForWidget` already maps it to the archetype. Narrowing here is what
+ * drops the `c.kind` guard from
+ * `<Default of={root.children.username} parts={{ control: (c) => …c.attrs }} />`,
+ * matching the typed-rules door (`FieldPartsData`). Widget overrides re-narrow
+ * for free: `useFormTree` re-brands `form` through `ApplyWidgetOverrides`.
+ *
+ * `Extract` runs against the ENRICHED control (each union member already
+ * `& { Default(): R }`), so the picked member keeps its re-entry point.
+ */
+export type LayoutField<
+  TS extends FormShape,
+  Path extends keyof TS['fields'] & string,
+  Origin = unknown,
+> = Omit<EField<Origin>, 'parts'> & {
+  parts: Omit<EField<Origin>['parts'], 'control'> & {
+    control: Extract<
+      EField<Origin>['parts']['control'],
+      ControlForWidget<TS['fields'][Path]['widget']>
+    >
+  }
+}
 
 /** Group handle whose `children` are the direct child names under `Prefix`.
  * Keyed children are exact; `child(path)` is a dynamic lookup, so it hands back

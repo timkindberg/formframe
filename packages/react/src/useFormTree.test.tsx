@@ -209,7 +209,7 @@ describe('useFormTree', () => {
       return (
         <SchemaFields
           layout={(root, { Default: D, Children }) => {
-            expectTypeOf(root.children.name).toEqualTypeOf<EField<ZodType>>()
+            expectTypeOf(root.children.name).toExtend<EField<ZodType>>()
             expectTypeOf<keyof typeof root.children>().toEqualTypeOf<'name'>()
             expectTypeOf(D).toEqualTypeOf<RenderHelpers['Default']>()
             expectTypeOf(Children).toEqualTypeOf<RenderHelpers['Children']>()
@@ -238,11 +238,11 @@ describe('useFormTree', () => {
       return (
         <SchemaFields
           layout={(root, { Default }) => {
-            expectTypeOf(root.children.from).toEqualTypeOf<EField<ZodType>>()
+            expectTypeOf(root.children.from).toExtend<EField<ZodType>>()
             expectTypeOf<keyof typeof root.children>().toEqualTypeOf<
               'from' | 'address'
             >()
-            expectTypeOf(root.children.address.children.street).toEqualTypeOf<
+            expectTypeOf(root.children.address.children.street).toExtend<
               EField<ZodType>
             >()
             // @ts-expect-error — not a child of this schema
@@ -253,7 +253,7 @@ describe('useFormTree', () => {
                 <Default
                   of={root.children.address}
                   layout={(addr, { Default: D }) => {
-                    expectTypeOf(addr.children.street).toEqualTypeOf<
+                    expectTypeOf(addr.children.street).toExtend<
                       EField<ZodType>
                     >()
                     return <D of={addr.children.street} />
@@ -294,7 +294,7 @@ describe('useFormTree', () => {
             expectTypeOf<keyof typeof root.children>().toEqualTypeOf<
               'from' | 'address'
             >()
-            expectTypeOf(root.children.from).toEqualTypeOf<
+            expectTypeOf(root.children.from).toExtend<
               EField<JSONSchemaObject>
             >()
             // @ts-expect-error — not a child of this schema
@@ -307,6 +307,65 @@ describe('useFormTree', () => {
     const screen = await render(<Harness />)
     await expect
       .element(screen.getByRole('textbox', { name: 'From' }))
+      .toBeInTheDocument()
+  })
+
+  it('a keyed field handle narrows parts.control by widget — no kind guard (#176)', async () => {
+    const widgets = {
+      type: 'object',
+      properties: {
+        username: { type: 'string', title: 'Username' }, // → input
+        plan: { type: 'string', title: 'Plan', enum: ['free', 'pro'] }, // → choicegroup
+      },
+    } as const satisfies JSONSchema
+    const widgetTree = jsonSchemaToTree(widgets)
+    function Harness() {
+      const { SchemaFields } = useFormTree(widgetTree)
+      return (
+        <SchemaFields
+          layout={(root, { Default }) => {
+            expectTypeOf(
+              root.children.username.parts.control.kind
+            ).toEqualTypeOf<'input'>()
+            expectTypeOf(
+              root.children.plan.parts.control.kind
+            ).toEqualTypeOf<'choicegroup'>()
+            // @ts-expect-error — an input control has no `options`
+            void root.children.username.parts.control.options
+            return (
+              <>
+                {/* The point of #176: `c.attrs` / `c.options` with no `c.kind`. */}
+                <Default
+                  of={root.children.username}
+                  parts={{ control: (c) => <input {...c.attrs} /> }}
+                />
+                <Default
+                  of={root.children.plan}
+                  parts={{
+                    control: (c) => (
+                      <div role={c.role} aria-labelledby={c.labelledBy}>
+                        {c.options.map((o) => (
+                          <label key={o.attrs.id}>
+                            <input {...o.attrs} />
+                            {o.label}
+                          </label>
+                        ))}
+                      </div>
+                    ),
+                  }}
+                />
+              </>
+            )
+          }}
+        />
+      )
+    }
+    const screen = await render(<Harness />)
+    await expect
+      .element(screen.getByRole('textbox', { name: 'Username' }))
+      .toBeInTheDocument()
+    await expect
+      .element(screen.getByRole('radio', { name: 'free' }))
       .toBeInTheDocument()
   })
 

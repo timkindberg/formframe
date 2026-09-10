@@ -19,8 +19,9 @@ ADR 053 deferred that to the typed-factory skin (ADR 010 Mode 2: `<fields.addres
 const { SchemaFields } = useFormTree(jsonSchemaToTree(schema))
 ;<SchemaFields
   layout={(root, { Default }) => (
-    // root.children.from is an EField; root.children.address is a group
-    // whose .children.street is an EField. `root.children.nope` is an error.
+    // root.children.from is a field (control already narrowed to its widget);
+    // root.children.address is a group whose .children.street is a field.
+    // `root.children.nope` is an error.
     <Default of={root.children.from} />
   )}
 />
@@ -48,7 +49,8 @@ The typed-factory skin (`<fields.x/>` without `.Default`) is still not this ADR.
 
 - `useFormTree`’s branded overload already had `TS`; `BoundSchemaFieldsProps<TS>` uses it. `SchemaFieldsProps<F>` derives the same `TS` from the `form` prop, and `useFormTree` now passes `layout` straight through (no cast).
 - **`parts` callbacks on a kind-unknown handle don't infer their parameter.** `DefaultOptsOf<H>` over a union yields a *union* of override maps, and TS won't contextually type a callback against a union. Excess-property checking still rejects a bogus key. This predates the overlay (it was already true of the `ENode` union) and is the reason to reach for a keyed child or an `isField` narrowing when you want typed part callbacks.
-- Widget-narrowed `EField` parts (control archetype) stay the intercept-rules job (`FieldProps<Shape, P>`). Layout keys answer *which child* and *field vs group vs array*. Origin `S` (`EField<JSONSchemaObject>` / `EField<ZodType>`) is the tree-wide `facts.origin.schema` type (ADR 033), not a per-path subschema.
+- **A keyed field handle also narrows `parts.control` by widget** ([#176](https://github.com/timkindberg/formframe/issues/176), amending this ADR's first pass, which left that to intercept rules). `TS['fields'][Path]['widget']` is a literal and Core's `ControlForWidget` maps it to the archetype, so `LayoutNode`'s field branch is a `LayoutField` — an `EField` with `parts.control` `Extract`ed to that member — and `<Default of={root.children.username} parts={{ control: (c) => <input {...c.attrs}/> }} />` needs no `c.kind` guard, matching `FieldProps<Shape, P>`. The floor keeps the union on purpose (a function intercept fires for every node and cannot know more — ADR 029 §5); only the keyed path has the answer. Widget overrides re-narrow for free, since `useFormTree` re-brands `form` through `ApplyWidgetOverrides`. A consumer who *does* guard today will see "this comparison appears unintentional" on the dead arms.
+- Origin `S` (`EField<JSONSchemaObject>` / `EField<ZodType>`) is the tree-wide `facts.origin.schema` type (ADR 033), not a per-path subschema.
 - Array item children stay `EArray`’s `Record<string, ENode>` for now (`${number}` paths — [#171](https://github.com/timkindberg/formframe/issues/171)). Array *layouts* work regardless (ADR 054); only the keyed typing of item children is deferred.
 - The brand is only as exact as the front-end's inference. `$ref`, tuple `items`, and the combiners resolve to `unknown` in `InferData`, and a boolean property schema is typed but skipped at runtime — so a keyed child can claim `EField` where the runtime node is a group, or name a child that does not exist. This is inherited from ADR 048 (`useInterceptRules` already keys off the same brand), not introduced here — tracked separately.
 
