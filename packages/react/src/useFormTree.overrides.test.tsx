@@ -89,6 +89,32 @@ describe('useFormTree threads overrideWidgets into the form brand (bd bh7.8)', (
   }
   void useOverrideTypeProbe
 
+  // The keyed `layout` door reads the same brand, so it re-narrows for free
+  // (#176) — no second threading path to keep in sync with the typed rules.
+  function useLayoutOverrideTypeProbe() {
+    const tree = jsonSchemaToTree(matrix)
+    const { SchemaFields } = useFormTree(tree, {
+      resolvePresentation: overrideWidgets(OVERRIDES),
+    })
+    return (
+      <SchemaFields
+        layout={(root) => {
+          expectTypeOf(
+            root.children.name.parts.control.kind
+          ).toEqualTypeOf<'textarea'>()
+          expectTypeOf(
+            root.children.color.parts.control.kind
+          ).toEqualTypeOf<'choicegroup'>()
+          expectTypeOf(
+            root.children.age.parts.control.kind
+          ).toEqualTypeOf<'input'>()
+          return null
+        }}
+      />
+    )
+  }
+  void useLayoutOverrideTypeProbe
+
   it('without overrides, form keeps the default-presentation brand', () => {
     // Type-only: an omitted resolver leaves the shape untouched (identity), so
     // typing off `form` equals typing off the input tree.
