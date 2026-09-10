@@ -5,7 +5,6 @@
 import { useMemo, type ReactNode } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'vitest-browser-react'
-import type { FieldControl } from '@formframe/core'
 import { jsonSchemaToTree } from '@formframe/input-jsonschema'
 import type { JSONSchema } from '@formframe/input-jsonschema'
 import {
@@ -14,6 +13,7 @@ import {
   nativeDefaults,
   useFieldRootSlots,
   useFormTree,
+  type ControlOverride,
 } from './index'
 
 const schema = {
@@ -44,6 +44,14 @@ function KitFieldRoot(
 }
 
 const kitDefaults = { field: { root: KitFieldRoot } }
+
+// Typing the handler `ControlOverride<'input'>` is how you say "this path is an
+// input" — `c.attrs` is `HtmlInputAttrs`, no `c.kind` branch. A node handle
+// cannot say it for you: `FieldNode` is deliberately one interface with
+// `widget` as a label, not a discriminant on `parts.control` (ADR 029 §5, v60).
+const KitControl: ControlOverride<'input'> = (c) => (
+  <input {...c.attrs} data-testid="kit-control" />
+)
 
 describe('useFieldRootSlots (#163)', () => {
   it('custom chrome places overlay-resolved slots without wrapping div.jsf-field', async () => {
@@ -95,15 +103,7 @@ describe('useFieldRootSlots (#163)', () => {
         <SchemaFields
           intercept={(node, { Default: D }) =>
             node.isField && node.path === 'username' ? (
-              <D
-                of={node}
-                parts={{
-                  control: (c: FieldControl & { Default(): ReactNode }) =>
-                    c.kind === 'input' ? (
-                      <input {...c.attrs} data-testid="kit-control" />
-                    ) : null,
-                }}
-              />
+              <D of={node} parts={{ control: KitControl }} />
             ) : (
               <D of={node} />
             )
