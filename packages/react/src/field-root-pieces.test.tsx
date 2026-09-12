@@ -13,7 +13,6 @@ import {
   nativeDefaults,
   useFieldRootSlots,
   useFormTree,
-  type ControlOverride,
 } from './index'
 
 const schema = {
@@ -44,14 +43,6 @@ function KitFieldRoot(
 }
 
 const kitDefaults = { field: { root: KitFieldRoot } }
-
-// Typing the handler `ControlOverride<'input'>` is how you say "this path is an
-// input" — `c.attrs` is `HtmlInputAttrs`, no `c.kind` branch. A node handle
-// cannot say it for you: `FieldNode` is deliberately one interface with
-// `widget` as a label, not a discriminant on `parts.control` (ADR 029 §5, v60).
-const KitControl: ControlOverride<'input'> = (c) => (
-  <input {...c.attrs} data-testid="kit-control" />
-)
 
 describe('useFieldRootSlots (#163)', () => {
   it('custom chrome places overlay-resolved slots without wrapping div.jsf-field', async () => {
@@ -95,19 +86,29 @@ describe('useFieldRootSlots (#163)', () => {
     expect(document.querySelector('.jsf-field-errors')).toBeNull()
   })
 
+  // Reached through `layout`'s keyed child, so the brand already resolved the
+  // widget and `c.attrs` is `HtmlInputAttrs` inline — no `c.kind` branch and no
+  // `ControlOverride<'input'>` annotation (#176). A function intercept fires for
+  // every node and still needs one; see intercept.test.tsx.
   it('parts.control overlay is honored without enriching attrs', async () => {
     function Form() {
       const tree = useMemo(() => jsonSchemaToTree(schema), [])
       const { SchemaFields } = useFormTree(tree, { defaults: kitDefaults })
       return (
         <SchemaFields
-          intercept={(node, { Default: D }) =>
-            node.isField && node.path === 'username' ? (
-              <D of={node} parts={{ control: KitControl }} />
-            ) : (
-              <D of={node} />
-            )
-          }
+          layout={(root, { Default: D }) => (
+            <>
+              <D
+                of={root.children.username}
+                parts={{
+                  control: (c) => (
+                    <input {...c.attrs} data-testid="kit-control" />
+                  ),
+                }}
+              />
+              <D of={root.children.zip} />
+            </>
+          )}
         />
       )
     }
