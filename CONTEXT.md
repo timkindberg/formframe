@@ -160,7 +160,7 @@ Core imports nothing, holds no state, and touches no DOM or framework. If a feat
 _Avoid_: stubborn spike (deleted — this boundary is the term; trying something in Core and writing an ADR needs no special ticket type).
 
 **As-is spike**:
-An experiment that uses FormFrame without adding library features, against one real known-shape screen. Compile or runtime bugs that prevent rendering may be fixed; everything else becomes a filed issue. Output is a failure list, not a production replacement and not a golden scenario until a later decision copies it. Each failure is tagged with one **failure disposition** plus timing (`now` / `defer`).
+An experiment that uses FormFrame without adding library features, against one real known-shape screen or one real unknown-shape compiler-driven island. Compile or runtime bugs that prevent rendering may be fixed; everything else becomes a filed issue. Output is a failure list, not a production replacement and not a golden scenario until a later decision copies it. Each failure is tagged with one **failure disposition** plus timing (`now` / `defer`). Known-shape precedent: ScheduleMeetingModal (#160). Unknown-shape precedent: ChecklistForm preview modal (#167) — host folds compiler `ui_rules` into field mode (ADR 056); FormFrame does not evaluate rules. Follow-ups: `facts.nullable` (#180), per-path field-mode selectors (#181), `ui_schema` as host intent (#182).
 _Avoid_: forcing-function spike; adoption spike (that's the epic's job); stubborn spike.
 
 **Failure disposition**:

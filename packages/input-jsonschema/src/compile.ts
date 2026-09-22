@@ -32,6 +32,45 @@ export function isObjectSchema(schema: JSONSchema): schema is JSONSchemaObject {
   return typeof schema === 'object' && schema !== null
 }
 
+type JsonSchemaTypeName =
+  | 'string'
+  | 'number'
+  | 'integer'
+  | 'boolean'
+  | 'object'
+  | 'array'
+  | 'null'
+
+const JSON_SCHEMA_TYPE_NAMES = new Set<string>([
+  'string',
+  'number',
+  'integer',
+  'boolean',
+  'object',
+  'array',
+  'null',
+])
+
+function isJsonSchemaTypeName(value: unknown): value is JsonSchemaTypeName {
+  return typeof value === 'string' && JSON_SCHEMA_TYPE_NAMES.has(value)
+}
+
+/**
+ * Draft-07 nullable is `type: ['boolean', 'null']` (either order). Mixed unions
+ * (`['string', 'number']`) stay unresolved so {@link toPrimitive} keeps the
+ * string-input fallback.
+ */
+function unwrapType(
+  type: JSONSchemaObject['type']
+): JsonSchemaTypeName | undefined {
+  if (isJsonSchemaTypeName(type)) return type
+  if (!Array.isArray(type)) return undefined
+  const nonNull = type.filter((t) => t !== 'null')
+  return nonNull.length === 1 && isJsonSchemaTypeName(nonNull[0])
+    ? nonNull[0]
+    : undefined
+}
+
 /**
  * Map the finite native constraints a form cares about into the neutral
  * {@link ValidationRules} bag (ADR 033 §1). Array-length constraints
@@ -53,7 +92,13 @@ export function buildValidation(
 function toPrimitive(
   type: JSONSchemaObject['type']
 ): 'string' | 'number' | 'integer' | 'boolean' {
-  if (type === 'number' || type === 'integer' || type === 'boolean') return type
+  const unwrapped = unwrapType(type)
+  if (
+    unwrapped === 'number' ||
+    unwrapped === 'integer' ||
+    unwrapped === 'boolean'
+  )
+    return unwrapped
   return 'string'
 }
 
@@ -110,10 +155,11 @@ function buildArrayChoices(
  * value/label identity without reading `origin.schema`.
  */
 function buildItemDescriptor(itemSchema: JSONSchemaObject): ItemDescriptor {
-  if (itemSchema.type === 'object' && itemSchema.properties) {
+  const type = unwrapType(itemSchema.type)
+  if (type === 'object' && itemSchema.properties) {
     return { valueShape: 'object', keys: Object.keys(itemSchema.properties) }
   }
-  if (itemSchema.type === 'array') {
+  if (type === 'array') {
     return { valueShape: 'array' }
   }
   return { valueShape: 'scalar' }
@@ -130,8 +176,9 @@ function compileNode(
   schema: JSONSchemaObject,
   required: boolean
 ): AnyNode<JSONSchemaObject> {
-  if (schema.type === 'array') return compileArray(path, schema, required)
-  if (schema.type === 'object' && schema.properties) {
+  const type = unwrapType(schema.type)
+  if (type === 'array') return compileArray(path, schema, required)
+  if (type === 'object' && schema.properties) {
     return compileGroup(path, schema, required)
   }
   return compileField(path, schema, required)

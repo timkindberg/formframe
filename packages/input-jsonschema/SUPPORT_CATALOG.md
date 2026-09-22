@@ -72,7 +72,8 @@ The front-end is a **structural transcriber** (ADR 033): it reads keywords into 
 | `readOnly` / `writeOnly` | ignored | Annotations not copied to tree; shipped stack has no read-only enforcement | `compile.ts` (absence) |
 | Missing `type` with `enum` | supported | Choice field from `enum` | `compile.ts` `buildScalarChoices` |
 | Missing `type` otherwise | supported (qualified) | `primitive: 'string'`, `input` | `compile.ts` `toPrimitive` default |
-| Array-valued `type`, e.g. `['number', 'null']` | ignored | Union members are not interpreted; falls back to string `input` | `edgeSchemas.test.ts` |
+| `type: [T, 'null']` / `['null', T]` (draft-07 nullable) | supported | Same as `type: T` (boolean → checkbox, number → number, object+properties → group) | `edgeSchemas.test.ts`, `parser.test.ts` |
+| Other array-valued `type` unions (e.g. `['string', 'number']`) | ignored | Union members are not interpreted; falls back to string `input` | `edgeSchemas.test.ts` |
 
 ### Choice presentation defaults (scalar)
 

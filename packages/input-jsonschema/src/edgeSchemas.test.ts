@@ -3,7 +3,7 @@ import { jsonSchemaToRuntimeTree } from './jsonSchemaToTree'
 import type { JSONSchema } from './types'
 import { inputCtl, choicegroupCtl } from './controlTestUtils'
 import { submitWith } from './submitTestUtils'
-import { assertField } from './nodeTestUtils'
+import { assertField, assertGroupNode } from './nodeTestUtils'
 
 describe('edge schema robustness', () => {
   it('empty enum falls back to input, not select', () => {
@@ -106,20 +106,54 @@ describe('edge schema robustness', () => {
     expect(label?.facts.constraints.maxLength).toBeUndefined()
   })
 
-  it('array-valued type unions fall back to string input', () => {
+  it('draft-07 nullable type arrays compile as the non-null primitive', () => {
     const schema: JSONSchema = {
       type: 'object',
       properties: {
         amount: { type: ['number', 'null'] },
+        flag: { type: ['null', 'boolean'] },
+        nested: {
+          type: ['object', 'null'],
+          properties: { inner: { type: 'string' } },
+        },
       },
     }
 
     const form = jsonSchemaToRuntimeTree(schema)
-    const field = form.getField('amount')
+    const amount = form.getField('amount')
+    const flag = form.getField('flag')
+    const nested = form.children.find((c) => c.path === 'nested')
+    assertGroupNode(nested)
 
-    expect(field?.widget).toBe('input')
-    expect(field?.facts.primitive).toBe('string')
-    expect(inputCtl(field).attrs.type).toBe('text')
+    expect(amount?.facts.primitive).toBe('number')
+    expect(inputCtl(amount).attrs.type).toBe('number')
+
+    expect(flag?.facts.primitive).toBe('boolean')
+    expect(inputCtl(flag).attrs.type).toBe('checkbox')
+
+    expect(nested.nodeType).toBe('group')
+    expect(nested.getField('inner')).toBeDefined()
+  })
+
+  it('mixed type unions still fall back to string input', () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      properties: {
+        amount: { type: ['string', 'number'] },
+        either: { type: ['string', 'number', 'null'] },
+      },
+    }
+
+    const form = jsonSchemaToRuntimeTree(schema)
+    const amount = form.getField('amount')
+    const either = form.getField('either')
+
+    expect(amount?.widget).toBe('input')
+    expect(amount?.facts.primitive).toBe('string')
+    expect(inputCtl(amount).attrs.type).toBe('text')
+
+    expect(either?.facts.primitive).toBe('string')
+    expect(inputCtl(either).attrs.type).toBe('text')
   })
 
   it('object shapes without child properties compile as leaf fields', () => {

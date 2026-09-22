@@ -156,6 +156,21 @@ describe('jsonSchemaToTree', () => {
       expect(inputCtl(field).attrs.type).toBe('checkbox')
     })
 
+    it('treats draft-07 nullable booleans as checkboxes', () => {
+      const schema: JSONSchema = {
+        type: 'object',
+        properties: {
+          subscribe: { type: ['boolean', 'null'] },
+        },
+      }
+
+      const form = jsonSchemaToRuntimeTree(schema)
+      const field = form.getField('subscribe')
+
+      expect(field?.facts.primitive).toBe('boolean')
+      expect(inputCtl(field).attrs.type).toBe('checkbox')
+    })
+
     it('includes required attribute for required fields', () => {
       const schema: JSONSchema = {
         type: 'object',
