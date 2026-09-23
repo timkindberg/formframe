@@ -81,6 +81,8 @@ Condensed from spike commit `2960345f8bc`. VNDLY-specific imports are named, not
 
 ### 1. Field-mode store (`fieldModeContext.tsx`, #181)
 
+The promoted, tested version is [`examples/basic-react/src/fieldModeStore.recipe.tsx`](../examples/basic-react/src/fieldModeStore.recipe.tsx): `FieldModeProvider` (form-library agnostic) plus `RhfFieldModeRuntime`. Copy that, not this sketch.
+
 Anti-patterns this replaces, each measured on the scaled fixture:
 
 - One context holding `{ isHidden, isRequired, isReadOnly }` functions. A new function every snapshot wakes every consumer.

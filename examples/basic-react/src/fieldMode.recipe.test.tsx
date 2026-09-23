@@ -1,8 +1,8 @@
 // RECIPE TESTS — gallery walkthrough for unknown-shape field mode.
-import { createContext, useContext, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { describe, expect, it } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { FormProvider, useForm, useWatch } from 'react-hook-form'
+import { FormProvider, useForm } from 'react-hook-form'
 import type { FieldValues } from 'react-hook-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
@@ -17,11 +17,8 @@ import {
   type ReactPartialDefaults,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
-import {
-  createFieldMode,
-  isBlank,
-  type FieldModeSnapshot,
-} from './fieldMode.recipe'
+import { createFieldMode } from './fieldMode.recipe'
+import { RhfFieldModeRuntime, useFieldMode } from './fieldModeStore.recipe'
 import { rhfFieldDefaults } from './rhfFieldControls.recipe'
 import Recipe from './Recipe_FieldMode_JSONSchema'
 
@@ -155,16 +152,6 @@ const countResolver = standardSchemaResolver(
   toStandardSchema(countValidator) as StandardSchemaV1<FieldValues>
 )
 
-const CountModeCtx = createContext<FieldModeSnapshot>({
-  isHidden: () => false,
-  isRequired: () => false,
-  isReadOnly: () => false,
-  hidden: new Set(),
-  required: new Set(),
-  readOnly: new Set(),
-  setValues: {},
-})
-
 function controlName(control: FieldControl): string {
   return control.kind === 'choicegroup'
     ? (control.options[0]?.attrs.name ?? '')
@@ -179,30 +166,25 @@ function reset(counts: Counts) {
   for (const key of Object.keys(counts)) delete counts[key]
 }
 
-function membershipKey(mode: FieldModeSnapshot): string {
-  return [
-    [...mode.hidden].sort().join(),
-    [...mode.required].sort().join(),
-    [...mode.readOnly].sort().join(),
-    JSON.stringify(mode.setValues),
-  ].join('|')
-}
+const countingCountsRef: { current: Counts } = { current: {} }
 
-const countingCounts: { current: Counts } = { current: {} }
+const RhfRoot = rhfFieldDefaults.field!.root!
 
+// Subscribes to all three bits like the gallery root, so a count is a wake.
 function CountingFieldRoot(
   props: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]
 ) {
-  bump(countingCounts.current, `field.root:${props.node.path}`)
-  const mode = useContext(CountModeCtx)
-  const Root = rhfFieldDefaults.field.root
-  const rendered = Root ? Root(props) : null
-  if (mode.isHidden(props.node.path)) return null
-  return rendered
+  const path = props.node.path
+  bump(countingCountsRef.current, `field.root:${path}`)
+  const hidden = useFieldMode((s) => s.hidden.has(path))
+  useFieldMode((s) => s.required.has(path))
+  useFieldMode((s) => s.readOnly.has(path))
+  if (hidden) return null
+  return <RhfRoot {...props} />
 }
 
 function CountingFieldControl(data: FieldControl) {
-  bump(countingCounts.current, `field.control:${controlName(data)}`)
+  bump(countingCountsRef.current, `field.control:${controlName(data)}`)
   const Control = rhfFieldDefaults.field.control
   return Control ? Control(data) : null
 }
@@ -211,8 +193,7 @@ const countingDefaults: ReactPartialDefaults = {
   field: { root: CountingFieldRoot, control: CountingFieldControl },
 }
 
-function CountingDemo({ counts }: { counts: Counts }) {
-  countingCounts.current = counts
+function CountingDemo() {
   const methods = useForm({
     resolver: countResolver,
     defaultValues: {
@@ -223,53 +204,33 @@ function CountingDemo({ counts }: { counts: Counts }) {
       [TITLE]: '',
     },
   })
-  useWatch({
-    control: methods.control,
-    name: [...countFieldMode.paths],
-  })
-  const nextMode = countFieldMode(methods.getValues())
-  const key = membershipKey(nextMode)
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- membership key
-  const mode = useMemo(() => nextMode, [key])
-  const hiddenKey = [...mode.hidden].sort().join()
-  const setValuesKey = JSON.stringify(mode.setValues)
-
-  useEffect(() => {
-    const snapshot = countFieldMode(methods.getValues())
-    for (const [path, value] of Object.entries(snapshot.setValues)) {
-      const current = methods.getValues(path)
-      if (current === value) continue
-      if (isBlank(current) && value == null) continue
-      methods.setValue(path, value as never, { shouldDirty: true })
-    }
-    for (const path of snapshot.hidden) methods.clearErrors(path)
-  }, [hiddenKey, setValuesKey, methods])
-
   const { SchemaFields } = useFormTree(countTree, {
     defaults: countingDefaults,
   })
+  const fields = useMemo(() => <SchemaFields />, [SchemaFields])
 
   return (
-    <CountModeCtx.Provider value={mode}>
-      <FormProvider {...methods}>
-        <form
-          noValidate
-          onSubmit={methods.handleSubmit(() => {
-            /* validation side effects only */
-          })}
-        >
-          <SchemaFields />
-          <button type="submit">Submit</button>
-        </form>
-      </FormProvider>
-    </CountModeCtx.Provider>
+    <FormProvider {...methods}>
+      <form
+        noValidate
+        onSubmit={methods.handleSubmit(() => {
+          /* validation side effects only */
+        })}
+      >
+        <RhfFieldModeRuntime fieldMode={countFieldMode}>
+          {fields}
+        </RhfFieldModeRuntime>
+        <button type="submit">Submit</button>
+      </form>
+    </FormProvider>
   )
 }
 
 describe('fieldMode.recipe · render counts', () => {
   it('typing in a non-condition field re-renders zero field roots', async () => {
     const counts: Counts = {}
-    const screen = await render(<CountingDemo counts={counts} />)
+    countingCountsRef.current = counts
+    const screen = await render(<CountingDemo />)
     await expect
       .poll(() => document.querySelector('[name="title"]'))
       .toBeTruthy()
@@ -286,9 +247,10 @@ describe('fieldMode.recipe · render counts', () => {
     expect(counts['field.control:title'] ?? 0).toBe(0)
   })
 
-  it('toggling the driver re-renders field roots via field-mode context', async () => {
+  it('toggling the driver re-renders only the field roots whose bits flipped', async () => {
     const counts: Counts = {}
-    const screen = await render(<CountingDemo counts={counts} />)
+    countingCountsRef.current = counts
+    const screen = await render(<CountingDemo />)
     await expect
       .poll(() => document.querySelector('[name="title"]'))
       .toBeTruthy()
@@ -302,13 +264,16 @@ describe('fieldMode.recipe · render counts', () => {
 
     expect(counts['field.root:extraNotes'] ?? 0).toBeGreaterThan(0)
     expect(counts['field.control:extraNotes'] ?? 0).toBeGreaterThan(0)
-    expect(counts['field.root:title'] ?? 0).toBeGreaterThan(0)
+    expect(counts['field.root:followUpEmail'] ?? 0).toBeGreaterThan(0)
     expect(counts['field.root:internalComment'] ?? 0).toBeGreaterThan(0)
+    expect(counts['field.root:title'] ?? 0).toBe(0)
+    expect(counts['field.root:driver'] ?? 0).toBe(0)
   })
 
   it('after submit, typing in title does not re-render sibling field roots', async () => {
     const counts: Counts = {}
-    const screen = await render(<CountingDemo counts={counts} />)
+    countingCountsRef.current = counts
+    const screen = await render(<CountingDemo />)
     await expect
       .poll(() => document.querySelector('[name="title"]'))
       .toBeTruthy()

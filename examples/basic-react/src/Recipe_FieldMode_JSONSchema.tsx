@@ -3,6 +3,7 @@
 // Files to copy — this one plus:
 //
 //   fieldMode.recipe.ts            createFieldMode + withFieldMode
+//   fieldModeStore.recipe.tsx      per-path subscriptions + RHF runtime
 //   ajvValidator.recipe.ts         createAjvValidator({ fieldMode })
 //   rhfFieldControls.recipe.tsx    RHF control bindings
 //   fieldPresentation.recipe.tsx   ValidationSummary
@@ -11,20 +12,16 @@
 //
 //   const fieldMode = createFieldMode(rules)
 //   createAjvValidator(schema, { fieldMode })   ← same function as field UI
-//   const { isHidden, isRequired, isReadOnly, setValues } = fieldMode(values)
+//   <RhfFieldModeRuntime fieldMode={fieldMode}>{fields}</RhfFieldModeRuntime>
+//   useFieldMode(s => s.hidden.has(path))      ← per field, one boolean each
 //
 // One required producer: AJV via `{ fieldMode }`, not `register({ required })`.
 // Skip hidden fields in `field.root` (unknown-shape default walk). Known-shape
 // place-yourself layouts filter in `layout` instead. `setValues` is host-applied
 // (hide-and-clear). Live rules need a reactive form-state adapter — native
 // FormData predicates go stale (ADR 011 / 056).
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import {
-  FormProvider,
-  useForm,
-  useFormContext,
-  useWatch,
-} from 'react-hook-form'
+import { useContext, useMemo, useState } from 'react'
+import { FormProvider, useForm, useFormContext } from 'react-hook-form'
 import type { FieldValues } from 'react-hook-form'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
@@ -41,11 +38,8 @@ import {
   type ReactPartialDefaults,
 } from '@formframe/renderer-react'
 import { createAjvValidator } from './ajvValidator.recipe'
-import {
-  createFieldMode,
-  isBlank,
-  type FieldModeSnapshot,
-} from './fieldMode.recipe'
+import { createFieldMode } from './fieldMode.recipe'
+import { RhfFieldModeRuntime, useFieldMode } from './fieldModeStore.recipe'
 import { ValidationSummary } from './fieldPresentation.recipe'
 import {
   rhfErrorsToList,
@@ -103,28 +97,20 @@ const resolver = standardSchemaResolver(
   toStandardSchema(validator) as StandardSchemaV1<FieldValues>
 )
 
-const FieldModeCtx = createContext<FieldModeSnapshot>({
-  isHidden: () => false,
-  isRequired: () => false,
-  isReadOnly: () => false,
-  hidden: new Set(),
-  required: new Set(),
-  readOnly: new Set(),
-  setValues: {},
-})
-
 const blankOption = { setValueAs: blankToUndefined }
 const unselectedOption = { setValueAs: unselectedToUndefined }
 
 function RecipeFieldRoot(
   props: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]
 ) {
-  const mode = useContext(FieldModeCtx)
-  const errors = useFieldValidationErrors(props.node.path)
-  if (mode.isHidden(props.node.path)) return null
+  const path = props.node.path
+  const hidden = useFieldMode((s) => s.hidden.has(path))
   const required =
-    mode.isRequired(props.node.path) || Boolean(props.node.facts.required)
-  const readOnly = mode.isReadOnly(props.node.path)
+    useFieldMode((s) => s.required.has(path)) ||
+    Boolean(props.node.facts.required)
+  const readOnly = useFieldMode((s) => s.readOnly.has(path))
+  const errors = useFieldValidationErrors(path)
+  if (hidden) return null
   const Root = nativeDefaults.field.root
   return (
     <InjectFieldErrors errors={errors}>
@@ -152,13 +138,12 @@ function RecipeFieldRoot(
 
 function RecipeFieldControl(control: FieldControl) {
   const { register } = useFormContext()
-  const { isReadOnly } = useContext(FieldModeCtx)
   const errorA11y = errorA11yProps(useContext(FieldA11yContext))
   const path =
     control.kind === 'choicegroup'
       ? control.options[0]?.attrs.name
       : control.attrs.name
-  const readOnly = path ? isReadOnly(path) : false
+  const readOnly = useFieldMode((s) => (path ? s.readOnly.has(path) : false))
   switch (control.kind) {
     case 'input':
       return (
@@ -225,15 +210,6 @@ const recipeDefaults: ReactPartialDefaults = {
   field: { root: RecipeFieldRoot, control: RecipeFieldControl },
 }
 
-function snapshotMembership(mode: FieldModeSnapshot): string {
-  return [
-    [...mode.hidden].sort().join(),
-    [...mode.required].sort().join(),
-    [...mode.readOnly].sort().join(),
-    JSON.stringify(mode.setValues),
-  ].join('|')
-}
-
 export default function App() {
   const methods = useForm({
     resolver,
@@ -245,31 +221,9 @@ export default function App() {
       [TITLE]: '',
     },
   })
-  useWatch({
-    control: methods.control,
-    name: [...fieldMode.paths],
-  })
-  const nextMode = fieldMode(methods.getValues())
-  const membershipKey = snapshotMembership(nextMode)
-  // Membership, not object identity: a new snapshot every render would
-  // re-render every field.root that reads FieldModeCtx.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- membershipKey
-  const mode = useMemo(() => nextMode, [membershipKey])
-  const hiddenKey = [...mode.hidden].sort().join()
-  const setValuesKey = JSON.stringify(mode.setValues)
-
-  useEffect(() => {
-    const snapshot = fieldMode(methods.getValues())
-    for (const [path, value] of Object.entries(snapshot.setValues)) {
-      const current = methods.getValues(path)
-      if (current === value) continue
-      if (isBlank(current) && value == null) continue
-      methods.setValue(path, value as never, { shouldDirty: true })
-    }
-    for (const path of snapshot.hidden) methods.clearErrors(path)
-  }, [hiddenKey, setValuesKey, methods])
-
   const { SchemaFields } = useFormTree(tree, { defaults: recipeDefaults })
+  // Stable element: re-renders here (formState.errors) must not walk the tree.
+  const fields = useMemo(() => <SchemaFields />, [SchemaFields])
   const { errors } = methods.formState
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(
     null
@@ -287,22 +241,22 @@ export default function App() {
         not a FormFrame engine (ADR 056).
       </p>
 
-      <FieldModeCtx.Provider value={mode}>
-        <FormProvider {...methods}>
-          <form
-            noValidate
-            onSubmit={methods.handleSubmit((data) => {
-              setSubmitted({ ...data, ...mode.setValues })
-            })}
-          >
-            <ValidationSummary errors={rhfErrorsToList(errors)} form={tree} />
-            <SchemaFields />
-            <button type="submit" style={{ marginTop: 12 }}>
-              Submit
-            </button>
-          </form>
-        </FormProvider>
-      </FieldModeCtx.Provider>
+      <FormProvider {...methods}>
+        <form
+          noValidate
+          onSubmit={methods.handleSubmit((data) => {
+            setSubmitted({ ...data, ...fieldMode(data).setValues })
+          })}
+        >
+          <ValidationSummary errors={rhfErrorsToList(errors)} form={tree} />
+          <RhfFieldModeRuntime fieldMode={fieldMode}>
+            {fields}
+          </RhfFieldModeRuntime>
+          <button type="submit" style={{ marginTop: 12 }}>
+            Submit
+          </button>
+        </form>
+      </FormProvider>
 
       {submitted && (
         <>
@@ -329,7 +283,8 @@ export default function App() {
 //       schema ─► ajv.compile once ─► withFieldMode(fieldMode) ─► RHF resolver
 //
 //     per keystroke / submit:
-//       RHF values ─┬─► fieldMode(values) ─► context ─► hide / required / readOnly
+//       RHF values ─┬─► fieldMode(values) ─► store ─► per-path booleans ─► hide / required / readOnly
+//                   │     (notify only when membership changes; other fields stay put)
 //                   ├─► setValues effect ─► setValue / clearErrors
 //                   └─► resolver(data) ─► clone+omit hidden ─► same AJV fn
 //                                           ─► drop hidden errors, inject required

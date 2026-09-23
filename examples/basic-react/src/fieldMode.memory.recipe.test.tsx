@@ -1,7 +1,7 @@
 // In-memory React render stress (happy-dom + createRoot). No Playwright.
 // Counts field.root / field.control the same way render-counts.test.tsx does:
 // the renderer is a function; a real layout engine is not involved.
-import { act, createContext, useContext, useMemo } from 'react'
+import { act, useMemo } from 'react'
 import type { ReactElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -13,11 +13,8 @@ import {
   useFormTree,
   type ReactPartialDefaults,
 } from '@formframe/renderer-react'
-import {
-  createFieldMode,
-  type FieldModeSnapshot,
-  type UiRule,
-} from './fieldMode.recipe'
+import { createFieldMode, type UiRule } from './fieldMode.recipe'
+import { FieldModeProvider, useFieldMode } from './fieldModeStore.recipe'
 
 const N = 200
 type Counts = Record<string, number>
@@ -46,16 +43,6 @@ const tree = jsonSchemaToRuntimeTree(schema)
 const fieldMode = createFieldMode(rules)
 const evenCount = Math.ceil(N / 2)
 
-const FieldModeCtx = createContext<FieldModeSnapshot>({
-  isHidden: () => false,
-  isRequired: () => false,
-  isReadOnly: () => false,
-  hidden: new Set(),
-  required: new Set(),
-  readOnly: new Set(),
-  setValues: {},
-})
-
 const countsRef: { current: Counts } = { current: {} }
 
 function bump(key: string) {
@@ -71,10 +58,11 @@ function controlName(control: FieldControl): string {
 function CountingFieldRoot(
   props: Parameters<NonNullable<typeof nativeDefaults.field.root>>[0]
 ) {
-  bump(`field.root:${props.node.path}`)
-  const mode = useContext(FieldModeCtx)
+  const path = props.node.path
+  bump(`field.root:${path}`)
+  const hidden = useFieldMode((s) => s.hidden.has(path))
   const rendered = nativeDefaults.field.root(props)
-  if (mode.isHidden(props.node.path)) return null
+  if (hidden) return null
   return rendered
 }
 
@@ -87,26 +75,11 @@ const countingDefaults: ReactPartialDefaults = {
   field: { root: CountingFieldRoot, control: CountingFieldControl },
 }
 
-function membershipKey(mode: FieldModeSnapshot): string {
-  return [
-    [...mode.hidden].sort().join(),
-    [...mode.required].sort().join(),
-    [...mode.readOnly].sort().join(),
-    JSON.stringify(mode.setValues),
-  ].join('|')
-}
-
 function StressForm({ driver }: { driver: string }) {
-  const nextMode = fieldMode({ driver, title: 'Hi' })
-  const key = membershipKey(nextMode)
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- membership key
-  const mode = useMemo(() => nextMode, [key])
+  const mode = fieldMode({ driver, title: 'Hi' })
   const { SchemaFields } = useFormTree(tree, { defaults: countingDefaults })
-  return (
-    <FieldModeCtx.Provider value={mode}>
-      <SchemaFields />
-    </FieldModeCtx.Provider>
-  )
+  const fields = useMemo(() => <SchemaFields />, [SchemaFields])
+  return <FieldModeProvider mode={mode}>{fields}</FieldModeProvider>
 }
 
 let root: Root | null = null
@@ -175,7 +148,7 @@ describe('fieldMode.recipe · in-memory render stress', () => {
     expect(counts['field.control:f1'] ?? 0).toBe(0)
   })
 
-  it('toggling the driver re-renders every field.root and mounts previously hidden controls', () => {
+  it('toggling the driver re-renders only the unhidden field.roots and mounts their controls', () => {
     const counts: Counts = {}
     countsRef.current = counts
     mount(<StressForm driver="b" />)
@@ -184,10 +157,10 @@ describe('fieldMode.recipe · in-memory render stress', () => {
 
     rerender(<StressForm driver="a" />)
 
-    expect(counts['field.root:f0'] ?? 0).toBeGreaterThan(0)
-    expect(counts['field.root:f1'] ?? 0).toBeGreaterThan(0)
-    expect(counts['field.root:title'] ?? 0).toBeGreaterThan(0)
-    expect(fieldRootTotal(counts)).toBe(N + 2)
+    expect(counts['field.root:f0'] ?? 0).toBe(1)
+    expect(counts['field.root:f1'] ?? 0).toBe(0)
+    expect(counts['field.root:title'] ?? 0).toBe(0)
+    expect(fieldRootTotal(counts)).toBe(evenCount)
     expect(counts['field.control:f0'] ?? 0).toBeGreaterThan(0)
     expect(host?.querySelector('[name="f0"]')).toBeTruthy()
     expect(host?.querySelector('[name="f1"]')).toBe(shown)
